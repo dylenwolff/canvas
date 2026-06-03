@@ -480,16 +480,18 @@ function renderChatStep() {
         state.runtimeVariables[node.variable] =
           node.type === "number" ? Number(val) : val;
       }
+      addChatBubble("user", val); // show the user's answer in a bubble
       state.runtimeStepLog.push({
         nodeId: node.id,
         text: displayText,
         answer: val,
       });
       input.disabled = true;
+      footer.removeChild(row); // remove the input row after sending
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
         state.runtimeHistory.push(node.next);
-        renderLinearStep();
+        renderChatStep(); // ✅ stay in chat mode
       } else {
         showToast(
           node.next ? `Node "${node.next}" not found` : "No next node",
@@ -507,7 +509,7 @@ function renderChatStep() {
     });
 
     row.appendChild(input);
-    stepDiv.appendChild(row);
+    footer.appendChild(row); // ✅ put the input inside the footer
   } else if (node.type === "decision") {
     const result = evaluateDecision(node);
     state.runtimeStepLog.push({

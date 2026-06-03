@@ -97,6 +97,9 @@ function handleMenuAction(action) {
         "info",
       );
       break;
+    case "export-html":
+      exportToHTML();
+      break;
   }
 }
 
@@ -201,12 +204,44 @@ function handleImportConfirm() {
     DOM.importError.style.display = "block";
   }
 }
-
 function handleFileUpload(file) {
-  const r = new FileReader();
-  r.onload = () => {
-    DOM.importTextarea.value = r.result;
-    DOM.importError.style.display = "none";
+  if (!file) return;
+  const reader = new FileReader();
+
+  reader.onload = function () {
+    try {
+      // Use the file name (without extension) as the project name
+      const name = file.name.replace(/\.[^/.]+$/, "") || "Untitled";
+      const newProj = createEmptyProject(name);
+      state.projects.push(newProj);
+      state.activeProjectIndex = state.projects.length - 1;
+
+      // Import into the newly created project
+      importFromXML(reader.result);
+
+      // Close the import modal if it's open
+      closeImportModal();
+
+      // Render everything
+      renderAll();
+      updateEditorPanel();
+      renderTabs();
+      updateProjectNameDisplay();
+      markUnsaved();
+      showToast("Opened in new tab", "success");
+    } catch (e) {
+      // Remove the empty project we just added if import fails
+      if (state.projects.length > 1) {
+        state.projects.pop();
+        state.activeProjectIndex = state.projects.length - 1;
+      }
+      showToast("Failed to open file: " + e.message, "error");
+    }
   };
-  r.readAsText(file);
+
+  reader.onerror = function () {
+    showToast("Error reading file", "error");
+  };
+
+  reader.readAsText(file);
 }

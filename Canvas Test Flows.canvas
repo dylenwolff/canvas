@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow start="node_mpxpmchm_xfxdk">
+    <question id="node_mpxpmchm_xfxdk" type="choice" x="49710" y="49777">
+        <text>What do you want to test?
+
+this is a test</text>
+        <options>
+            <option next="node_mpxpotdb_z51jp">Decision box</option>
+            <option next="node_mpxps7fv_tenv2">Message box</option>
+            <option next="node_mpxq3shc_wqe4b">Copy box</option>
+            <option next="node_mpxq6ou3_rqyd5">Input text</option>
+            <option next="node_mpxpnb24_5yvwl">Input number</option>
+            <option next="node_mpxq0nh6_vby8t">End testing</option>
+        </options>
+    </question>
+    <question id="node_mpxpotdb_z51jp" type="number" x="50171" y="49790">
+        <text>Enter a number
+
+test</text>
+        <variable>number</variable>
+        <next>node_mpxpmllc_74rwa</next>
+    </question>
+    <question id="node_mpxpmllc_74rwa" type="decision" x="50461" y="49715">
+        <text>Decision?</text>
+        <decision variable="number" operator="&gt;" value="10">
+            <true next="node_mpxpmzo3_eh31w"/>
+            <false next="node_mpxpn11v_zxz3x"/>
+        </decision>
+    </question>
+    <question id="node_mpxpmzo3_eh31w" type="message" x="50760" y="49624">
+        <text>{number} is larger than 10</text>
+        <variant>success</variant>
+        <next>node_mpxpxs43_3vfwr</next>
+    </question>
+    <question id="node_mpxpxs43_3vfwr" type="choice" x="51111" y="49850">
+        <text>Do you want to test again?</text>
+        <options>
+            <option next="node_mpxpmchm_xfxdk">Yes</option>
+            <option next="node_mpxq0nh6_vby8t">No</option>
+        </options>
+    </question>
+    <question id="node_mpxq0nh6_vby8t" type="end" x="51411" y="49910">
+        <text>Testing has ended</text>
+    </question>
+    <question id="node_mpxpn11v_zxz3x" type="message" x="50755" y="49723">
+        <text>{number} is not larger than 10</text>
+        <variant>error</variant>
+        <next>node_mpxpxs43_3vfwr</next>
+    </question>
+    <question id="node_mpxps7fv_tenv2" type="choice" x="50092" y="49957">
+        <text>What type of message box?</text>
+        <options>
+            <option next="node_mpxpt03u_jzha7">Info</option>
+            <option next="node_mpxptdfs_15btx">Success</option>
+            <option next="node_mpxptncs_732eb">Warning</option>
+            <option next="node_mpxpuegy_ac5s0">Error</option>
+            <option next="node_mpxpv9l5_5edl5">Action</option>
+        </options>
+    </question>
+    <question id="node_mpxpt03u_jzha7" type="message" x="50457" y="49868">
+        <text>This is an info box</text>
+        <variant>info</variant>
+        <next>node_mpxpmwyi_9dc3u</next>
+    </question>
+    <question id="node_mpxpmwyi_9dc3u" type="choice" x="50765" y="49984">
+        <text>Do you want to check message box again?</text>
+        <options>
+            <option next="node_mpxps7fv_tenv2">Yes</option>
+            <option next="node_mpxpxs43_3vfwr">No</option>
+        </options>
+    </question>
+    <question id="node_mpxptdfs_15btx" type="message" x="50458" y="49945">
+        <text>This is a success box</text>
+        <variant>success</variant>
+        <next>node_mpxpmwyi_9dc3u</next>
+    </question>
+    <question id="node_mpxptncs_732eb" type="message" x="50456" y="50022">
+        <text>This is a warning box</text>
+        <variant>warning</variant>
+        <next>node_mpxpmwyi_9dc3u</next>
+    </question>
+    <question id="node_mpxpuegy_ac5s0" type="message" x="50454" y="50103">
+        <text>This is an error box</text>
+        <variant>error</variant>
+        <next>node_mpxpmwyi_9dc3u</next>
+    </question>
+    <question id="node_mpxpv9l5_5edl5" type="message" x="50450" y="50182">
+        <text>This is an action box</text>
+        <variant>action</variant>
+        <next>node_mpxpmwyi_9dc3u</next>
+    </question>
+    <question id="node_mpxq3shc_wqe4b" type="copybox" x="50099" y="50153">
+        <text>This is a copy box</text>
+        <copy_content>Lorem ipsum dolor sit amet, 
+
+Consectetur adipiscing elit. Vivamus vitae leo non tortor suscipit tempus. Integer hendrerit enim a erat pulvinar luctus. &lt;u&gt;Class aptent taciti sociosqu ad litora torquent &lt;i&gt;&lt;b&gt;per conubia nostra, per inceptos himenaeos&lt;/b&gt;&lt;/i&gt;&lt;/u&gt;&lt;i&gt;&lt;b&gt;. In nec mi condimentum, dapibus turpis&lt;/b&gt; vitae, maximus sem. &lt;/i&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;ol&gt;&lt;li&gt;hello&lt;/li&gt;&lt;li&gt;test
+
+Vivamus sagittis odio et leo luctus, vitae euismod ipsum tempor. Vestibulum a ornare magna. Sed commodo, nisi id rutrum volutpat, nisl tortor scelerisque nibh, et ornare leo ligula a enim. Mauris interdum nisl nunc, id ullamcorper lorem blandit a.&lt;/li&gt;&lt;/ol&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;ul&gt;&lt;li&gt;list item 1&lt;/li&gt;&lt;li&gt;list item 2&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;</copy_content>
+        <next>node_mpxpxs43_3vfwr</next>
+    </question>
+    <question id="node_mpxq6ou3_rqyd5" type="input" x="50078" y="50274">
+        <text>Enter text:</text>
+        <variable>message</variable>
+        <next>node_mpxq6uo7_htdll</next>
+    </question>
+    <question id="node_mpxq6uo7_htdll" type="message" x="50428" y="50306">
+        <text>You entered {message}</text>
+        <variant>info</variant>
+        <next>node_mpxpxs43_3vfwr</next>
+    </question>
+    <question id="node_mpxpnb24_5yvwl" type="number" x="50072" y="50384">
+        <text>Enter number:</text>
+        <variable>numInput</variable>
+        <next>node_mpxq7ouy_cxc69</next>
+    </question>
+    <question id="node_mpxq7ouy_cxc69" type="message" x="50416" y="50414">
+        <text>Message text {numInput}</text>
+        <variant>info</variant>
+        <next>node_mpxpxs43_3vfwr</next>
+    </question>
+</flow>

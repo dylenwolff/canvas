@@ -190,6 +190,9 @@
             <div class="menu-action" data-action="save-project">
               Save (Ctrl+S)
             </div>
+            <div class="menu-action" data-action="export-html">
+              Export as HTML
+            </div>
             <div class="menu-separator"></div>
             <div class="menu-label">Recent Flows</div>
             <div id="recentFilesList" class="recent-list"></div>
@@ -553,9 +556,13 @@
     </div>
 
     <div class="runtime-panel" id="runtimePanel" style="display: none">
-      <div class="runtime-panel-header">
-        <div class="runtime-header-spacer"></div>
-        <span class="runtime-panel-title" id="runtimePanelTitle">Runtime</span>
+      <div class="runtime-panel-header navbar">
+        <span class="navbar-logo"
+          >Canvas<font style="color: #db0011; font-size: 1.4rem; line-height: 0"
+            >.</font
+          ></span
+        >
+        <span class="navbar-title" id="runtimePanelTitle">Runtime</span>
         <button class="btn btn-ghost btn-icon" id="btnClosePanelRuntime">
           ×
         </button>
@@ -598,5 +605,7 @@
 
     <!-- Application initialisation (init, renderTabs, event wiring) -->
     <script src="js/app.js"></script>
+
+    <script src="js/exportHTML.js"></script>
   </body>
 </html>

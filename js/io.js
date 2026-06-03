@@ -6,55 +6,69 @@ function exportToXML() {
     showToast("Set a start node before saving", "error");
     return;
   }
+
   const visited = new Set();
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<flow start="${escapeXml(proj.startNodeId)}">\n`;
-  function serialize(id, indent) {
+
+  // We serialize nodes one by one and append them AFTER the current node,
+  // never inside it.
+  function serializeNode(id) {
     if (visited.has(id)) return "";
     visited.add(id);
     const node = proj.nodes.get(id);
     if (!node) return "";
-    let out = `${"    ".repeat(indent)}<question id="${escapeXml(node.id)}" type="${escapeXml(node.type)}" x="${node.x}" y="${node.y}">\n`;
-    out += `${"    ".repeat(indent + 1)}<text>${escapeXml(node.text)}</text>\n`;
+
+    let out = `    <question id="${escapeXml(node.id)}" type="${escapeXml(node.type)}" x="${node.x}" y="${node.y}">\n`;
+    out += `        <text>${escapeXml(node.text)}</text>\n`;
+
     if (node.type === "choice" && node.options) {
-      out += `${"    ".repeat(indent + 1)}<options>\n`;
-      node.options.forEach((o) => {
-        out += `${"    ".repeat(indent + 2)}<option next="${escapeXml(o.next || "")}">${escapeXml(o.text)}</option>\n`;
-        if (o.next) out += serialize(o.next, indent + 2);
+      out += `        <options>\n`;
+      node.options.forEach((opt) => {
+        out += `            <option next="${escapeXml(opt.next || "")}">${escapeXml(opt.text)}</option>\n`;
       });
-      out += `${"    ".repeat(indent + 1)}</options>\n`;
+      out += `        </options>\n`;
     } else if (node.type === "decision") {
-      out += `${"    ".repeat(indent + 1)}<decision variable="${escapeXml(node.variable || "")}" operator="${escapeXml(node.operator || "equals")}" value="${escapeXml(node.value || "")}">\n`;
-      out += `${"    ".repeat(indent + 2)}<true next="${escapeXml(node.trueNext || "")}"/>\n${"    ".repeat(indent + 2)}<false next="${escapeXml(node.falseNext || "")}"/>\n${"    ".repeat(indent + 1)}</decision>\n`;
-      if (node.trueNext) out += serialize(node.trueNext, indent + 1);
-      if (node.falseNext) out += serialize(node.falseNext, indent + 1);
+      out += `        <decision variable="${escapeXml(node.variable || "")}" operator="${escapeXml(node.operator || "equals")}" value="${escapeXml(node.value || "")}">\n`;
+      out += `            <true next="${escapeXml(node.trueNext || "")}"/>\n`;
+      out += `            <false next="${escapeXml(node.falseNext || "")}"/>\n`;
+      out += `        </decision>\n`;
     } else if (node.type === "message") {
       if (node.variant)
-        out += `${"    ".repeat(indent + 1)}<variant>${escapeXml(node.variant)}</variant>\n`;
-      if (node.next) {
-        out += `${"    ".repeat(indent + 1)}<next>${escapeXml(node.next)}</next>\n`;
-        out += serialize(node.next, indent + 1);
-      }
+        out += `        <variant>${escapeXml(node.variant)}</variant>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type === "copybox") {
-      out += `${"    ".repeat(indent + 1)}<copy_content>${escapeXml(node.copyContent || "")}</copy_content>\n`;
-      if (node.next) {
-        out += `${"    ".repeat(indent + 1)}<next>${escapeXml(node.next)}</next>\n`;
-        out += serialize(node.next, indent + 1);
-      }
+      out += `        <copy_content>${escapeXml(node.copyContent || "")}</copy_content>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type === "input" || node.type === "number") {
       if (node.variable)
-        out += `${"    ".repeat(indent + 1)}<variable>${escapeXml(node.variable)}</variable>\n`;
-      if (node.next) {
-        out += `${"    ".repeat(indent + 1)}<next>${escapeXml(node.next)}</next>\n`;
-        out += serialize(node.next, indent + 1);
-      }
+        out += `        <variable>${escapeXml(node.variable)}</variable>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type !== "end" && node.next) {
-      out += `${"    ".repeat(indent + 1)}<next>${escapeXml(node.next)}</next>\n`;
-      out += serialize(node.next, indent + 1);
+      out += `        <next>${escapeXml(node.next)}</next>\n`;
     }
-    out += `${"    ".repeat(indent)}</question>\n`;
-    return out;
+
+    out += `    </question>\n`;
+
+    // Now recursively serialize child nodes that are referenced by this node,
+    // but **after** the question itself – never inside.
+    let children = "";
+    if (node.type === "choice" && node.options) {
+      node.options.forEach((opt) => {
+        if (opt.next) children += serializeNode(opt.next);
+      });
+    } else if (node.type === "decision") {
+      if (node.trueNext) children += serializeNode(node.trueNext);
+      if (node.falseNext) children += serializeNode(node.falseNext);
+    } else if (node.type !== "end" && node.next) {
+      children += serializeNode(node.next);
+    }
+
+    return out + children;
   }
-  xml += serialize(proj.startNodeId, 0) + "</flow>";
+
+  xml += serializeNode(proj.startNodeId);
+  xml += "</flow>";
+
   const blob = new Blob([xml], { type: "application/xml" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -70,76 +84,99 @@ function exportToXML() {
 function exportToXMLString() {
   const proj = currentProject();
   if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) return null;
+
   const visited = new Set();
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<flow start="${escapeXml(proj.startNodeId)}">\n`;
-  function serialize(id, indent) {
+
+  function serializeNode(id) {
     if (visited.has(id)) return "";
     visited.add(id);
     const node = proj.nodes.get(id);
     if (!node) return "";
-    let out = `${"    ".repeat(indent)}<question id="${escapeXml(node.id)}" type="${escapeXml(node.type)}" x="${node.x}" y="${node.y}">\n`;
-    out += `${"    ".repeat(indent + 1)}<text>${escapeXml(node.text)}</text>\n`;
+
+    let out = `    <question id="${escapeXml(node.id)}" type="${escapeXml(node.type)}" x="${node.x}" y="${node.y}">\n`;
+    out += `        <text>${escapeXml(node.text)}</text>\n`;
+
     if (node.type === "choice" && node.options) {
-      out += `${"    ".repeat(indent + 1)}<options>\n`;
-      node.options.forEach((o) => {
-        out += `${"    ".repeat(indent + 2)}<option next="${escapeXml(o.next || "")}">${escapeXml(o.text)}</option>\n`;
-        if (o.next) out += serialize(o.next, indent + 2);
+      out += `        <options>\n`;
+      node.options.forEach((opt) => {
+        out += `            <option next="${escapeXml(opt.next || "")}">${escapeXml(opt.text)}</option>\n`;
       });
-      out += `${"    ".repeat(indent + 1)}</options>\n`;
+      out += `        </options>\n`;
     } else if (node.type === "decision") {
-      out += `${"    ".repeat(indent + 1)}<decision variable="${escapeXml(node.variable || "")}" operator="${escapeXml(node.operator || "equals")}" value="${escapeXml(node.value || "")}">\n`;
-      out += `${"    ".repeat(indent + 2)}<true next="${escapeXml(node.trueNext || "")}"/>\n${"    ".repeat(indent + 2)}<false next="${escapeXml(node.falseNext || "")}"/>\n${"    ".repeat(indent + 1)}</decision>\n`;
-      if (node.trueNext) out += serialize(node.trueNext, indent + 1);
-      if (node.falseNext) out += serialize(node.falseNext, indent + 1);
+      out += `        <decision variable="${escapeXml(node.variable || "")}" operator="${escapeXml(node.operator || "equals")}" value="${escapeXml(node.value || "")}">\n`;
+      out += `            <true next="${escapeXml(node.trueNext || "")}"/>\n`;
+      out += `            <false next="${escapeXml(node.falseNext || "")}"/>\n`;
+      out += `        </decision>\n`;
     } else if (node.type === "message") {
       if (node.variant)
-        out += `${"    ".repeat(indent + 1)}<variant>${escapeXml(node.variant)}</variant>\n`;
-      if (node.next) {
-        out += `${"    ".repeat(indent + 1)}<next>${escapeXml(node.next)}</next>\n`;
-        out += serialize(node.next, indent + 1);
-      }
+        out += `        <variant>${escapeXml(node.variant)}</variant>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type === "copybox") {
-      out += `${"    ".repeat(indent + 1)}<copy_content>${escapeXml(node.copyContent || "")}</copy_content>\n`;
-      if (node.next) {
-        out += `${"    ".repeat(indent + 1)}<next>${escapeXml(node.next)}</next>\n`;
-        out += serialize(node.next, indent + 1);
-      }
+      out += `        <copy_content>${escapeXml(node.copyContent || "")}</copy_content>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type === "input" || node.type === "number") {
       if (node.variable)
-        out += `${"    ".repeat(indent + 1)}<variable>${escapeXml(node.variable)}</variable>\n`;
-      if (node.next) {
-        out += `${"    ".repeat(indent + 1)}<next>${escapeXml(node.next)}</next>\n`;
-        out += serialize(node.next, indent + 1);
-      }
+        out += `        <variable>${escapeXml(node.variable)}</variable>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type !== "end" && node.next) {
-      out += `${"    ".repeat(indent + 1)}<next>${escapeXml(node.next)}</next>\n`;
-      out += serialize(node.next, indent + 1);
+      out += `        <next>${escapeXml(node.next)}</next>\n`;
     }
-    out += `${"    ".repeat(indent)}</question>\n`;
-    return out;
+
+    out += `    </question>\n`;
+
+    let children = "";
+    if (node.type === "choice" && node.options) {
+      node.options.forEach((opt) => {
+        if (opt.next) children += serializeNode(opt.next);
+      });
+    } else if (node.type === "decision") {
+      if (node.trueNext) children += serializeNode(node.trueNext);
+      if (node.falseNext) children += serializeNode(node.falseNext);
+    } else if (node.type !== "end" && node.next) {
+      children += serializeNode(node.next);
+    }
+
+    return out + children;
   }
-  xml += serialize(proj.startNodeId, 0) + "</flow>";
+
+  xml += serializeNode(proj.startNodeId);
+  xml += "</flow>";
   return xml;
 }
-
 function importFromXML(xmlStr) {
-  const doc = new DOMParser().parseFromString(xmlStr, "application/xml");
-  if (doc.querySelector("parsererror")) throw new Error("Invalid XML");
+  // Remove BOM, carriage returns, and trim surrounding whitespace
+  const cleanXml = xmlStr
+    .replace(/^\uFEFF/, "") // strip BOM
+    .replace(/\r/g, "") // remove Windows carriage returns
+    .trim();
+
+  const doc = new DOMParser().parseFromString(cleanXml, "application/xml");
+  const errorNode = doc.querySelector("parsererror");
+  if (errorNode) {
+    // Log the actual parser error for debugging
+    console.error("XML Parser Error:", errorNode.textContent);
+    throw new Error("Invalid XML: " + errorNode.textContent);
+  }
   const flow = doc.querySelector("flow");
-  if (!flow) throw new Error("No <flow>");
+  if (!flow) throw new Error("No <flow> element found");
   const startId = flow.getAttribute("start");
-  if (!startId) throw new Error("Missing start");
+  if (!startId) throw new Error("Missing start attribute");
+
   const newNodes = new Map();
-  doc.querySelectorAll("question").forEach((q) => {
+
+  // Parse each question as a direct child of <flow>
+  flow.querySelectorAll(":scope > question").forEach((q) => {
     const id = q.getAttribute("id"),
       type = q.getAttribute("type") || "message";
     const text = q.querySelector("text")?.textContent.trim() || "";
     const x = parseFloat(q.getAttribute("x")) || 100 + Math.random() * 200;
     const y = parseFloat(q.getAttribute("y")) || 100 + Math.random() * 200;
     const node = { id, type, text, x, y };
+
     if (type === "choice") {
       node.options = [];
-      q.querySelectorAll("option").forEach((o) =>
+      q.querySelectorAll("options > option").forEach((o) =>
         node.options.push({
           text: o.textContent.trim(),
           next: o.getAttribute("next") || "",
@@ -170,6 +207,8 @@ function importFromXML(xmlStr) {
     }
     newNodes.set(id, node);
   });
+
+  // Layout if no positions
   const hasPos = Array.from(newNodes.values()).some(
     (n) => n.x !== undefined && n.y !== undefined,
   );
@@ -181,6 +220,7 @@ function importFromXML(xmlStr) {
       n.y = 80 + Math.floor(i / cols) * 180;
     });
   }
+
   const proj = currentProject();
   pushUndo();
   proj.nodes = newNodes;

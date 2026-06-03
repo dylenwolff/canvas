@@ -5,6 +5,7 @@ function renderAll() {
   renderConnections();
   renderMinimap();
   updateZoomDisplay();
+  markUnsaved(); // <-- add this line
 }
 
 function renderNodes() {
