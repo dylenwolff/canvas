@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Animated Background -->
+    <div class="bg-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="orb orb-4"></div>
+    </div>
+    <div class="bg-grid"></div>
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="logo">
+            <span class="logo-wordmark"
+              >Canvas<font style="color: red; font-size: 2rem; line-height: 0"
+                >.</font
+              ></span
+            >
+          </div>
+          <span class="badge">v1.0</span
+          ><span
+            class="project-name"
+            id="projectName"
+            contenteditable="true"
+            spellcheck="false"
+            >Untitled</span
+          >
+        </div>
+        <div class="header-center">
+          <button class="btn btn-ghost" id="btnUndo" title="Undo (Ctrl+Z)">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+            <span class="btn-label">Undo</span>
+          </button>
+          <button class="btn btn-ghost" id="btnRedo" title="Redo (Ctrl+Y)">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            <span class="btn-label">Redo</span>
+          </button>
+          <div class="header-divider"></div>
+          <button class="btn btn-primary" id="btnRunFlow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            <span class="btn-label">Run Flow</span>
+          </button>
+          <button class="btn btn-outline" id="btnSave">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+              />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            <span class="btn-label">Save</span>
+          </button>
+          <button class="btn btn-outline" id="btnOpen">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+              />
+            </svg>
+            <span class="btn-label">Open</span>
+          </button>
+        </div>
+        <div class="header-right">
+          <button class="btn btn-ghost btn-icon" id="btnZoomIn" title="Zoom In">
+            +</button
+          ><button
+            class="btn btn-ghost btn-icon"
+            id="btnZoom100"
+            title="Zoom 100%"
+          >
+            1:1
+          </button>
+          <span class="zoom-level" id="zoomLevel">100%</span>
+          <button
+            class="btn btn-ghost btn-icon"
+            id="btnZoomOut"
+            title="Zoom Out"
+          >
+            −
+          </button>
+          <button
+            class="btn btn-ghost btn-icon"
+            id="btnFitView"
+            title="Fit View"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <rect x="7" y="7" width="10" height="10" rx="1" />
+            </svg>
+          </button>
+        </div>
+      </header>
+      <nav class="menu-bar" id="menuBar">
+        <div class="menu-item" data-menu="file">
+          <span>File</span>
+          <div class="menu-dropdown" id="dropdown-file">
+            <div class="menu-action" data-action="new-project">New Project</div>
+            <div class="menu-action" data-action="open-file">Open</div>
+            <div class="menu-action" data-action="save-project">
+              Save (Ctrl+S)
+            </div>
+
+            <div class="menu-separator"></div>
+            <div class="menu-label">Recent Flows</div>
+            <div id="recentFilesList" class="recent-list"></div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="edit">
+          <span>Edit</span>
+          <div class="menu-dropdown" id="dropdown-edit">
+            <div class="menu-action" data-action="undo">Undo (Ctrl+Z)</div>
+            <div class="menu-action" data-action="redo">Redo (Ctrl+Y)</div>
+            <div class="menu-separator"></div>
+            <div class="menu-action" data-action="delete-node">
+              Delete Node (Del)
+            </div>
+            <div class="menu-action" data-action="duplicate-node">
+              Duplicate Node (Ctrl+D)
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-action" data-action="clear-canvas">
+              Clear Canvas
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="view">
+          <span>View</span>
+          <div class="menu-dropdown" id="dropdown-view">
+            <div class="menu-action" data-action="zoom-in">Zoom In</div>
+            <div class="menu-action" data-action="zoom-out">Zoom Out</div>
+            <div class="menu-action" data-action="fit-view">
+              Fit View (Ctrl+0)
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-action" data-action="toggle-grid">Toggle Grid</div>
+            <div class="menu-action" data-action="toggle-minimap">
+              Toggle Minimap
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="help">
+          <span>Help</span>
+          <div class="menu-dropdown" id="dropdown-help">
+            <div class="menu-action" data-action="about">About Canvas.</div>
+            <div class="menu-action" data-action="shortcuts">
+              Keyboard Shortcuts
+            </div>
+          </div>
+        </div>
+      </nav>
+      <!-- Tab Bar -->
+      <div class="tab-bar" id="tabBar">
+        <button
+          class="btn btn-ghost btn-icon tab-add-btn"
+          id="btnAddTab"
+          title="New Tab"
+        >
+          +
+        </button>
+        <div class="tabs-container" id="tabsContainer"></div>
+      </div>
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Left Sidebar - Node Palette -->
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-header">
+            <h3>Node Types</h3>
+            <span class="sidebar-subtitle">Drag to canvas</span>
+          </div>
+          <div class="node-palette" id="nodePalette">
+            <div class="palette-node" data-type="choice" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(139, 92, 246, 0.3); color: #a78bfa"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Choice</span>
+                <span class="palette-node-desc">Branching question</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="decision" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(249, 115, 22, 0.3); color: #fdba74"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M21 2H3v6l7 4-7 4v6h18v-6l-7-4 7-4V2z"
+                    stroke-linejoin="round"
+                  />
+                  <line
+                    x1="12"
+                    y1="12"
+                    x2="12"
+                    y2="12"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Decision</span>
+                <span class="palette-node-desc">True/False branch</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="message" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(59, 130, 246, 0.3); color: #60a5fa"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <polyline points="7 10 12 15 17 10" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Message</span>
+                <span class="palette-node-desc">Display text</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="copybox" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(14, 165, 233, 0.3); color: #38bdf8"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="8" y="2" width="12" height="16" rx="2" />
+                  <path
+                    d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h2"
+                  />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Copy Box</span>
+                <span class="palette-node-desc">Text + copy button</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="input" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(245, 158, 11, 0.3); color: #fbbf24"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <line x1="8" y1="10" x2="16" y2="10" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Input</span>
+                <span class="palette-node-desc">Text entry</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="number" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(236, 72, 153, 0.3); color: #f472b6"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <text
+                    x="12"
+                    y="16"
+                    text-anchor="middle"
+                    font-size="12"
+                    font-weight="700"
+                    fill="currentColor"
+                    stroke="none"
+                  >
+                    #
+                  </text>
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Number</span>
+                <span class="palette-node-desc">Numeric entry</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="end" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(239, 68, 68, 0.3); color: #f87171"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <rect x="8" y="8" width="8" height="8" rx="2" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">End</span>
+                <span class="palette-node-desc">Terminal point</span>
+              </div>
+            </div>
+          </div>
+          <div class="sidebar-footer">
+            <button class="btn btn-ghost btn-sm" id="btnClearCanvas">
+              Clear Canvas
+            </button>
+          </div>
+        </aside>
+
+        <!-- Canvas Area -->
+        <div class="canvas-container" id="canvasContainer">
+          <div class="canvas-workspace" id="canvasWorkspace">
+            <svg class="connections-svg" id="connectionsSvg"></svg>
+            <div class="nodes-layer" id="nodesLayer"></div>
+            <svg class="drag-line-svg" id="dragLineSvg">
+              <path
+                id="dragLinePath"
+                d=""
+                stroke="rgba(139, 92, 246, 0.8)"
+                stroke-width="2.5"
+                fill="none"
+                stroke-dasharray="8,4"
+                style="display: none"
+              />
+            </svg>
+          </div>
+          <div class="minimap" id="minimap">
+            <canvas id="minimapCanvas" width="160" height="120"></canvas>
+            <div class="minimap-viewport" id="minimapViewport"></div>
+          </div>
+        </div>
+
+        <!-- Right Panel - Node Editor -->
+        <div class="editor-panel" id="editorPanel">
+          <div class="panel-header">
+            <h3>Node Editor</h3>
+            <button
+              class="btn btn-ghost btn-icon btn-close-panel"
+              id="btnClosePanel"
+            >
+              ×
+            </button>
+          </div>
+          <div class="panel-body" id="panelBody">
+            <div class="panel-empty" id="panelEmpty">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                opacity="0.4"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                />
+              </svg>
+              <p>Select a node to edit</p>
+            </div>
+            <div class="panel-form" id="panelForm" style="display: none"></div>
+          </div>
+          <div class="panel-footer" id="panelFooter" style="display: none">
+            <button class="btn btn-danger btn-sm" id="btnDeleteNode">
+              Delete Node
+            </button>
+            <button class="btn btn-ghost btn-sm" id="btnDuplicateNode">
+              Duplicate
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Runtime Modal -->
+    <div class="modal-overlay" id="runtimeModal" style="display: none">
+      <div class="modal-content runtime-modal">
+        <button
+          class="btn btn-ghost btn-icon runtime-close-btn"
+          id="btnCloseRuntime"
+        >
+          ×
+        </button>
+        <div class="modal-body" id="runtimeBody"></div>
+        <div class="runtime-progress" id="runtimeProgress">
+          <div class="progress-dots" id="progressDots"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal-overlay" id="importModal" style="display: none">
+      <div class="modal-content import-modal">
+        <div class="modal-header">
+          <h2>Import Canvas</h2>
+          <button class="btn btn-ghost btn-icon" id="btnCloseImport">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="import-dropzone" id="importDropzone">
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <p>Drop .canvas file here or click to open</p>
+            <input
+              type="file"
+              id="importFileInput"
+              accept=".canvas"
+              style="display: none"
+            />
+          </div>
+          <div class="import-divider"><span>or paste XML</span></div>
+          <textarea
+            id="importTextarea"
+            class="import-textarea"
+            placeholder="Paste your .canvas content here..."
+          ></textarea>
+          <button class="btn btn-primary btn-full" id="btnImportConfirm">
+            Import
+          </button>
+          <div
+            class="import-error"
+            id="importError"
+            style="display: none"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
