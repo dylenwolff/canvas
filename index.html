@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- Animated Background -->
     <div class="bg-orbs">
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
@@ -21,9 +20,7 @@
     </div>
     <div class="bg-grid"></div>
 
-    <!-- Main App Container -->
     <div id="app" class="app-container">
-      <!-- Header -->
       <header class="app-header">
         <div class="header-left">
           <div class="logo">
@@ -33,8 +30,8 @@
               ></span
             >
           </div>
-          <span class="badge">v1.0</span
-          ><span
+          <span class="badge">v1.0</span>
+          <span
             class="project-name"
             id="projectName"
             contenteditable="true"
@@ -53,9 +50,8 @@
               stroke-width="2.5"
             >
               <polyline points="1 4 1 10 7 10" />
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-            </svg>
-            <span class="btn-label">Undo</span>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg
+            ><span class="btn-label">Undo</span>
           </button>
           <button class="btn btn-ghost" id="btnRedo" title="Redo (Ctrl+Y)">
             <svg
@@ -67,16 +63,53 @@
               stroke-width="2.5"
             >
               <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-            <span class="btn-label">Redo</span>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg
+            ><span class="btn-label">Redo</span>
           </button>
           <div class="header-divider"></div>
-          <button class="btn btn-primary" id="btnRunFlow">
+          <button
+            class="btn btn-primary"
+            id="btnRunFlow"
+            title="Step‑by‑step modal"
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-            <span class="btn-label">Run Flow</span>
+              <polygon points="5 3 19 12 5 21 5 3" /></svg
+            ><span class="btn-label">Step</span>
+          </button>
+          <button class="btn btn-primary" id="btnRunLinear" title="Linear list">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <circle cx="4" cy="6" r="1.5" />
+              <circle cx="4" cy="12" r="1.5" />
+              <circle cx="4" cy="18" r="1.5" /></svg
+            ><span class="btn-label">Linear</span>
+          </button>
+          <button
+            class="btn btn-primary"
+            id="btnRunChat"
+            title="Chat conversation"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              /></svg
+            ><span class="btn-label">Chat</span>
           </button>
           <button class="btn btn-outline" id="btnSave">
             <svg
@@ -91,9 +124,8 @@
                 d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
               />
               <polyline points="17 21 17 13 7 13 7 21" />
-              <polyline points="7 3 7 8 15 8" />
-            </svg>
-            <span class="btn-label">Save</span>
+              <polyline points="7 3 7 8 15 8" /></svg
+            ><span class="btn-label">Save</span>
           </button>
           <button class="btn btn-outline" id="btnOpen">
             <svg
@@ -106,20 +138,20 @@
             >
               <path
                 d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
-              />
-            </svg>
-            <span class="btn-label">Open</span>
+              /></svg
+            ><span class="btn-label">Open</span>
           </button>
         </div>
         <div class="header-right">
-          <button class="btn btn-ghost btn-icon" id="btnZoomIn" title="Zoom In">
-            +</button
-          ><button
+          <button
             class="btn btn-ghost btn-icon"
             id="btnZoom100"
             title="Zoom 100%"
           >
             1:1
+          </button>
+          <button class="btn btn-ghost btn-icon" id="btnZoomIn" title="Zoom In">
+            +
           </button>
           <span class="zoom-level" id="zoomLevel">100%</span>
           <button
@@ -148,6 +180,7 @@
           </button>
         </div>
       </header>
+
       <nav class="menu-bar" id="menuBar">
         <div class="menu-item" data-menu="file">
           <span>File</span>
@@ -157,7 +190,6 @@
             <div class="menu-action" data-action="save-project">
               Save (Ctrl+S)
             </div>
-
             <div class="menu-separator"></div>
             <div class="menu-label">Recent Flows</div>
             <div id="recentFilesList" class="recent-list"></div>
@@ -206,7 +238,7 @@
           </div>
         </div>
       </nav>
-      <!-- Tab Bar -->
+
       <div class="tab-bar" id="tabBar">
         <button
           class="btn btn-ghost btn-icon tab-add-btn"
@@ -217,9 +249,8 @@
         </button>
         <div class="tabs-container" id="tabsContainer"></div>
       </div>
-      <!-- Main Content -->
+
       <div class="main-content">
-        <!-- Left Sidebar - Node Palette -->
         <aside class="sidebar" id="sidebar">
           <div class="sidebar-header">
             <h3>Node Types</h3>
@@ -244,8 +275,8 @@
                 </svg>
               </div>
               <div class="palette-node-info">
-                <span class="palette-node-name">Choice</span>
-                <span class="palette-node-desc">Branching question</span>
+                <span class="palette-node-name">Choice</span
+                ><span class="palette-node-desc">Branching question</span>
               </div>
             </div>
             <div class="palette-node" data-type="decision" draggable="true">
@@ -276,8 +307,8 @@
                 </svg>
               </div>
               <div class="palette-node-info">
-                <span class="palette-node-name">Decision</span>
-                <span class="palette-node-desc">True/False branch</span>
+                <span class="palette-node-name">Decision</span
+                ><span class="palette-node-desc">True/False branch</span>
               </div>
             </div>
             <div class="palette-node" data-type="message" draggable="true">
@@ -298,8 +329,8 @@
                 </svg>
               </div>
               <div class="palette-node-info">
-                <span class="palette-node-name">Message</span>
-                <span class="palette-node-desc">Display text</span>
+                <span class="palette-node-name">Message</span
+                ><span class="palette-node-desc">Display text</span>
               </div>
             </div>
             <div class="palette-node" data-type="copybox" draggable="true">
@@ -322,8 +353,8 @@
                 </svg>
               </div>
               <div class="palette-node-info">
-                <span class="palette-node-name">Copy Box</span>
-                <span class="palette-node-desc">Text + copy button</span>
+                <span class="palette-node-name">Copy Box</span
+                ><span class="palette-node-desc">Text + copy button</span>
               </div>
             </div>
             <div class="palette-node" data-type="input" draggable="true">
@@ -344,8 +375,8 @@
                 </svg>
               </div>
               <div class="palette-node-info">
-                <span class="palette-node-name">Input</span>
-                <span class="palette-node-desc">Text entry</span>
+                <span class="palette-node-name">Input</span
+                ><span class="palette-node-desc">Text entry</span>
               </div>
             </div>
             <div class="palette-node" data-type="number" draggable="true">
@@ -376,8 +407,8 @@
                 </svg>
               </div>
               <div class="palette-node-info">
-                <span class="palette-node-name">Number</span>
-                <span class="palette-node-desc">Numeric entry</span>
+                <span class="palette-node-name">Number</span
+                ><span class="palette-node-desc">Numeric entry</span>
               </div>
             </div>
             <div class="palette-node" data-type="end" draggable="true">
@@ -398,8 +429,8 @@
                 </svg>
               </div>
               <div class="palette-node-info">
-                <span class="palette-node-name">End</span>
-                <span class="palette-node-desc">Terminal point</span>
+                <span class="palette-node-name">End</span
+                ><span class="palette-node-desc">Terminal point</span>
               </div>
             </div>
           </div>
@@ -410,7 +441,6 @@
           </div>
         </aside>
 
-        <!-- Canvas Area -->
         <div class="canvas-container" id="canvasContainer">
           <div class="canvas-workspace" id="canvasWorkspace">
             <svg class="connections-svg" id="connectionsSvg"></svg>
@@ -419,7 +449,7 @@
               <path
                 id="dragLinePath"
                 d=""
-                stroke="rgba(139, 92, 246, 0.8)"
+                stroke="rgba(139,92,246,0.8)"
                 stroke-width="2.5"
                 fill="none"
                 stroke-dasharray="8,4"
@@ -433,7 +463,6 @@
           </div>
         </div>
 
-        <!-- Right Panel - Node Editor -->
         <div class="editor-panel" id="editorPanel">
           <div class="panel-header">
             <h3>Node Editor</h3>
@@ -446,20 +475,6 @@
           </div>
           <div class="panel-body" id="panelBody">
             <div class="panel-empty" id="panelEmpty">
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                opacity="0.4"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path
-                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
-                />
-              </svg>
               <p>Select a node to edit</p>
             </div>
             <div class="panel-form" id="panelForm" style="display: none"></div>
@@ -476,7 +491,6 @@
       </div>
     </div>
 
-    <!-- Runtime Modal -->
     <div class="modal-overlay" id="runtimeModal" style="display: none">
       <div class="modal-content runtime-modal">
         <button
@@ -492,7 +506,6 @@
       </div>
     </div>
 
-    <!-- Import Modal -->
     <div class="modal-overlay" id="importModal" style="display: none">
       <div class="modal-content import-modal">
         <div class="modal-header">
@@ -539,7 +552,51 @@
       </div>
     </div>
 
+    <div class="runtime-panel" id="runtimePanel" style="display: none">
+      <div class="runtime-panel-header">
+        <div class="runtime-header-spacer"></div>
+        <span class="runtime-panel-title" id="runtimePanelTitle">Runtime</span>
+        <button class="btn btn-ghost btn-icon" id="btnClosePanelRuntime">
+          ×
+        </button>
+      </div>
+      <div class="runtime-panel-body" id="runtimePanelBody"></div>
+      <div class="runtime-panel-footer" id="runtimePanelFooter"></div>
+    </div>
+
     <div class="toast-container" id="toastContainer"></div>
-    <script src="app.js"></script>
+    <!-- Core state and utilities -->
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/dom.js"></script>
+
+    <!-- Project and node operations -->
+    <script src="js/project.js"></script>
+    <script src="js/nodes.js"></script>
+
+    <!-- IO (import/export) – if you put these functions elsewhere, adjust accordingly -->
+    <script src="js/io.js"></script>
+    <!-- contains exportToXML, exportToXMLString, importFromXML -->
+
+    <!-- Rendering and editor -->
+    <script src="js/editor.js"></script>
+
+    <!-- SVG connections -->
+    <script src="js/connections.js"></script>
+
+    <!-- Canvas, zoom, pan, minimap, mouse handlers -->
+    <script src="js/canvas.js"></script>
+
+    <!-- Runtime modes (Step, Linear, Chat) -->
+    <script src="js/runtime.js"></script>
+
+    <!-- Local storage and recent files -->
+    <script src="js/storage.js"></script>
+
+    <!-- Menu bar, keyboard shortcuts, modals -->
+    <script src="js/menu.js"></script>
+
+    <!-- Application initialisation (init, renderTabs, event wiring) -->
+    <script src="js/app.js"></script>
   </body>
 </html>
