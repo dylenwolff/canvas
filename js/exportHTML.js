@@ -111,6 +111,46 @@ function exportToHTML() {
     .chat-copy-text { white-space:pre-wrap; word-break:break-word; font-size:0.85rem; margin-bottom:6px; color:var(--text-secondary); }
     .chat-inline-copy { margin-top:6px; }
 
+    /* Wider bubble for link nodes */
+    .chat-bubble.link-bubble {
+      max-width: 90%;
+    }
+
+    /* Link buttons – centered, min-width */
+    .runtime-link-btn,
+    .chat-link-btn {
+      display: block;
+      width: 100%;
+      min-width: 200px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid #14b8a6;
+      background: transparent;
+      color: #5eead4;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-align: center;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .runtime-link-btn:hover,
+    .chat-link-btn:hover {
+      background: rgba(20, 184, 166, 0.08);
+      border-color: #5eead4;
+      box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
+      color: #ffffff;
+    }
+    .runtime-links,
+    .chat-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
     /* Message variant button colors (Step modal) */
     .runtime-modal.variant-info .runtime-submit-btn { background:#3b82f6; box-shadow:0 2px 12px rgba(59,130,246,0.4); }
     .runtime-modal.variant-success .runtime-submit-btn { background:#10b981; box-shadow:0 2px 12px rgba(16,185,129,0.4); }
@@ -124,6 +164,7 @@ function exportToHTML() {
     .runtime-modal.variant-warning { background:rgba(245,158,11,0.08); border-left:4px solid #f59e0b; }
     .runtime-modal.variant-error { background:rgba(239,68,68,0.08); border-left:4px solid #ef4444; }
     .runtime-modal.variant-action { background:rgba(139,92,246,0.08); border-left:4px solid #8b5cf6; }
+
     .navbar {
       display: flex;
       align-items: center;
@@ -153,7 +194,8 @@ function exportToHTML() {
       color: var(--text-primary);
       letter-spacing: -0.02em;
     }
-       /* Scrollbar */
+
+    /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
@@ -189,6 +231,15 @@ function exportToHTML() {
             node.variant = q.querySelector("variant")?.textContent.trim() || "info"; node.next = q.querySelector("next")?.textContent.trim() || "";
           } else if (type === "copybox") {
             node.copyContent = q.querySelector("copy_content")?.textContent.trim() || "Text to copy..."; node.next = q.querySelector("next")?.textContent.trim() || "";
+          } else if (type === "link") {
+            node.links = [];
+            q.querySelectorAll("links > link").forEach(function(link) {
+              node.links.push({
+                label: link.getAttribute("label") || "Link",
+                url: link.getAttribute("url") || ""
+              });
+            });
+            node.next = q.querySelector("next")?.textContent.trim() || "";
           } else if (type === "input" || type === "number") {
             node.variable = q.querySelector("variable")?.textContent.trim() || ""; node.next = q.querySelector("next")?.textContent.trim() || "";
           } else if (type !== "end") {
@@ -261,6 +312,7 @@ function exportToHTML() {
           body.innerHTML = '<div class="runtime-question">' + displayText + '</div><input class="runtime-input" type="' + (node.type === 'number' ? 'number' : 'text') + '" id="runtimeInput" autofocus><button class="runtime-submit-btn" id="runtimeSubmit">Continue</button>';
           var input = document.getElementById('runtimeInput');
           var btn = document.getElementById('runtimeSubmit');
+          setTimeout(function() { input.focus(); }, 50);
           var go = function() {
             var val = input.value.trim();
             if (!val && node.type === 'input') return;
@@ -299,6 +351,27 @@ function exportToHTML() {
               buildStepUI();
             } else alert(node.next ? 'Node "' + node.next + '" not found' : 'No next node');
           });
+        } else if (node.type === 'link') {
+          var linksHtml = (node.links || []).map(function(l, i) {
+            return '<button class="runtime-link-btn" data-link-url="' + escapeHtml(l.url) + '">' + escapeHtml(l.label) + '</button>';
+          }).join('');
+          body.innerHTML = '<div class="runtime-question">' + displayText + '</div>' +
+            (linksHtml ? '<div class="runtime-links">' + linksHtml + '</div>' : '') +
+            (node.next ? '<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>' : '');
+          body.querySelectorAll('.runtime-link-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var url = btn.dataset.linkUrl;
+              if (url) window.open(url, '_blank', 'noopener,noreferrer');
+            });
+          });
+          if (node.next) {
+            document.getElementById('runtimeContinue').addEventListener('click', function() {
+              if (runtime.nodes.has(node.next)) {
+                runtime.currentNodeId = node.next;
+                buildStepUI();
+              } else alert('Node "' + node.next + '" not found');
+            });
+          }
         } else {
           body.innerHTML = '<div class="runtime-question">' + displayText + '</div><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>';
           document.getElementById('runtimeContinue').addEventListener('click', function() {
@@ -377,6 +450,7 @@ function exportToHTML() {
           input.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); go(); } });
           row.appendChild(input);
           stepDiv.appendChild(row);
+          input.focus();
         } else if (node.type === 'decision') {
           var result = runtime.evaluateDecision(node);
           var next = result ? node.trueNext : node.falseNext;
@@ -404,12 +478,38 @@ function exportToHTML() {
           continueBtn.textContent = 'Continue';
           continueBtn.addEventListener('click', function() {
             continueBtn.disabled = true; continueBtn.style.display = 'none';
-if (node.next && runtime.nodes.has(node.next)) {
+            if (node.next && runtime.nodes.has(node.next)) {
               runtime.currentNodeId = node.next;
               renderLinearStep();
             } else alert(node.next ? 'Node "' + node.next + '" not found' : 'No next node');
           });
           stepDiv.appendChild(continueBtn);
+        } else if (node.type === 'link') {
+          var linksContainer = document.createElement('div');
+          linksContainer.className = 'runtime-links';
+          (node.links || []).forEach(function(link) {
+            var b = document.createElement('button');
+            b.className = 'runtime-link-btn';
+            b.textContent = link.label;
+            b.addEventListener('click', function() {
+              if (link.url) window.open(link.url, '_blank', 'noopener,noreferrer');
+            });
+            linksContainer.appendChild(b);
+          });
+          stepDiv.appendChild(linksContainer);
+          if (node.next) {
+            var cont = document.createElement('button');
+            cont.className = 'runtime-submit-btn linear-continue-btn';
+            cont.textContent = 'Continue';
+            cont.addEventListener('click', function() {
+              cont.disabled = true; cont.style.display = 'none';
+              if (runtime.nodes.has(node.next)) {
+                runtime.currentNodeId = node.next;
+                renderLinearStep();
+              } else alert('Node "' + node.next + '" not found');
+            });
+            stepDiv.appendChild(cont);
+          }
         } else {
           var continueBtn = document.createElement('button');
           continueBtn.className = 'runtime-submit-btn linear-continue-btn';
@@ -449,7 +549,9 @@ if (node.next && runtime.nodes.has(node.next)) {
           addChatBubble('bot', 'Flow Complete: ' + displayText, 'success');
           return;
         }
-        addChatBubble('bot', displayText, (node.type === 'message' ? node.variant || 'info' : ''));
+        if (node.type !== 'link') {
+          addChatBubble('bot', displayText, (node.type === 'message' ? node.variant || 'info' : ''));
+        }
 
         if (node.type === 'choice' && node.options) {
           var optsDiv = document.createElement('div');
@@ -493,6 +595,7 @@ if (node.next && runtime.nodes.has(node.next)) {
           input.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); var val = input.value.trim(); if (val || node.type === 'number') go(); } });
           row.appendChild(input);
           footer.appendChild(row);
+          input.focus();
         } else if (node.type === 'decision') {
           var result = runtime.evaluateDecision(node);
           var next = result ? node.trueNext : node.falseNext;
@@ -523,6 +626,43 @@ if (node.next && runtime.nodes.has(node.next)) {
             } else alert(node.next ? 'Node "' + node.next + '" not found' : 'No next node');
           });
           footer.appendChild(continueBtn);
+        } else if (node.type === 'link') {
+          var bubble = document.createElement('div');
+          bubble.className = 'chat-bubble chat-bot link-bubble';
+          var textDiv = document.createElement('div');
+          textDiv.textContent = displayText;
+          textDiv.style.whiteSpace = 'pre-wrap';
+          bubble.appendChild(textDiv);
+
+          if (node.links && node.links.length) {
+            var linksDiv = document.createElement('div');
+            linksDiv.className = 'chat-links';
+            node.links.forEach(function(link) {
+              var b = document.createElement('button');
+              b.className = 'chat-link-btn';
+              b.textContent = link.label;
+              b.addEventListener('click', function() {
+                if (link.url) window.open(link.url, '_blank', 'noopener,noreferrer');
+              });
+              linksDiv.appendChild(b);
+            });
+            bubble.appendChild(linksDiv);
+          }
+          body.appendChild(bubble);
+
+          if (node.next) {
+            var cont = document.createElement('button');
+            cont.className = 'runtime-submit-btn';
+            cont.textContent = 'Continue';
+            cont.addEventListener('click', function() {
+              if (runtime.nodes.has(node.next)) {
+                runtime.currentNodeId = node.next;
+                renderChatStep();
+              } else alert('Node "' + node.next + '" not found');
+            });
+            footer.appendChild(cont);
+          }
+          body.scrollTop = body.scrollHeight;
         } else {
           var continueBtn = document.createElement('button');
           continueBtn.className = 'runtime-submit-btn';
@@ -629,6 +769,7 @@ if (node.next && runtime.nodes.has(node.next)) {
 </div>
 
 <script>${js}<\/script>
+<script id="canvas-flow-data" type="text/xml">${escapedXml}</script>
 </body>
 </html>`;
 

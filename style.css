@@ -27,6 +27,7 @@
   --node-end: #ef4444;
   --node-decision: #f97316;
   --node-copybox: #0ea5e9;
+  --node-link: #14b8a6;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -559,6 +560,9 @@ body {
 }
 .canvas-node.node-copybox {
   border-left: 3px solid var(--node-copybox);
+}
+.canvas-node.node-link {
+  border-left: 3px solid var(--node-link);
 }
 
 .node-header {
@@ -1905,4 +1909,93 @@ body {
 .runtime-panel-body,
 .runtime-panel-footer {
   overflow: hidden; /* already has overflow-y:auto on body, just add this for safety */
+}
+
+/* ---- Link Node ---- */
+.canvas-node.node-link {
+  border-left: 2px solid #14b8a6; /* thinner, but still identifiable */
+}
+.node-link .node-type-badge {
+  background: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+}
+.node-link.selected {
+  border-color: #14b8a6 !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(20, 184, 166, 0.35),
+    0 0 0 4px rgba(20, 184, 166, 0.12) !important;
+}
+.node-link-chip {
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.3);
+}
+/* Wider bubble for link nodes – allows buttons to expand */
+.chat-bubble.link-bubble {
+  max-width: 90%;
+}
+
+/* Link buttons – kept at your preferred size, no height increase */
+.chat-link-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 14px; /* original comfortable vertical padding */
+  border-radius: var(--radius-md);
+  border: 1px solid #14b8a6;
+  background: transparent;
+  color: #5eead4;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  line-height: 1.4;
+  margin-bottom: 0;
+}
+.chat-link-btn:hover {
+  background: rgba(20, 184, 166, 0.08);
+  border-color: #5eead4;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
+  color: #ffffff;
+}
+
+/* Container for the link buttons inside the bubble */
+.chat-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.node-port.port-out {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  right: -7px;
+}
+/* Runtime link buttons – centered text, minimum width */
+.runtime-link-btn,
+.chat-link-btn {
+  display: block;
+  width: 100%;
+  min-width: 200px; /* ensures buttons aren’t too narrow */
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid #14b8a6;
+  background: transparent;
+  color: #5eead4;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center; /* horizontal centering */
+  line-height: 1.4;
+  margin-bottom: 0;
+}
+.runtime-link-btn:hover,
+.chat-link-btn:hover {
+  background: rgba(20, 184, 166, 0.08);
+  border-color: #5eead4;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
+  color: #ffffff;
 }

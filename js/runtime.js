@@ -1,7 +1,6 @@
 // ---- RUNTIME (MODAL, LINEAR, CHAT) ----
 
 async function copyRichText(html) {
-  // kept for copybox, but now just plain text
   const plainText = html.replace(/<[^>]*>/g, "");
   try {
     await navigator.clipboard.writeText(plainText);
@@ -26,6 +25,8 @@ function startRuntime() {
   state.runtimeHistory = [proj.startNodeId];
   state.runtimeVariables = {};
   DOM.runtimeModal.style.display = "flex";
+  document.getElementById("runtimeModalTitle").textContent =
+    proj.name || "Untitled";
   renderRuntimeStep();
 }
 
@@ -51,7 +52,33 @@ function substituteVariables(t) {
 }
 
 function evaluateDecision(node) {
-  /* unchanged */
+  const varVal =
+    state.runtimeVariables[node.variable] !== undefined
+      ? state.runtimeVariables[node.variable]
+      : "";
+  const exp = node.value,
+    op = node.operator;
+  const nv = Number(varVal),
+    ne = Number(exp);
+  if (
+    !isNaN(nv) &&
+    !isNaN(ne) &&
+    ["==", "!=", "<", "<=", ">", ">="].indexOf(op) !== -1
+  ) {
+    if (op === "==") return nv === ne;
+    if (op === "!=") return nv !== ne;
+    if (op === "<") return nv < ne;
+    if (op === "<=") return nv <= ne;
+    if (op === ">") return nv > ne;
+    if (op === ">=") return nv >= ne;
+  }
+  const sv = String(varVal).toLowerCase(),
+    se = exp.toLowerCase();
+  if (op === "equals") return sv === se;
+  if (op === "contains") return sv.indexOf(se) !== -1;
+  if (op === "starts_with") return sv.indexOf(se) === 0;
+  if (op === "ends_with") return sv.lastIndexOf(se) === sv.length - se.length;
+  return false;
 }
 
 function renderRuntimeStep() {
@@ -76,7 +103,6 @@ function renderRuntimeStep() {
   if (node.type === "message" && runtimeModalContent)
     runtimeModalContent.classList.add("variant-" + (node.variant || "info"));
   const displayText = substituteVariables(node.text);
-  // Use escapeHtml to prevent XSS, CSS white-space: pre-wrap preserves line breaks
   if (node.type === "end") {
     DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Flow Complete</p><p>${escapeHtml(displayText)}</p></div>`;
     return;
@@ -101,6 +127,7 @@ function renderRuntimeStep() {
     DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><input class="runtime-input" type="${node.type === "number" ? "number" : "text"}" id="runtimeInput" autofocus><button class="runtime-submit-btn" id="runtimeSubmit">Continue</button>`;
     const inp = document.getElementById("runtimeInput"),
       btn = document.getElementById("runtimeSubmit");
+    setTimeout(() => inp.focus(), 50);
     const go = () => {
       const val = inp.value.trim();
       if (!val && node.type === "input") return;
@@ -156,6 +183,35 @@ function renderRuntimeStep() {
           "error",
         );
     });
+  } else if (node.type === "link") {
+    const linksHtml = (node.links || [])
+      .map(
+        (l, i) =>
+          `<button class="runtime-link-btn" data-link-url="${escapeHtml(l.url)}" data-link-idx="${i}">${escapeHtml(l.label)}</button>`,
+      )
+      .join("");
+    DOM.runtimeBody.innerHTML = `
+      <div class="runtime-question">${escapeHtml(displayText)}</div>
+      ${linksHtml ? `<div class="runtime-links">${linksHtml}</div>` : ""}
+      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}
+    `;
+    DOM.runtimeBody.querySelectorAll(".runtime-link-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const url = btn.dataset.linkUrl;
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
+      });
+    });
+    if (node.next) {
+      document
+        .getElementById("runtimeContinue")
+        .addEventListener("click", () => {
+          if (proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderRuntimeStep();
+          } else showToast(`Node "${node.next}" not found`, "error");
+        });
+    }
   } else {
     DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
     document.getElementById("runtimeContinue").addEventListener("click", () => {
@@ -302,6 +358,7 @@ function renderLinearStep() {
 
     row.appendChild(input);
     stepDiv.appendChild(row);
+    input.focus();
   } else if (node.type === "decision") {
     const result = evaluateDecision(node);
     state.runtimeStepLog.push({
@@ -362,8 +419,43 @@ function renderLinearStep() {
       }
     });
     stepDiv.appendChild(continueBtn);
+  } else if (node.type === "link") {
+    const linksContainer = document.createElement("div");
+    linksContainer.className = "runtime-links";
+    (node.links || []).forEach((link) => {
+      const b = document.createElement("button");
+      b.className = "runtime-link-btn";
+      b.textContent = link.label;
+      b.addEventListener("click", () => {
+        if (link.url) {
+          const newWin = window.open(link.url, "_blank", "noopener,noreferrer");
+          if (link.stayOnCanvas !== false) {
+            setTimeout(() => {
+              window.focus();
+              if (newWin) newWin.blur();
+            }, 50);
+          }
+        }
+      });
+      linksContainer.appendChild(b);
+    });
+    stepDiv.appendChild(linksContainer);
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn linear-continue-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        cont.disabled = true;
+        cont.style.display = "none";
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderLinearStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
+      });
+      stepDiv.appendChild(cont);
+    }
   } else {
-    // message node – full‑width button that disappears after click
     const continueBtn = document.createElement("button");
     continueBtn.className = "runtime-submit-btn linear-continue-btn";
     continueBtn.textContent = "Continue";
@@ -430,11 +522,14 @@ function renderChatStep() {
     addChatBubble("bot", "Flow Complete: " + displayText, "success");
     return;
   }
-  addChatBubble(
-    "bot",
-    displayText,
-    node.type === "message" ? node.variant || "info" : "bot",
-  );
+
+  if (node.type !== "link") {
+    addChatBubble(
+      "bot",
+      displayText,
+      node.type === "message" ? node.variant || "info" : "bot",
+    );
+  }
 
   if (node.type === "choice" && node.options) {
     const optsDiv = document.createElement("div");
@@ -480,18 +575,18 @@ function renderChatStep() {
         state.runtimeVariables[node.variable] =
           node.type === "number" ? Number(val) : val;
       }
-      addChatBubble("user", val); // show the user's answer in a bubble
+      addChatBubble("user", val);
       state.runtimeStepLog.push({
         nodeId: node.id,
         text: displayText,
         answer: val,
       });
       input.disabled = true;
-      footer.removeChild(row); // remove the input row after sending
+      footer.removeChild(row);
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
         state.runtimeHistory.push(node.next);
-        renderChatStep(); // ✅ stay in chat mode
+        renderChatStep();
       } else {
         showToast(
           node.next ? `Node "${node.next}" not found` : "No next node",
@@ -509,7 +604,8 @@ function renderChatStep() {
     });
 
     row.appendChild(input);
-    footer.appendChild(row); // ✅ put the input inside the footer
+    footer.appendChild(row);
+    input.focus();
   } else if (node.type === "decision") {
     const result = evaluateDecision(node);
     state.runtimeStepLog.push({
@@ -561,6 +657,56 @@ function renderChatStep() {
         );
     });
     footer.appendChild(continueBtn);
+  } else if (node.type === "link") {
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bot link-bubble";
+    const textDiv = document.createElement("div");
+    textDiv.textContent = displayText;
+    textDiv.style.whiteSpace = "pre-wrap";
+    bubble.appendChild(textDiv);
+
+    if (node.links && node.links.length) {
+      const linksDiv = document.createElement("div");
+      linksDiv.className = "chat-links";
+      node.links.forEach((link) => {
+        const b = document.createElement("button");
+        b.className = "chat-link-btn";
+        b.textContent = link.label;
+        b.addEventListener("click", () => {
+          if (link.url) {
+            const newWin = window.open(
+              link.url,
+              "_blank",
+              "noopener,noreferrer",
+            );
+            if (link.stayOnCanvas !== false) {
+              setTimeout(() => {
+                window.focus();
+                if (newWin) newWin.blur();
+              }, 50);
+            }
+          }
+        });
+        linksDiv.appendChild(b);
+      });
+      bubble.appendChild(linksDiv);
+    }
+    body.appendChild(bubble);
+
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderChatStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
+      });
+      footer.appendChild(cont);
+    }
+    body.scrollTop = body.scrollHeight;
   } else {
     const continueBtn = document.createElement("button");
     continueBtn.className = "runtime-submit-btn";
@@ -591,7 +737,7 @@ function addChatBubble(sender, text, variant = "") {
   if (!body) return;
   const bubble = document.createElement("div");
   bubble.className = `chat-bubble chat-${sender} ${variant}`;
-  bubble.textContent = text; // plain text with line breaks
+  bubble.textContent = text;
   body.appendChild(bubble);
   body.scrollTop = body.scrollHeight;
 }

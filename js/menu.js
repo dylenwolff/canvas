@@ -209,20 +209,46 @@ function handleFileUpload(file) {
   const reader = new FileReader();
 
   reader.onload = function () {
+    const content = reader.result;
+    let xml = null;
+    const name = file.name.replace(/\.[^/.]+$/, "") || "Untitled";
+
+    // ---- detect .canvas (XML) ----
+    if (
+      content.trim().startsWith("<?xml") ||
+      content.trim().startsWith("<flow")
+    ) {
+      xml = content;
+    }
+    // ---- detect exported .html with embedded XML ----
+    else {
+      // First, try the new <script id="canvas-flow-data"> tag
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, "text/html");
+      const dataTag = doc.getElementById("canvas-flow-data");
+      if (dataTag && dataTag.textContent.trim()) {
+        xml = dataTag.textContent.trim();
+      } else {
+        // Fallback: try the old template‑literal extraction
+        const match = content.match(/PROJECT_XML\s*=\s*`([^`]*)`/);
+        if (match && match[1]) {
+          xml = match[1].replace(/\\`/g, "`");
+        }
+      }
+    }
+
+    if (!xml) {
+      showToast("Unsupported file – no valid flow data found", "error");
+      return;
+    }
+
     try {
-      // Use the file name (without extension) as the project name
-      const name = file.name.replace(/\.[^/.]+$/, "") || "Untitled";
       const newProj = createEmptyProject(name);
       state.projects.push(newProj);
       state.activeProjectIndex = state.projects.length - 1;
 
-      // Import into the newly created project
-      importFromXML(reader.result);
-
-      // Close the import modal if it's open
+      importFromXML(xml);
       closeImportModal();
-
-      // Render everything
       renderAll();
       updateEditorPanel();
       renderTabs();
@@ -230,7 +256,6 @@ function handleFileUpload(file) {
       markUnsaved();
       showToast("Opened in new tab", "success");
     } catch (e) {
-      // Remove the empty project we just added if import fails
       if (state.projects.length > 1) {
         state.projects.pop();
         state.activeProjectIndex = state.projects.length - 1;

@@ -18,6 +18,15 @@ function createNode(type, x, y, id = null) {
   } else if (type === "copybox") {
     node.copyContent = "Text to copy...";
     node.next = "";
+  } else if (type === "link") {
+    node.links = [
+      { label: "Example", url: "https://example.com" },
+      {
+        label: "More Info",
+        url: "https://en.wikipedia.org",
+      },
+    ];
+    node.next = "";
   } else if (type === "input" || type === "number") {
     node.variable = "";
     node.next = "";
@@ -32,6 +41,7 @@ function getDefaultText(t) {
       decision: "Decision?",
       message: "Message text",
       copybox: "Copy Box",
+      link: "Useful links:",
       input: "Enter text:",
       number: "Enter number:",
       end: "End of Flow",
@@ -83,6 +93,7 @@ function duplicateNode(id) {
   newNode.y += 60;
   if (newNode.next) newNode.next = "";
   if (newNode.options) newNode.options.forEach((o) => (o.next = ""));
+  if (newNode.links) newNode.links.forEach((l) => (l.url = l.url || ""));
   if (newNode.trueNext) newNode.trueNext = "";
   if (newNode.falseNext) newNode.falseNext = "";
   proj.nodes.set(newNode.id, newNode);

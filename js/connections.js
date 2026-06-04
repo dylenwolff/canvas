@@ -17,6 +17,7 @@ function getNodePortPosition(node, optIdx) {
     };
   if (node.type === "decision")
     return { x: right, y: node.y + r.height * (optIdx === 0 ? 1 / 3 : 2 / 3) };
+  // EVERYTHING else (message, copybox, input, number, link, …) uses the vertical centre
   return { x: right, y: node.y + r.height / 2 };
 }
 

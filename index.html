@@ -10,6 +10,24 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="icon/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="icon/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="icon/favicon-16x16.png"
+    />
+    <link rel="manifest" href="icon/site.webmanifest" />
   </head>
   <body>
     <div class="bg-orbs">
@@ -360,6 +378,32 @@
                 ><span class="palette-node-desc">Text + copy button</span>
               </div>
             </div>
+            <div class="palette-node" data-type="link" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(20, 184, 166, 0.3); color: #5eead4"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                  />
+                  <path
+                    d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                  />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Link</span>
+                <span class="palette-node-desc">Multiple URL buttons</span>
+              </div>
+            </div>
             <div class="palette-node" data-type="input" draggable="true">
               <div
                 class="palette-node-icon"
@@ -493,15 +537,18 @@
         </div>
       </div>
     </div>
-
     <div class="modal-overlay" id="runtimeModal" style="display: none">
       <div class="modal-content runtime-modal">
-        <button
-          class="btn btn-ghost btn-icon runtime-close-btn"
-          id="btnCloseRuntime"
-        >
-          ×
-        </button>
+        <div class="navbar modal-navbar">
+          <span class="navbar-logo"
+            >Canvas<font
+              style="color: #db0011; font-size: 1.4rem; line-height: 0"
+              >.</font
+            ></span
+          >
+          <span class="navbar-title" id="runtimeModalTitle">Runtime</span>
+          <button class="btn btn-ghost btn-icon" id="btnCloseRuntime">×</button>
+        </div>
         <div class="modal-body" id="runtimeBody"></div>
         <div class="runtime-progress" id="runtimeProgress">
           <div class="progress-dots" id="progressDots"></div>
@@ -529,13 +576,8 @@
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
-            <p>Drop .canvas file here or click to open</p>
-            <input
-              type="file"
-              id="importFileInput"
-              accept=".canvas"
-              style="display: none"
-            />
+            <p>Drop .canvas or exported .html file here or click to open</p>
+            <input type="file" id="importFileInput" style="display: none" />
           </div>
           <div class="import-divider"><span>or paste XML</span></div>
           <textarea

@@ -5,7 +5,7 @@ function renderAll() {
   renderConnections();
   renderMinimap();
   updateZoomDisplay();
-  markUnsaved(); // <-- add this line
+  markUnsaved();
 }
 
 function renderNodes() {
@@ -40,6 +40,9 @@ function createNodeElement(node) {
     variantPill.textContent = node.variant;
     header.appendChild(variantPill);
   }
+  if (node.type === "link") {
+    el.classList.add("node-link");
+  }
 
   const idLbl = document.createElement("span");
   idLbl.className = "node-id-label";
@@ -48,7 +51,7 @@ function createNodeElement(node) {
   header.appendChild(idLbl);
   el.appendChild(header);
 
-  // Plain text preview – line breaks are kept via CSS white-space: pre-wrap
+  // Plain text preview
   const textPrev = document.createElement("div");
   textPrev.className = "node-text-preview";
   textPrev.textContent =
@@ -73,6 +76,17 @@ function createNodeElement(node) {
       ops.appendChild(c);
     });
     el.appendChild(ops);
+  }
+  if (node.type === "link" && node.links) {
+    const linksPrev = document.createElement("div");
+    linksPrev.className = "node-options-preview";
+    node.links.forEach((link) => {
+      const chip = document.createElement("span");
+      chip.className = "node-option-chip node-link-chip";
+      chip.textContent = link.label;
+      linksPrev.appendChild(chip);
+    });
+    el.appendChild(linksPrev);
   }
 
   const portIn = document.createElement("div");
@@ -115,6 +129,14 @@ function createNodeElement(node) {
     fLbl.textContent = "F";
     falseP.appendChild(fLbl);
     el.appendChild(falseP);
+  } else if (node.type === "link") {
+    // Exactly the same as the generic out‑port for non‑choice, non‑decision nodes
+    const contPort = document.createElement("div");
+    contPort.className = "node-port port-out";
+    contPort.dataset.portType = "out";
+    contPort.dataset.nodeId = node.id;
+    contPort.dataset.optionIndex = "-1";
+    el.appendChild(contPort);
   } else if (node.type !== "end") {
     const p = document.createElement("div");
     p.className = "node-port port-out";
@@ -191,6 +213,18 @@ function refreshNodePreview(nodeId) {
       });
     }
   }
+  if (node.type === "link" && node.links) {
+    const linksPrev = nodeEl.querySelector(".node-options-preview");
+    if (linksPrev) {
+      linksPrev.innerHTML = "";
+      node.links.forEach((link) => {
+        const chip = document.createElement("span");
+        chip.className = "node-option-chip node-link-chip";
+        chip.textContent = link.label;
+        linksPrev.appendChild(chip);
+      });
+    }
+  }
 }
 
 // ---------- EDITOR PANEL (plain textarea) ----------
@@ -216,6 +250,7 @@ function updateEditorPanel() {
       <option value="decision" ${node.type === "decision" ? "selected" : ""}>Decision</option>
       <option value="message" ${node.type === "message" ? "selected" : ""}>Message</option>
       <option value="copybox" ${node.type === "copybox" ? "selected" : ""}>Copy Box</option>
+      <option value="link" ${node.type === "link" ? "selected" : ""}>Link</option>
       <option value="input" ${node.type === "input" ? "selected" : ""}>Input</option>
       <option value="number" ${node.type === "number" ? "selected" : ""}>Number</option>
       <option value="end" ${node.type === "end" ? "selected" : ""}>End</option>
@@ -241,6 +276,19 @@ function updateEditorPanel() {
         <label class="form-label">Copy Content</label>
         <textarea class="form-textarea" id="editCopyContent" rows="4">${escapeHtml(node.copyContent || "")}</textarea>
       </div>`;
+  }
+
+  if (node.type === "link") {
+    html += `<div class="form-group"><label class="form-label">Links</label><div id="linksContainer">`;
+    node.links?.forEach((link, i) => {
+      html += `<div class="option-row" data-link-index="${i}" style="margin-bottom:6px;">
+    <input class="form-input" value="${escapeHtml(link.label)}" data-link-field="label" placeholder="Label">
+    <input class="form-input" value="${escapeHtml(link.url || "")}" data-link-field="url" placeholder="https://...">
+    <button class="btn-remove-option" data-remove-link="${i}">×</button>
+  </div>`;
+    });
+    html += `</div><button class="btn-add-option" id="btnAddLink">+ Add Link</button></div>`;
+    html += `<div class="form-group"><label class="form-label">Default Next (Continue)</label><input class="form-input" id="editLinkNext" value="${escapeHtml(node.next || "")}" placeholder="Enter target node ID"></div>`;
   }
 
   if (node.type === "decision") {
@@ -282,7 +330,8 @@ function updateEditorPanel() {
   if (
     node.type !== "choice" &&
     node.type !== "decision" &&
-    node.type !== "end"
+    node.type !== "end" &&
+    node.type !== "link"
   ) {
     html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editNodeNext" value="${escapeHtml(node.next || "")}" placeholder="Enter target node ID"></div>`;
   }
@@ -310,6 +359,7 @@ function updateEditorPanel() {
         delete node.falseNext;
         delete node.variant;
         delete node.copyContent;
+        delete node.links;
       } else if (newType === "decision") {
         node.variable = node.variable || "";
         node.operator = node.operator || "equals";
@@ -320,6 +370,7 @@ function updateEditorPanel() {
         delete node.next;
         delete node.variant;
         delete node.copyContent;
+        delete node.links;
       } else if (newType === "message") {
         node.variant = node.variant || "info";
         node.next = existingNext || "";
@@ -330,6 +381,7 @@ function updateEditorPanel() {
         delete node.trueNext;
         delete node.falseNext;
         delete node.copyContent;
+        delete node.links;
       } else if (newType === "copybox") {
         node.copyContent = node.copyContent || "Text to copy...";
         node.next = existingNext || "";
@@ -340,6 +392,24 @@ function updateEditorPanel() {
         delete node.trueNext;
         delete node.falseNext;
         delete node.variant;
+        delete node.links;
+      } else if (newType === "link") {
+        node.links = [
+          { label: "Example", url: "https://example.com", stayOnCanvas: false },
+          {
+            label: "More Info",
+            url: "https://en.wikipedia.org",
+          },
+        ];
+        node.next = existingNext || "";
+        delete node.options;
+        delete node.variable;
+        delete node.operator;
+        delete node.value;
+        delete node.trueNext;
+        delete node.falseNext;
+        delete node.variant;
+        delete node.copyContent;
       } else if (newType === "input" || newType === "number") {
         node.variable = node.variable || "";
         node.next = existingNext || "";
@@ -350,6 +420,7 @@ function updateEditorPanel() {
         delete node.falseNext;
         delete node.variant;
         delete node.copyContent;
+        delete node.links;
       } else if (newType === "end") {
         delete node.options;
         delete node.next;
@@ -360,6 +431,7 @@ function updateEditorPanel() {
         delete node.falseNext;
         delete node.variant;
         delete node.copyContent;
+        delete node.links;
       } else {
         node.next = existingNext || "";
         delete node.options;
@@ -370,6 +442,7 @@ function updateEditorPanel() {
         delete node.falseNext;
         delete node.variant;
         delete node.copyContent;
+        delete node.links;
       }
       node.type = newType;
       renderAll();
@@ -377,8 +450,7 @@ function updateEditorPanel() {
     }
   });
 
-  // ---- Plain textarea handlers ----
-  // Main text editor
+  // Main text
   const textArea = document.getElementById("editNodeText");
   if (textArea) {
     textArea.addEventListener(
@@ -397,7 +469,7 @@ function updateEditorPanel() {
     );
   }
 
-  // Copy content editor
+  // Copy content
   const copyTextArea = document.getElementById("editCopyContent");
   if (copyTextArea) {
     copyTextArea.addEventListener(
@@ -476,12 +548,23 @@ function updateEditorPanel() {
       ),
     );
 
-  // Next node ID
+  // Generic next
   const nextInp = document.getElementById("editNodeNext");
   if (nextInp)
     nextInp.addEventListener(
       "input",
       debounce(() => updateNodeProperty(id, "next", nextInp.value.trim()), 300),
+    );
+
+  // Link default next
+  const linkNextInp = document.getElementById("editLinkNext");
+  if (linkNextInp)
+    linkNextInp.addEventListener(
+      "input",
+      debounce(
+        () => updateNodeProperty(id, "next", linkNextInp.value.trim()),
+        300,
+      ),
     );
 
   // Start node checkbox
@@ -498,7 +581,7 @@ function updateEditorPanel() {
   });
 
   // Choice options events
-  const optsRows = document.querySelectorAll(".option-row");
+  const optsRows = document.querySelectorAll(".option-row[data-opt-index]");
   optsRows.forEach((row) => {
     const idx = parseInt(row.dataset.optIndex);
     row.querySelector('[data-opt-field="text"]').addEventListener(
@@ -538,4 +621,51 @@ function updateEditorPanel() {
       renderAll();
       updateEditorPanel();
     });
+
+  // Link events
+  const linkAddBtn = document.getElementById("btnAddLink");
+  if (linkAddBtn)
+    linkAddBtn.addEventListener("click", () => {
+      pushUndo();
+      node.links = node.links || [];
+      node.links.push({
+        label: "New Link",
+        url: "https://",
+      });
+      renderAll();
+      updateEditorPanel();
+    });
+
+  document.querySelectorAll("[data-link-index]").forEach((row) => {
+    const idx = parseInt(row.dataset.linkIndex);
+    // ---- stayOnCanvas checkbox ----
+
+    row.querySelector('[data-link-field="label"]').addEventListener(
+      "input",
+      debounce(() => {
+        node.links[idx].label = row.querySelector(
+          '[data-link-field="label"]',
+        ).value;
+        renderAll();
+        markUnsaved();
+      }, 300),
+    );
+    row.querySelector('[data-link-field="url"]').addEventListener(
+      "input",
+      debounce(() => {
+        node.links[idx].url = row
+          .querySelector('[data-link-field="url"]')
+          .value.trim();
+        markUnsaved();
+      }, 300),
+    );
+    row.querySelector("[data-remove-link]").addEventListener("click", () => {
+      if (node.links.length > 1) {
+        pushUndo();
+        node.links.splice(idx, 1);
+        renderAll();
+        updateEditorPanel();
+      }
+    });
+  });
 }

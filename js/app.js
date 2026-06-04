@@ -4,48 +4,130 @@ function init() {
   const hasSaved = loadProjects();
   if (!hasSaved) {
     state.projects = [];
-    const proj = createEmptyProject("Untitled");
+    const proj = createEmptyProject("Test Flow");
     state.projects.push(proj);
     state.activeProjectIndex = 0;
+
     const baseX = 50000,
       baseY = 50000;
-    const welcome = createNode("choice", baseX, baseY, "welcome");
-    welcome.text = "Is the computer turning on?";
-    welcome.options = [
-      { text: "Yes", next: "screen" },
-      { text: "No", next: "power" },
-      { text: "Not Sure", next: "unsure" },
+
+    // 1. Choice – branching question
+    const start = createNode("choice", baseX, baseY, "start");
+    start.text = "What would you like to test?";
+    start.options = [
+      { text: "Test Decision", next: "decision_node" },
+      { text: "Test Input & Variable", next: "name_input" },
+      { text: "Test Link", next: "link_node" },
+      { text: "Test Copy Box", next: "copybox_node" },
     ];
-    proj.nodes.set("welcome", welcome);
-    proj.startNodeId = "welcome";
-    const screen = createNode("choice", baseX + 250, baseY - 60, "screen");
-    screen.text = "Is the screen displaying anything?";
-    screen.options = [
-      { text: "Yes", next: "os_loaded" },
-      { text: "No", next: "check_cable" },
-    ];
-    proj.nodes.set("screen", screen);
-    const power = createNode("message", baseX + 250, baseY + 110, "power");
-    power.text = "Check power cable and press power button.";
-    power.next = "welcome";
-    proj.nodes.set("power", power);
-    const unsure = createNode("message", baseX + 250, baseY + 240, "unsure");
-    unsure.text = "Check power LED.";
-    unsure.next = "power";
-    proj.nodes.set("unsure", unsure);
-    const checkCable = createNode(
-      "copybox",
-      baseX + 490,
-      baseY - 20,
-      "check_cable",
+    proj.nodes.set("start", start);
+    proj.startNodeId = "start";
+
+    // 2. Decision – number comparison
+    const decision = createNode(
+      "decision",
+      baseX + 300,
+      baseY - 60,
+      "decision_node",
     );
-    checkCable.text = "Cable check command";
-    checkCable.copyContent = "xrandr --auto";
-    checkCable.next = "screen";
-    proj.nodes.set("check_cable", checkCable);
-    const osLoaded = createNode("end", baseX + 490, baseY - 100, "os_loaded");
-    osLoaded.text = "System booting correctly.";
-    proj.nodes.set("os_loaded", osLoaded);
+    decision.text = "Is the entered number greater than 5?";
+    decision.variable = "userNumber";
+    decision.operator = ">";
+    decision.value = "5";
+    decision.trueNext = "high_number";
+    decision.falseNext = "low_number";
+    proj.nodes.set("decision_node", decision);
+
+    // 3. Input – user name
+    const nameInput = createNode(
+      "input",
+      baseX + 300,
+      baseY + 80,
+      "name_input",
+    );
+    nameInput.text = "Enter your name:";
+    nameInput.variable = "userName";
+    nameInput.next = "number_input";
+    proj.nodes.set("name_input", nameInput);
+
+    // 4. Number – user number
+    const numberInput = createNode(
+      "number",
+      baseX + 600,
+      baseY + 80,
+      "number_input",
+    );
+    numberInput.text = "Enter a number:";
+    numberInput.variable = "userNumber";
+    numberInput.next = "decision_node";
+    proj.nodes.set("number_input", numberInput);
+
+    // 5. Message – high number result (variant success)
+    const highMsg = createNode(
+      "message",
+      baseX + 600,
+      baseY - 100,
+      "high_number",
+    );
+    highMsg.text = "Your number is greater than 5! ✅";
+    highMsg.variant = "success";
+    highMsg.next = "restart_choice";
+    proj.nodes.set("high_number", highMsg);
+
+    // 6. Message – low number result (variant warning)
+    const lowMsg = createNode("message", baseX + 600, baseY - 20, "low_number");
+    lowMsg.text = "Your number is 5 or less. ⚠️";
+    lowMsg.variant = "warning";
+    lowMsg.next = "restart_choice";
+    proj.nodes.set("low_number", lowMsg);
+
+    // 7. Link node – external URLs
+    const linkNode = createNode("link", baseX + 300, baseY + 200, "link_node");
+    linkNode.text = "Useful links:";
+    linkNode.links = [
+      {
+        label: "Canvas GitHub",
+        url: "https://github.com",
+      },
+      {
+        label: "MDN Web Docs",
+        url: "https://developer.mozilla.org",
+      },
+    ];
+    linkNode.next = "restart_choice";
+    proj.nodes.set("link_node", linkNode);
+
+    // 8. Copy Box – example command
+    const copyboxNode = createNode(
+      "copybox",
+      baseX + 300,
+      baseY + 320,
+      "copybox_node",
+    );
+    copyboxNode.text = "Copy this command:";
+    copyboxNode.copyContent = "npm install canvas";
+    copyboxNode.next = "restart_choice";
+    proj.nodes.set("copybox_node", copyboxNode);
+
+    // 9. Restart choice – loop back or finish
+    const restartChoice = createNode(
+      "choice",
+      baseX + 900,
+      baseY + 140,
+      "restart_choice",
+    );
+    restartChoice.text = "Test complete! Would you like to test again?";
+    restartChoice.options = [
+      { text: "Yes, start over", next: "start" },
+      { text: "No, finish", next: "final_end" },
+    ];
+    proj.nodes.set("restart_choice", restartChoice);
+
+    // 10. Final end node (only shown when user chooses to finish)
+    const finalEnd = createNode("end", baseX + 1200, baseY + 200, "final_end");
+    finalEnd.text = "Thanks for testing, {userName}!";
+    proj.nodes.set("final_end", finalEnd);
+
     saveProjects();
   }
   if (state.projects.length === 0) {
@@ -160,7 +242,7 @@ function init() {
   DOM.importDropzone.addEventListener("click", () =>
     DOM.importFileInput.click(),
   );
-  DOM.importFileInput.setAttribute("accept", ".canvas");
+  DOM.importFileInput.setAttribute("accept", ".canvas,.html");
   DOM.importFileInput.addEventListener("change", (e) => {
     if (e.target.files[0]) handleFileUpload(e.target.files[0]);
   });
@@ -177,7 +259,43 @@ function init() {
     if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
   });
   DOM.minimapCanvas.addEventListener("click", (e) => {
-    /* same minimap click handler */
+    const proj = currentProject();
+    if (!proj.nodes.size) return;
+
+    const rect = DOM.minimapCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    // Calculate the bounding box of all nodes (same as renderMinimap)
+    let mnX = Infinity,
+      mnY = Infinity,
+      mxX = -Infinity,
+      mxY = -Infinity;
+    proj.nodes.forEach((n) => {
+      const r = getNodeRect(n.id);
+      mnX = Math.min(mnX, n.x);
+      mnY = Math.min(mnY, n.y);
+      mxX = Math.max(mxX, n.x + r.width);
+      mxY = Math.max(mxY, n.y + r.height);
+    });
+    const pad = 60;
+    const ww = mxX - mnX + pad * 2;
+    const wh = mxY - mnY + pad * 2;
+    const w = DOM.minimapCanvas.width;
+    const h = DOM.minimapCanvas.height;
+    const s = Math.min(w / ww, h / wh);
+    const ox = (w - ww * s) / 2;
+    const oy = (h - wh * s) / 2;
+
+    // Convert minimap pixel to world coordinates
+    const worldX = (mx - ox) / s + mnX - pad;
+    const worldY = (my - oy) / s + mnY - pad;
+
+    // Center the view on that point
+    const containerRect = DOM.canvasContainer.getBoundingClientRect();
+    state.panX = containerRect.width / 2 - worldX * state.zoom;
+    state.panY = containerRect.height / 2 - worldY * state.zoom;
+    applyCanvasTransform();
   });
   document.addEventListener("keydown", onKeyDown);
   const projectNameEl = document.getElementById("projectName");
@@ -236,7 +354,5 @@ function renderTabs() {
     container.appendChild(tab);
   });
 }
-
-// keyboard & modals (onKeyDown, openImportModal, etc.) are already defined in their respective modules.
 
 document.addEventListener("DOMContentLoaded", init);
