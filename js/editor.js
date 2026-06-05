@@ -261,7 +261,7 @@ function updateEditorPanel() {
       <option value="message" ${node.type === "message" ? "selected" : ""}>Message</option>
       <option value="copybox" ${node.type === "copybox" ? "selected" : ""}>Copy Box</option>
       <option value="link" ${node.type === "link" ? "selected" : ""}>Link</option>
-      <option value="setvar" ${node.type === "setvar" ? "selected" : ""}>Set Var</option>
+      <option value="setvar" ${node.type === "setvar" ? "selected" : ""}>Set Variable</option>
       <option value="input" ${node.type === "input" ? "selected" : ""}>Input</option>
       <option value="number" ${node.type === "number" ? "selected" : ""}>Number</option>
       <option value="end" ${node.type === "end" ? "selected" : ""}>End</option>

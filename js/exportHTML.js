@@ -151,6 +151,38 @@ function exportToHTML() {
       margin-top: 12px;
     }
 
+    /* Runtime message box (used by SetVar visible) */
+    .runtime-message-box {
+      padding: 16px;
+      border-radius: var(--radius-md);
+      border-left: 4px solid;
+      margin-bottom: 8px;
+    }
+    .runtime-message-box .runtime-question {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .runtime-message-box.variant-info {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: #3b82f6;
+    }
+    .runtime-message-box.variant-success {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: #10b981;
+    }
+    .runtime-message-box.variant-warning {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: #f59e0b;
+    }
+    .runtime-message-box.variant-error {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: #ef4444;
+    }
+    .runtime-message-box.variant-action {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: #8b5cf6;
+    }
+
     /* Message variant button colors (Step modal) */
     .runtime-modal.variant-info .runtime-submit-btn { background:#3b82f6; box-shadow:0 2px 12px rgba(59,130,246,0.4); }
     .runtime-modal.variant-success .runtime-submit-btn { background:#10b981; box-shadow:0 2px 12px rgba(16,185,129,0.4); }
@@ -201,7 +233,7 @@ function exportToHTML() {
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
   `;
 
-  // ========== JavaScript – runtime with SetVar & boolean decision ==========
+  // ========== JavaScript – runtime with SetVar & boolean decision (FIXED) ==========
   const js = `
     (function() {
       'use strict';
@@ -306,6 +338,24 @@ function exportToHTML() {
         if (node.type === 'message' && modal) {
           modal.classList.add('variant-' + (node.variant || 'info'));
         }
+
+        // Hidden SetVar – assign and skip UI
+        if (node.type === 'setvar' && !node.showInRuntime) {
+          var varName = node.variable;
+          var val = runtime.substitute(node.value);
+          var parsedVal = val;
+          if (node.varType === 'number') parsedVal = Number(val);
+          else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
+          if (varName) runtime.variables[varName] = parsedVal;
+          if (node.next && runtime.nodes.has(node.next)) {
+            runtime.currentNodeId = node.next;
+            buildStepUI();
+          } else {
+            body.innerHTML = '<div class="runtime-end-message"><p>Flow Complete</p></div>';
+          }
+          return;
+        }
+
         var displayText = escapeHtml(runtime.substitute(node.text));
         if (node.type === 'choice' && node.options) {
           var opts = node.options.map(function(o, i) { return '<button class="runtime-option-btn" data-opt="' + i + '">' + escapeHtml(o.text) + '</button>'; }).join('');
@@ -387,6 +437,7 @@ function exportToHTML() {
             });
           }
         } else if (node.type === 'setvar') {
+          // Visible SetVar
           var varName = node.variable;
           var val = runtime.substitute(node.value);
           var parsedVal = val;
@@ -394,25 +445,16 @@ function exportToHTML() {
           else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
           if (varName) runtime.variables[varName] = parsedVal;
 
-          if (!node.showInRuntime) {
-            if (node.next && runtime.nodes.has(node.next)) {
-              runtime.currentNodeId = node.next;
-              buildStepUI();
-            } else {
-              body.innerHTML = '<div class="runtime-end-message"><p>Flow Complete</p></div>';
-            }
-          } else {
-            body.innerHTML = '<div class="runtime-question">' + displayText + '</div>' +
-              '<div class="runtime-message-box variant-info"><p>Variable <strong>' + escapeHtml(varName) + '</strong> set to <strong>' + escapeHtml(parsedVal) + '</strong></p></div>' +
-              (node.next ? '<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>' : '');
-            if (node.next) {
-              document.getElementById('runtimeContinue').addEventListener('click', function() {
-                if (runtime.nodes.has(node.next)) {
-                  runtime.currentNodeId = node.next;
-                  buildStepUI();
-                } else alert('Node "' + node.next + '" not found');
-              });
-            }
+          body.innerHTML = '<div class="runtime-question">' + displayText + '</div>' +
+            '<div class="runtime-message-box variant-info"><p>Variable <strong>' + escapeHtml(varName) + '</strong> set to <strong>' + escapeHtml(parsedVal) + '</strong></p></div>' +
+            (node.next ? '<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>' : '');
+          if (node.next) {
+            document.getElementById('runtimeContinue').addEventListener('click', function() {
+              if (runtime.nodes.has(node.next)) {
+                runtime.currentNodeId = node.next;
+                buildStepUI();
+              } else alert('Node "' + node.next + '" not found');
+            });
           }
         } else {
           body.innerHTML = '<div class="runtime-question">' + displayText + '</div><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>';
@@ -641,7 +683,7 @@ function exportToHTML() {
           if (node.varType === 'number') parsedVal = Number(val);
           else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
           if (varName) runtime.variables[varName] = parsedVal;
-          if (node.next && runtime.nodes.has(next)) {
+          if (node.next && runtime.nodes.has(node.next)) {   // FIXED: was "runtime.nodes.has(next)"
             runtime.currentNodeId = node.next;
             renderChatStep();
           }
@@ -764,9 +806,16 @@ function exportToHTML() {
           body.scrollTop = body.scrollHeight;
         } else if (node.type === 'setvar') {
           // Visible SetVar
+          var varName = node.variable;
+          var val = runtime.substitute(node.value);
+          var parsedVal = val;
+          if (node.varType === 'number') parsedVal = Number(val);
+          else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
+          if (varName) runtime.variables[varName] = parsedVal;
+
           var bubble = document.createElement('div');
           bubble.className = 'chat-bubble chat-bot';
-          bubble.textContent = displayText + '\\nVariable ' + escapeHtml(node.variable) + ' set to ' + escapeHtml(runtime.variables[node.variable]);
+          bubble.textContent = displayText + '\\nVariable ' + escapeHtml(varName) + ' set to ' + escapeHtml(parsedVal);
           body.appendChild(bubble);
           if (node.next) {
             var cont = document.createElement('button');
