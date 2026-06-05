@@ -294,9 +294,43 @@ function onPortMouseDown(e) {
 
 function onConnectionDragMove(e) {
   if (!state.isDraggingConnection) return;
+
   const coords = getCanvasCoords(e);
   state.dragConnectionMouse = { x: coords.x, y: coords.y };
   updateDragLine();
+
+  // ----- Auto‑scroll near canvas edges -----
+  const margin = 60; // px from edge to start scrolling
+  const baseSpeed = 8; // px per frame at the edge
+  const canvasRect = DOM.canvasContainer.getBoundingClientRect();
+
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+
+  // Horizontal scroll
+  if (mouseX < canvasRect.left + margin) {
+    const dist = canvasRect.left + margin - mouseX;
+    const speed = baseSpeed * Math.min(1, dist / margin);
+    state.panX += speed;
+  } else if (mouseX > canvasRect.right - margin) {
+    const dist = mouseX - (canvasRect.right - margin);
+    const speed = baseSpeed * Math.min(1, dist / margin);
+    state.panX -= speed;
+  }
+
+  // Vertical scroll
+  if (mouseY < canvasRect.top + margin) {
+    const dist = canvasRect.top + margin - mouseY;
+    const speed = baseSpeed * Math.min(1, dist / margin);
+    state.panY += speed;
+  } else if (mouseY > canvasRect.bottom - margin) {
+    const dist = mouseY - (canvasRect.bottom - margin);
+    const speed = baseSpeed * Math.min(1, dist / margin);
+    state.panY -= speed;
+  }
+
+  applyCanvasTransform();
+  // The dragged line is already updated via updateDragLine() above
 }
 
 function onConnectionDragUp(e) {
