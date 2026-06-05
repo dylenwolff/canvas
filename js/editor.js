@@ -17,7 +17,6 @@ function renderNodes() {
     DOM.nodesLayer.appendChild(createNodeElement(node));
   });
 }
-
 function createNodeElement(node) {
   const proj = currentProject();
   const el = document.createElement("div");
@@ -43,6 +42,9 @@ function createNodeElement(node) {
   if (node.type === "link") {
     el.classList.add("node-link");
   }
+  if (node.type === "setvar") {
+    el.classList.add("node-setvar");
+  }
 
   const idLbl = document.createElement("span");
   idLbl.className = "node-id-label";
@@ -63,7 +65,11 @@ function createNodeElement(node) {
   if (node.type === "decision") {
     const cond = document.createElement("div");
     cond.className = "node-options-preview";
-    cond.innerHTML = `<span class="node-option-chip">${node.variable || "?"} ${node.operator} ${node.value || "?"}</span>`;
+    let condText = `${node.variable || "?"} ${node.operator}`;
+    if (node.operator !== "is true" && node.operator !== "is false") {
+      condText += ` ${node.value || "?"}`;
+    }
+    cond.innerHTML = `<span class="node-option-chip">${condText}</span>`;
     el.appendChild(cond);
   }
   if (node.type === "choice" && node.options) {
@@ -87,6 +93,12 @@ function createNodeElement(node) {
       linksPrev.appendChild(chip);
     });
     el.appendChild(linksPrev);
+  }
+  if (node.type === "setvar") {
+    const setPrev = document.createElement("div");
+    setPrev.className = "node-options-preview";
+    setPrev.innerHTML = `<span class="node-option-chip">${escapeHtml(node.variable || "?")} = ${escapeHtml(node.value || "?")} (${node.varType || "string"})</span>`;
+    el.appendChild(setPrev);
   }
 
   const portIn = document.createElement("div");
@@ -130,7 +142,6 @@ function createNodeElement(node) {
     falseP.appendChild(fLbl);
     el.appendChild(falseP);
   } else if (node.type === "link") {
-    // Exactly the same as the generic out‑port for non‑choice, non‑decision nodes
     const contPort = document.createElement("div");
     contPort.className = "node-port port-out";
     contPort.dataset.portType = "out";
@@ -157,7 +168,6 @@ function createNodeElement(node) {
   requestAnimationFrame(() => positionOptionPorts(el, node));
   return el;
 }
-
 function positionOptionPorts(el, node) {
   if ((node.type !== "choice" && node.type !== "decision") || !el) return;
   const ports = el.querySelectorAll(".node-option-port"),
@@ -251,6 +261,7 @@ function updateEditorPanel() {
       <option value="message" ${node.type === "message" ? "selected" : ""}>Message</option>
       <option value="copybox" ${node.type === "copybox" ? "selected" : ""}>Copy Box</option>
       <option value="link" ${node.type === "link" ? "selected" : ""}>Link</option>
+      <option value="setvar" ${node.type === "setvar" ? "selected" : ""}>Set Var</option>
       <option value="input" ${node.type === "input" ? "selected" : ""}>Input</option>
       <option value="number" ${node.type === "number" ? "selected" : ""}>Number</option>
       <option value="end" ${node.type === "end" ? "selected" : ""}>End</option>
@@ -291,9 +302,29 @@ function updateEditorPanel() {
     html += `<div class="form-group"><label class="form-label">Default Next (Continue)</label><input class="form-input" id="editLinkNext" value="${escapeHtml(node.next || "")}" placeholder="Enter target node ID"></div>`;
   }
 
+  if (node.type === "setvar") {
+    html += `
+    <div class="form-group"><label class="form-label">Variable Name</label><input class="form-input" id="editVarName" value="${escapeHtml(node.variable || "")}" placeholder="myVar"></div>
+    <div class="form-group"><label class="form-label">Value</label><input class="form-input" id="editVarValue" value="${escapeHtml(node.value || "")}" placeholder="Value"></div>
+    <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="editVarType">
+      <option value="string" ${node.varType === "string" ? "selected" : ""}>String</option>
+      <option value="number" ${node.varType === "number" ? "selected" : ""}>Number</option>
+      <option value="boolean" ${node.varType === "boolean" ? "selected" : ""}>Boolean</option>
+    </select></div>
+    <div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox" id="editShowInRuntime" ${node.showInRuntime !== false ? "checked" : ""}> Show in Runtime
+    </label></div>
+    <div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editSetNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>
+  `;
+  }
+
   if (node.type === "decision") {
     const varOpts = Array.from(proj.nodes.values())
-      .filter((n) => (n.type === "input" || n.type === "number") && n.variable)
+      .filter(
+        (n) =>
+          (n.type === "input" || n.type === "number" || n.type === "setvar") &&
+          n.variable,
+      )
       .map(
         (v) =>
           `<option value="${escapeHtml(v.variable)}" ${node.variable === v.variable ? "selected" : ""}>${escapeHtml(v.variable)}</option>`,
@@ -310,11 +341,13 @@ function updateEditorPanel() {
       "<=",
       ">",
       ">=",
+      "is true",
+      "is false",
     ];
     html += `
       <div class="form-group"><label class="form-label">Variable</label><select class="form-select" id="editDecisionVariable"><option value="">-- choose --</option>${varOpts}</select></div>
       <div class="form-group"><label class="form-label">Operator</label><select class="form-select" id="editDecisionOperator">${ops.map((o) => `<option value="${o}" ${node.operator === o ? "selected" : ""}>${o}</option>`).join("")}</select></div>
-      <div class="form-group"><label class="form-label">Value</label><input class="form-input" id="editDecisionValue" value="${escapeHtml(node.value || "")}" placeholder="e.g., 10"></div>
+      <div class="form-group" id="editDecisionValueGroup" style="${node.operator === "is true" || node.operator === "is false" ? "display:none;" : ""}"><label class="form-label">Value</label><input class="form-input" id="editDecisionValue" value="${escapeHtml(node.value || "")}" placeholder="e.g., 10"></div>
       <div class="form-group"><label class="form-label">True → Next ID</label><input class="form-input" id="editTrueNext" value="${escapeHtml(node.trueNext || "")}"></div>
       <div class="form-group"><label class="form-label">False → Next ID</label><input class="form-input" id="editFalseNext" value="${escapeHtml(node.falseNext || "")}"></div>`;
   }
@@ -331,7 +364,8 @@ function updateEditorPanel() {
     node.type !== "choice" &&
     node.type !== "decision" &&
     node.type !== "end" &&
-    node.type !== "link"
+    node.type !== "link" &&
+    node.type !== "setvar"
   ) {
     html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editNodeNext" value="${escapeHtml(node.next || "")}" placeholder="Enter target node ID"></div>`;
   }
@@ -360,6 +394,8 @@ function updateEditorPanel() {
         delete node.variant;
         delete node.copyContent;
         delete node.links;
+        delete node.varType;
+        delete node.showInRuntime;
       } else if (newType === "decision") {
         node.variable = node.variable || "";
         node.operator = node.operator || "equals";
@@ -371,6 +407,8 @@ function updateEditorPanel() {
         delete node.variant;
         delete node.copyContent;
         delete node.links;
+        delete node.varType;
+        delete node.showInRuntime;
       } else if (newType === "message") {
         node.variant = node.variant || "info";
         node.next = existingNext || "";
@@ -382,6 +420,8 @@ function updateEditorPanel() {
         delete node.falseNext;
         delete node.copyContent;
         delete node.links;
+        delete node.varType;
+        delete node.showInRuntime;
       } else if (newType === "copybox") {
         node.copyContent = node.copyContent || "Text to copy...";
         node.next = existingNext || "";
@@ -393,13 +433,12 @@ function updateEditorPanel() {
         delete node.falseNext;
         delete node.variant;
         delete node.links;
+        delete node.varType;
+        delete node.showInRuntime;
       } else if (newType === "link") {
         node.links = [
-          { label: "Example", url: "https://example.com", stayOnCanvas: false },
-          {
-            label: "More Info",
-            url: "https://en.wikipedia.org",
-          },
+          { label: "Example", url: "https://example.com" },
+          { label: "More Info", url: "https://en.wikipedia.org" },
         ];
         node.next = existingNext || "";
         delete node.options;
@@ -410,6 +449,20 @@ function updateEditorPanel() {
         delete node.falseNext;
         delete node.variant;
         delete node.copyContent;
+        delete node.varType;
+        delete node.showInRuntime;
+      } else if (newType === "setvar") {
+        node.variable = node.variable || "";
+        node.value = node.value || "";
+        node.varType = node.varType || "string";
+        node.showInRuntime = node.showInRuntime !== false;
+        node.next = existingNext || "";
+        delete node.options;
+        delete node.variant;
+        delete node.copyContent;
+        delete node.trueNext;
+        delete node.falseNext;
+        delete node.links;
       } else if (newType === "input" || newType === "number") {
         node.variable = node.variable || "";
         node.next = existingNext || "";
@@ -421,6 +474,8 @@ function updateEditorPanel() {
         delete node.variant;
         delete node.copyContent;
         delete node.links;
+        delete node.varType;
+        delete node.showInRuntime;
       } else if (newType === "end") {
         delete node.options;
         delete node.next;
@@ -432,6 +487,8 @@ function updateEditorPanel() {
         delete node.variant;
         delete node.copyContent;
         delete node.links;
+        delete node.varType;
+        delete node.showInRuntime;
       } else {
         node.next = existingNext || "";
         delete node.options;
@@ -443,6 +500,8 @@ function updateEditorPanel() {
         delete node.variant;
         delete node.copyContent;
         delete node.links;
+        delete node.varType;
+        delete node.showInRuntime;
       }
       node.type = newType;
       renderAll();
@@ -487,13 +546,13 @@ function updateEditorPanel() {
     );
   }
 
-  // Variable name
-  const varName = document.getElementById("editVariableName");
-  if (varName) {
-    varName.addEventListener(
+  // Variable name (input/number)
+  const varNameInp = document.getElementById("editVariableName");
+  if (varNameInp) {
+    varNameInp.addEventListener(
       "input",
       debounce(() => {
-        const val = varName.value.trim();
+        const val = varNameInp.value.trim();
         const proj = currentProject();
         const node = proj.nodes.get(id);
         if (node && node.variable !== val) {
@@ -520,9 +579,18 @@ function updateEditorPanel() {
     );
   const decOp = document.getElementById("editDecisionOperator");
   if (decOp)
-    decOp.addEventListener("change", () =>
-      updateNodeProperty(id, "operator", decOp.value),
-    );
+    decOp.addEventListener("change", () => {
+      updateNodeProperty(id, "operator", decOp.value);
+      // Hide/show the value field based on boolean operators
+      const valGroup = document.getElementById("editDecisionValueGroup");
+      if (valGroup) {
+        if (decOp.value === "is true" || decOp.value === "is false") {
+          valGroup.style.display = "none";
+        } else {
+          valGroup.style.display = "";
+        }
+      }
+    });
   const decVal = document.getElementById("editDecisionValue");
   if (decVal)
     decVal.addEventListener(
@@ -548,7 +616,7 @@ function updateEditorPanel() {
       ),
     );
 
-  // Generic next
+  // Generic next (non-special nodes)
   const nextInp = document.getElementById("editNodeNext");
   if (nextInp)
     nextInp.addEventListener(
@@ -565,6 +633,42 @@ function updateEditorPanel() {
         () => updateNodeProperty(id, "next", linkNextInp.value.trim()),
         300,
       ),
+    );
+
+  // SetVar fields
+  const svVarName = document.getElementById("editVarName");
+  if (svVarName)
+    svVarName.addEventListener(
+      "input",
+      debounce(
+        () => updateNodeProperty(id, "variable", svVarName.value.trim()),
+        300,
+      ),
+    );
+  const svValue = document.getElementById("editVarValue");
+  if (svValue)
+    svValue.addEventListener(
+      "input",
+      debounce(
+        () => updateNodeProperty(id, "value", svValue.value.trim()),
+        300,
+      ),
+    );
+  const svType = document.getElementById("editVarType");
+  if (svType)
+    svType.addEventListener("change", () =>
+      updateNodeProperty(id, "varType", svType.value),
+    );
+  const svShow = document.getElementById("editShowInRuntime");
+  if (svShow)
+    svShow.addEventListener("change", () =>
+      updateNodeProperty(id, "showInRuntime", svShow.checked),
+    );
+  const svNext = document.getElementById("editSetNext");
+  if (svNext)
+    svNext.addEventListener(
+      "input",
+      debounce(() => updateNodeProperty(id, "next", svNext.value.trim()), 300),
     );
 
   // Start node checkbox
@@ -628,18 +732,13 @@ function updateEditorPanel() {
     linkAddBtn.addEventListener("click", () => {
       pushUndo();
       node.links = node.links || [];
-      node.links.push({
-        label: "New Link",
-        url: "https://",
-      });
+      node.links.push({ label: "New Link", url: "https://" });
       renderAll();
       updateEditorPanel();
     });
 
   document.querySelectorAll("[data-link-index]").forEach((row) => {
     const idx = parseInt(row.dataset.linkIndex);
-    // ---- stayOnCanvas checkbox ----
-
     row.querySelector('[data-link-field="label"]').addEventListener(
       "input",
       debounce(() => {

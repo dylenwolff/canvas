@@ -201,7 +201,7 @@ function exportToHTML() {
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
   `;
 
-  // ========== JavaScript – fully functional runtime ==========
+  // ========== JavaScript – runtime with SetVar & boolean decision ==========
   const js = `
     (function() {
       'use strict';
@@ -240,6 +240,12 @@ function exportToHTML() {
               });
             });
             node.next = q.querySelector("next")?.textContent.trim() || "";
+          } else if (type === "setvar") {
+            node.variable = q.querySelector("variable")?.textContent.trim() || "";
+            node.value = q.querySelector("value")?.textContent.trim() || "";
+            node.varType = q.querySelector("varType")?.textContent.trim() || "string";
+            node.showInRuntime = q.querySelector("showInRuntime")?.textContent.trim() !== "false";
+            node.next = q.querySelector("next")?.textContent.trim() || "";
           } else if (type === "input" || type === "number") {
             node.variable = q.querySelector("variable")?.textContent.trim() || ""; node.next = q.querySelector("next")?.textContent.trim() || "";
           } else if (type !== "end") {
@@ -255,6 +261,11 @@ function exportToHTML() {
       FlowRuntime.prototype.evaluateDecision = function(node) {
         var varVal = this.variables[node.variable] !== undefined ? this.variables[node.variable] : "";
         var exp = node.value, op = node.operator;
+
+        // Boolean operators first
+        if (op === "is true") return !!varVal;
+        if (op === "is false") return !varVal;
+
         var nv = Number(varVal), ne = Number(exp);
         if (!isNaN(nv) && !isNaN(ne) && ['==','!=','<','<=','>','>='].indexOf(op) !== -1) {
           if (op==='==') return nv===ne; if (op==='!=') return nv!==ne;
@@ -263,6 +274,9 @@ function exportToHTML() {
         var sv = String(varVal).toLowerCase(), se = exp.toLowerCase();
         if (op==='equals') return sv===se; if (op==='contains') return sv.indexOf(se) !== -1;
         if (op==='starts_with') return sv.indexOf(se) === 0; if (op==='ends_with') return sv.lastIndexOf(se) === sv.length - se.length;
+        // Fallback string equality for ==, !=
+        if (op==='==') return sv===se;
+        if (op==='!=') return sv!==se;
         return false;
       };
       FlowRuntime.prototype.advance = function(targetId) { if (targetId && this.nodes.has(targetId)) { this.currentNodeId = targetId; return true; } return false; };
@@ -372,6 +386,34 @@ function exportToHTML() {
               } else alert('Node "' + node.next + '" not found');
             });
           }
+        } else if (node.type === 'setvar') {
+          var varName = node.variable;
+          var val = runtime.substitute(node.value);
+          var parsedVal = val;
+          if (node.varType === 'number') parsedVal = Number(val);
+          else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
+          if (varName) runtime.variables[varName] = parsedVal;
+
+          if (!node.showInRuntime) {
+            if (node.next && runtime.nodes.has(node.next)) {
+              runtime.currentNodeId = node.next;
+              buildStepUI();
+            } else {
+              body.innerHTML = '<div class="runtime-end-message"><p>Flow Complete</p></div>';
+            }
+          } else {
+            body.innerHTML = '<div class="runtime-question">' + displayText + '</div>' +
+              '<div class="runtime-message-box variant-info"><p>Variable <strong>' + escapeHtml(varName) + '</strong> set to <strong>' + escapeHtml(parsedVal) + '</strong></p></div>' +
+              (node.next ? '<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>' : '');
+            if (node.next) {
+              document.getElementById('runtimeContinue').addEventListener('click', function() {
+                if (runtime.nodes.has(node.next)) {
+                  runtime.currentNodeId = node.next;
+                  buildStepUI();
+                } else alert('Node "' + node.next + '" not found');
+              });
+            }
+          }
         } else {
           body.innerHTML = '<div class="runtime-question">' + displayText + '</div><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>';
           document.getElementById('runtimeContinue').addEventListener('click', function() {
@@ -393,6 +435,22 @@ function exportToHTML() {
           body.innerHTML += '<div class="runtime-end-message"><p>Node not found</p></div>';
           return;
         }
+
+        // Hidden SetVar: skip UI entirely
+        if (node.type === 'setvar' && !node.showInRuntime) {
+          var varName = node.variable;
+          var val = runtime.substitute(node.value);
+          var parsedVal = val;
+          if (node.varType === 'number') parsedVal = Number(val);
+          else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
+          if (varName) runtime.variables[varName] = parsedVal;
+          if (node.next && runtime.nodes.has(node.next)) {
+            runtime.currentNodeId = node.next;
+            renderLinearStep();
+          }
+          return;
+        }
+
         var displayText = runtime.substitute(node.text);
         var stepDiv = document.createElement('div');
         stepDiv.className = 'linear-step';
@@ -510,6 +568,31 @@ function exportToHTML() {
             });
             stepDiv.appendChild(cont);
           }
+        } else if (node.type === 'setvar') {
+          // Visible SetVar
+          var varName = node.variable;
+          var val = runtime.substitute(node.value);
+          var parsedVal = val;
+          if (node.varType === 'number') parsedVal = Number(val);
+          else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
+          if (varName) runtime.variables[varName] = parsedVal;
+
+          var infoDiv = document.createElement('div');
+          infoDiv.className = 'runtime-message-box variant-info';
+          infoDiv.innerHTML = '<p>Variable <strong>' + escapeHtml(varName) + '</strong> set to <strong>' + escapeHtml(parsedVal) + '</strong></p>';
+          stepDiv.appendChild(infoDiv);
+
+          var continueBtn = document.createElement('button');
+          continueBtn.className = 'runtime-submit-btn linear-continue-btn';
+          continueBtn.textContent = 'Continue';
+          continueBtn.addEventListener('click', function() {
+            continueBtn.disabled = true; continueBtn.style.display = 'none';
+            if (node.next && runtime.nodes.has(node.next)) {
+              runtime.currentNodeId = node.next;
+              renderLinearStep();
+            } else alert(node.next ? 'Node "' + node.next + '" not found' : 'No next node');
+          });
+          stepDiv.appendChild(continueBtn);
         } else {
           var continueBtn = document.createElement('button');
           continueBtn.className = 'runtime-submit-btn linear-continue-btn';
@@ -549,7 +632,23 @@ function exportToHTML() {
           addChatBubble('bot', 'Flow Complete: ' + displayText, 'success');
           return;
         }
-        if (node.type !== 'link') {
+
+        // Hidden SetVar: skip UI
+        if (node.type === 'setvar' && !node.showInRuntime) {
+          var varName = node.variable;
+          var val = runtime.substitute(node.value);
+          var parsedVal = val;
+          if (node.varType === 'number') parsedVal = Number(val);
+          else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
+          if (varName) runtime.variables[varName] = parsedVal;
+          if (node.next && runtime.nodes.has(next)) {
+            runtime.currentNodeId = node.next;
+            renderChatStep();
+          }
+          return;
+        }
+
+        if (node.type !== 'link' && node.type !== 'setvar') {
           addChatBubble('bot', displayText, (node.type === 'message' ? node.variant || 'info' : ''));
         }
 
@@ -663,6 +762,24 @@ function exportToHTML() {
             footer.appendChild(cont);
           }
           body.scrollTop = body.scrollHeight;
+        } else if (node.type === 'setvar') {
+          // Visible SetVar
+          var bubble = document.createElement('div');
+          bubble.className = 'chat-bubble chat-bot';
+          bubble.textContent = displayText + '\\nVariable ' + escapeHtml(node.variable) + ' set to ' + escapeHtml(runtime.variables[node.variable]);
+          body.appendChild(bubble);
+          if (node.next) {
+            var cont = document.createElement('button');
+            cont.className = 'runtime-submit-btn';
+            cont.textContent = 'Continue';
+            cont.addEventListener('click', function() {
+              if (runtime.nodes.has(node.next)) {
+                runtime.currentNodeId = node.next;
+                renderChatStep();
+              } else alert('Node "' + node.next + '" not found');
+            });
+            footer.appendChild(cont);
+          }
         } else {
           var continueBtn = document.createElement('button');
           continueBtn.className = 'runtime-submit-btn';

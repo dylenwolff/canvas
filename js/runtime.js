@@ -58,6 +58,12 @@ function evaluateDecision(node) {
       : "";
   const exp = node.value,
     op = node.operator;
+
+  // Boolean operators first (ignore exp)
+  if (op === "is true") return !!varVal;
+  if (op === "is false") return !varVal;
+
+  // Numeric operators
   const nv = Number(varVal),
     ne = Number(exp);
   if (
@@ -72,12 +78,19 @@ function evaluateDecision(node) {
     if (op === ">") return nv > ne;
     if (op === ">=") return nv >= ne;
   }
+
+  // String operators
   const sv = String(varVal).toLowerCase(),
     se = exp.toLowerCase();
   if (op === "equals") return sv === se;
   if (op === "contains") return sv.indexOf(se) !== -1;
   if (op === "starts_with") return sv.indexOf(se) === 0;
   if (op === "ends_with") return sv.lastIndexOf(se) === sv.length - se.length;
+
+  // Fallback to string equality if op is ==, != etc. and not number
+  if (op === "==") return sv === se;
+  if (op === "!=") return sv !== se;
+
   return false;
 }
 
@@ -212,6 +225,49 @@ function renderRuntimeStep() {
           } else showToast(`Node "${node.next}" not found`, "error");
         });
     }
+  } else if (node.type === "setvar") {
+    const varName = node.variable;
+    const val = substituteVariables(node.value);
+    let parsedVal = val;
+    if (node.varType === "number") {
+      parsedVal = Number(val);
+    } else if (node.varType === "boolean") {
+      parsedVal = val.toLowerCase() === "true" || val === "1";
+    }
+    if (varName) state.runtimeVariables[varName] = parsedVal;
+
+    if (!node.showInRuntime) {
+      // Skip UI, advance immediately
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderRuntimeStep();
+      } else {
+        DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Flow Complete</p></div>`;
+      }
+    } else {
+      // Show a simple step
+      DOM.runtimeBody.innerHTML = `
+        <div class="runtime-question">${escapeHtml(displayText)}</div>
+        <div class="runtime-message-box variant-info">
+          <p>Variable <strong>${escapeHtml(varName)}</strong> set to <strong>${escapeHtml(parsedVal)}</strong></p>
+        </div>
+        <button class="runtime-submit-btn" id="runtimeContinue">Continue</button>
+      `;
+      document
+        .getElementById("runtimeContinue")
+        .addEventListener("click", () => {
+          if (node.next && proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderRuntimeStep();
+          } else
+            showToast(
+              node.next ? `Node "${node.next}" not found` : "No next node",
+              "error",
+            );
+        });
+    }
   } else {
     DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
     document.getElementById("runtimeContinue").addEventListener("click", () => {
@@ -262,6 +318,25 @@ function renderLinearStep() {
     body.innerHTML += `<div class="runtime-end-message"><p>Node not found</p></div>`;
     return;
   }
+
+  // ----- Hidden SetVar: no visible step, just advance -----
+  if (node.type === "setvar" && !node.showInRuntime) {
+    const varName = node.variable;
+    const val = substituteVariables(node.value);
+    let parsedVal = val;
+    if (node.varType === "number") parsedVal = Number(val);
+    else if (node.varType === "boolean")
+      parsedVal = val.toLowerCase() === "true" || val === "1";
+    if (varName) state.runtimeVariables[varName] = parsedVal;
+
+    if (node.next && proj.nodes.has(node.next)) {
+      state.runtimeCurrentNodeId = node.next;
+      state.runtimeHistory.push(node.next);
+      renderLinearStep();
+    }
+    return;
+  }
+
   const displayText = substituteVariables(node.text);
 
   const stepDiv = document.createElement("div");
@@ -427,15 +502,7 @@ function renderLinearStep() {
       b.className = "runtime-link-btn";
       b.textContent = link.label;
       b.addEventListener("click", () => {
-        if (link.url) {
-          const newWin = window.open(link.url, "_blank", "noopener,noreferrer");
-          if (link.stayOnCanvas !== false) {
-            setTimeout(() => {
-              window.focus();
-              if (newWin) newWin.blur();
-            }, 50);
-          }
-        }
+        if (link.url) window.open(link.url, "_blank", "noopener,noreferrer");
       });
       linksContainer.appendChild(b);
     });
@@ -455,6 +522,38 @@ function renderLinearStep() {
       });
       stepDiv.appendChild(cont);
     }
+  } else if (node.type === "setvar") {
+    // visible SetVar – already not hidden because we checked early
+    const varName = node.variable;
+    const val = substituteVariables(node.value);
+    let parsedVal = val;
+    if (node.varType === "number") parsedVal = Number(val);
+    else if (node.varType === "boolean")
+      parsedVal = val.toLowerCase() === "true" || val === "1";
+    if (varName) state.runtimeVariables[varName] = parsedVal;
+
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "runtime-message-box variant-info";
+    infoDiv.innerHTML = `<p>Variable <strong>${escapeHtml(varName)}</strong> set to <strong>${escapeHtml(parsedVal)}</strong></p>`;
+    stepDiv.appendChild(infoDiv);
+
+    const continueBtn = document.createElement("button");
+    continueBtn.className = "runtime-submit-btn linear-continue-btn";
+    continueBtn.textContent = "Continue";
+    continueBtn.addEventListener("click", () => {
+      continueBtn.disabled = true;
+      continueBtn.style.display = "none";
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderLinearStep();
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    });
+    stepDiv.appendChild(continueBtn);
   } else {
     const continueBtn = document.createElement("button");
     continueBtn.className = "runtime-submit-btn linear-continue-btn";
@@ -523,7 +622,7 @@ function renderChatStep() {
     return;
   }
 
-  if (node.type !== "link") {
+  if (node.type !== "link" && node.type !== "setvar") {
     addChatBubble(
       "bot",
       displayText,
@@ -673,19 +772,7 @@ function renderChatStep() {
         b.className = "chat-link-btn";
         b.textContent = link.label;
         b.addEventListener("click", () => {
-          if (link.url) {
-            const newWin = window.open(
-              link.url,
-              "_blank",
-              "noopener,noreferrer",
-            );
-            if (link.stayOnCanvas !== false) {
-              setTimeout(() => {
-                window.focus();
-                if (newWin) newWin.blur();
-              }, 50);
-            }
-          }
+          if (link.url) window.open(link.url, "_blank", "noopener,noreferrer");
         });
         linksDiv.appendChild(b);
       });
@@ -707,6 +794,40 @@ function renderChatStep() {
       footer.appendChild(cont);
     }
     body.scrollTop = body.scrollHeight;
+  } else if (node.type === "setvar") {
+    const varName = node.variable;
+    const val = substituteVariables(node.value);
+    let parsedVal = val;
+    if (node.varType === "number") parsedVal = Number(val);
+    else if (node.varType === "boolean")
+      parsedVal = val.toLowerCase() === "true" || val === "1";
+    if (varName) state.runtimeVariables[varName] = parsedVal;
+
+    if (!node.showInRuntime) {
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderChatStep();
+      }
+      return;
+    }
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bot";
+    bubble.textContent = `${displayText}\nVariable ${escapeHtml(varName)} set to ${escapeHtml(parsedVal)}`;
+    body.appendChild(bubble);
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderChatStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
+      });
+      footer.appendChild(cont);
+    }
   } else {
     const continueBtn = document.createElement("button");
     continueBtn.className = "runtime-submit-btn";

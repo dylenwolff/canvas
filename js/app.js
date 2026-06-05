@@ -4,130 +4,133 @@ function init() {
   const hasSaved = loadProjects();
   if (!hasSaved) {
     state.projects = [];
-    const proj = createEmptyProject("Test Flow");
+    const proj = createEmptyProject("Quick Test");
     state.projects.push(proj);
     state.activeProjectIndex = 0;
 
-    const baseX = 50000,
-      baseY = 50000;
+    const bx = 50000,
+      by = 50000,
+      dy = 160;
 
-    // 1. Choice – branching question
-    const start = createNode("choice", baseX, baseY, "start");
-    start.text = "What would you like to test?";
-    start.options = [
-      { text: "Test Decision", next: "decision_node" },
-      { text: "Test Input & Variable", next: "name_input" },
-      { text: "Test Link", next: "link_node" },
-      { text: "Test Copy Box", next: "copybox_node" },
+    // 1. Welcome message (info variant)
+    const n1 = createNode("message", bx, by, "welcome");
+    n1.text = "👋 Welcome! This flow quickly tests every node type.";
+    n1.variant = "info";
+    n1.next = "ask_name";
+    proj.nodes.set("welcome", n1);
+
+    // 2. Input – user name
+    const n2 = createNode("input", bx, by + dy, "ask_name");
+    n2.text = "What's your name?";
+    n2.variable = "name";
+    n2.next = "ask_age";
+    proj.nodes.set("ask_name", n2);
+
+    // 3. Number – user age
+    const n3 = createNode("number", bx, by + dy * 2, "ask_age");
+    n3.text = "Enter your age:";
+    n3.variable = "age";
+    n3.next = "dec_numeric";
+    proj.nodes.set("ask_age", n3);
+
+    // 4. Decision – numeric (age >= 18)
+    const n4 = createNode("decision", bx, by + dy * 3, "dec_numeric");
+    n4.text = "Are you 18 or older?";
+    n4.variable = "age";
+    n4.operator = ">=";
+    n4.value = "18";
+    n4.trueNext = "msg_adult";
+    n4.falseNext = "msg_minor";
+    proj.nodes.set("dec_numeric", n4);
+
+    // 5a. Message – success (adult)
+    const n5a = createNode("message", bx + 300, by + dy * 3, "msg_adult");
+    n5a.text = "You're an adult, {name}! ✅";
+    n5a.variant = "success";
+    n5a.next = "set_silent";
+    proj.nodes.set("msg_adult", n5a);
+
+    // 5b. Message – warning (minor)
+    const n5b = createNode("message", bx - 300, by + dy * 3, "msg_minor");
+    n5b.text = "You're under 18, {name}. ⚠️";
+    n5b.variant = "warning";
+    n5b.next = "set_silent";
+    proj.nodes.set("msg_minor", n5b);
+
+    // 6. SetVar – silent (boolean)
+    const n6 = createNode("setvar", bx, by + dy * 4, "set_silent");
+    n6.text = "Silently set isTested = true";
+    n6.variable = "isTested";
+    n6.value = "true";
+    n6.varType = "boolean";
+    n6.showInRuntime = false;
+    n6.next = "set_visible";
+    proj.nodes.set("set_silent", n6);
+
+    // 7. SetVar – visible (number)
+    const n7 = createNode("setvar", bx, by + dy * 5, "set_visible");
+    n7.text = "Visibly set score = 100";
+    n7.variable = "score";
+    n7.value = "100";
+    n7.varType = "number";
+    n7.showInRuntime = true;
+    n7.next = "dec_bool";
+    proj.nodes.set("set_visible", n7);
+
+    // 8. Decision – boolean (isTested is true)
+    const n8 = createNode("decision", bx, by + dy * 6, "dec_bool");
+    n8.text = "Is isTested true?";
+    n8.variable = "isTested";
+    n8.operator = "is true";
+    n8.value = "";
+    n8.trueNext = "msg_bool_true";
+    n8.falseNext = "msg_bool_false";
+    proj.nodes.set("dec_bool", n8);
+
+    // 9a. Message – boolean true (success)
+    const n9a = createNode("message", bx + 300, by + dy * 6, "msg_bool_true");
+    n9a.text = "Boolean isTested is true! ✅";
+    n9a.variant = "success";
+    n9a.next = "copybox_cmd";
+    proj.nodes.set("msg_bool_true", n9a);
+
+    // 9b. Message – boolean false (error)
+    const n9b = createNode("message", bx - 300, by + dy * 6, "msg_bool_false");
+    n9b.text = "Boolean isTested is false? That's odd. ❌";
+    n9b.variant = "error";
+    n9b.next = "copybox_cmd";
+    proj.nodes.set("msg_bool_false", n9b);
+
+    // 10. Copy Box
+    const n10 = createNode("copybox", bx, by + dy * 7, "copybox_cmd");
+    n10.text = "Copy this command:";
+    n10.copyContent = "echo 'Canvas is awesome!'";
+    n10.next = "msg_action";
+    proj.nodes.set("copybox_cmd", n10);
+
+    // 11. Message – action variant
+    const n11 = createNode("message", bx, by + dy * 8, "msg_action");
+    n11.text = "Action required: Click Continue.";
+    n11.variant = "action";
+    n11.next = "link_node";
+    proj.nodes.set("msg_action", n11);
+
+    // 12. Link node
+    const n12 = createNode("link", bx, by + dy * 9, "link_node");
+    n12.text = "Useful links:";
+    n12.links = [
+      { label: "Canvas GitHub", url: "https://github.com" },
+      { label: "MDN Web Docs", url: "https://developer.mozilla.org" },
     ];
-    proj.nodes.set("start", start);
-    proj.startNodeId = "start";
+    n12.next = "final_end";
+    proj.nodes.set("link_node", n12);
 
-    // 2. Decision – number comparison
-    const decision = createNode(
-      "decision",
-      baseX + 300,
-      baseY - 60,
-      "decision_node",
-    );
-    decision.text = "Is the entered number greater than 5?";
-    decision.variable = "userNumber";
-    decision.operator = ">";
-    decision.value = "5";
-    decision.trueNext = "high_number";
-    decision.falseNext = "low_number";
-    proj.nodes.set("decision_node", decision);
+    // 13. End
+    const n13 = createNode("end", bx, by + dy * 10, "final_end");
+    n13.text = "Test complete! Thanks, {name}. Your score is {score}.";
+    proj.nodes.set("final_end", n13);
 
-    // 3. Input – user name
-    const nameInput = createNode(
-      "input",
-      baseX + 300,
-      baseY + 80,
-      "name_input",
-    );
-    nameInput.text = "Enter your name:";
-    nameInput.variable = "userName";
-    nameInput.next = "number_input";
-    proj.nodes.set("name_input", nameInput);
-
-    // 4. Number – user number
-    const numberInput = createNode(
-      "number",
-      baseX + 600,
-      baseY + 80,
-      "number_input",
-    );
-    numberInput.text = "Enter a number:";
-    numberInput.variable = "userNumber";
-    numberInput.next = "decision_node";
-    proj.nodes.set("number_input", numberInput);
-
-    // 5. Message – high number result (variant success)
-    const highMsg = createNode(
-      "message",
-      baseX + 600,
-      baseY - 100,
-      "high_number",
-    );
-    highMsg.text = "Your number is greater than 5! ✅";
-    highMsg.variant = "success";
-    highMsg.next = "restart_choice";
-    proj.nodes.set("high_number", highMsg);
-
-    // 6. Message – low number result (variant warning)
-    const lowMsg = createNode("message", baseX + 600, baseY - 20, "low_number");
-    lowMsg.text = "Your number is 5 or less. ⚠️";
-    lowMsg.variant = "warning";
-    lowMsg.next = "restart_choice";
-    proj.nodes.set("low_number", lowMsg);
-
-    // 7. Link node – external URLs
-    const linkNode = createNode("link", baseX + 300, baseY + 200, "link_node");
-    linkNode.text = "Useful links:";
-    linkNode.links = [
-      {
-        label: "Canvas GitHub",
-        url: "https://github.com",
-      },
-      {
-        label: "MDN Web Docs",
-        url: "https://developer.mozilla.org",
-      },
-    ];
-    linkNode.next = "restart_choice";
-    proj.nodes.set("link_node", linkNode);
-
-    // 8. Copy Box – example command
-    const copyboxNode = createNode(
-      "copybox",
-      baseX + 300,
-      baseY + 320,
-      "copybox_node",
-    );
-    copyboxNode.text = "Copy this command:";
-    copyboxNode.copyContent = "npm install canvas";
-    copyboxNode.next = "restart_choice";
-    proj.nodes.set("copybox_node", copyboxNode);
-
-    // 9. Restart choice – loop back or finish
-    const restartChoice = createNode(
-      "choice",
-      baseX + 900,
-      baseY + 140,
-      "restart_choice",
-    );
-    restartChoice.text = "Test complete! Would you like to test again?";
-    restartChoice.options = [
-      { text: "Yes, start over", next: "start" },
-      { text: "No, finish", next: "final_end" },
-    ];
-    proj.nodes.set("restart_choice", restartChoice);
-
-    // 10. Final end node (only shown when user chooses to finish)
-    const finalEnd = createNode("end", baseX + 1200, baseY + 200, "final_end");
-    finalEnd.text = "Thanks for testing, {userName}!";
-    proj.nodes.set("final_end", finalEnd);
-
+    proj.startNodeId = "welcome";
     saveProjects();
   }
   if (state.projects.length === 0) {

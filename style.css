@@ -1999,3 +1999,18 @@ body {
   box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
   color: #ffffff;
 }
+/* ---- Set Variable Node ---- */
+.canvas-node.node-setvar {
+  border-left: 3px solid #a855f7;
+}
+.node-setvar .node-type-badge {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+.node-setvar.selected {
+  border-color: #a855f7 !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(168, 85, 247, 0.35),
+    0 0 0 4px rgba(168, 85, 247, 0.12) !important;
+}
