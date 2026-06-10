@@ -21,13 +21,15 @@
   --danger: #ef4444;
   --danger-glow: rgba(239, 68, 68, 0.3);
   --node-choice: #8b5cf6;
-  --node-action: #3b82f6;
+  --node-decision: #f97316;
+  --node-message: #3b82f6;
+  --node-copybox: #0ea5e9;
+  --node-link: #14b8a6;
+  --node-setvar: #c026d3; /* deep fuchsia */
   --node-input: #f59e0b;
   --node-number: #ec4899;
   --node-end: #ef4444;
-  --node-decision: #f97316;
-  --node-copybox: #0ea5e9;
-  --node-link: #14b8a6;
+  --node-email: #6366f1; /* indigo */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -71,9 +73,10 @@ html.light-mode .bg-grid {
     transparent 1px
   );
 }
+
 /* ----- Light‑mode overrides for node type badges & palette icons ----- */
 html.light-mode .palette-node-icon {
-  color: #333 !important; /* fallback */
+  color: #333 !important;
   background-color: rgba(0, 0, 0, 0.06) !important;
 }
 
@@ -87,7 +90,7 @@ html.light-mode .palette-node[data-type="decision"] .palette-node-icon {
   background: rgba(249, 115, 22, 0.15) !important;
 }
 html.light-mode .palette-node[data-type="message"] .palette-node-icon {
-  color: var(--node-action) !important;
+  color: var(--node-message) !important;
   background: rgba(59, 130, 246, 0.15) !important;
 }
 html.light-mode .palette-node[data-type="copybox"] .palette-node-icon {
@@ -99,8 +102,8 @@ html.light-mode .palette-node[data-type="link"] .palette-node-icon {
   background: rgba(20, 184, 166, 0.15) !important;
 }
 html.light-mode .palette-node[data-type="setvar"] .palette-node-icon {
-  color: #a855f7 !important; /* no var for setvar yet */
-  background: rgba(168, 85, 247, 0.15) !important;
+  color: var(--node-setvar) !important;
+  background: rgba(192, 38, 211, 0.15) !important;
 }
 html.light-mode .palette-node[data-type="input"] .palette-node-icon {
   color: var(--node-input) !important;
@@ -114,6 +117,10 @@ html.light-mode .palette-node[data-type="end"] .palette-node-icon {
   color: var(--node-end) !important;
   background: rgba(239, 68, 68, 0.15) !important;
 }
+html.light-mode .palette-node[data-type="email"] .palette-node-icon {
+  color: var(--node-email) !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+}
 
 /* Node type badges – darker text, slightly more opaque background */
 html.light-mode .node-choice .node-type-badge {
@@ -126,7 +133,7 @@ html.light-mode .node-decision .node-type-badge {
 }
 html.light-mode .node-message .node-type-badge {
   background: rgba(59, 130, 246, 0.15);
-  color: var(--node-action);
+  color: var(--node-message);
 }
 html.light-mode .node-copybox .node-type-badge {
   background: rgba(14, 165, 233, 0.15);
@@ -137,8 +144,8 @@ html.light-mode .node-link .node-type-badge {
   color: var(--node-link);
 }
 html.light-mode .node-setvar .node-type-badge {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: rgba(192, 38, 211, 0.15);
+  color: var(--node-setvar);
 }
 html.light-mode .node-input .node-type-badge {
   background: rgba(245, 158, 11, 0.15);
@@ -152,6 +159,10 @@ html.light-mode .node-end .node-type-badge {
   background: rgba(239, 68, 68, 0.15);
   color: var(--node-end);
 }
+html.light-mode .node-email .node-type-badge {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--node-email);
+}
 
 /* Message variant badges (they appear on the canvas node headers) */
 html.light-mode .variant-pill {
@@ -159,7 +170,7 @@ html.light-mode .variant-pill {
 }
 html.light-mode .variant-info .node-type-badge {
   background: rgba(59, 130, 246, 0.15);
-  color: var(--node-action);
+  color: var(--node-message);
 }
 html.light-mode .variant-success .node-type-badge {
   background: rgba(16, 185, 129, 0.15);
@@ -177,6 +188,7 @@ html.light-mode .variant-action .node-type-badge {
   background: rgba(139, 92, 246, 0.15);
   color: #8b5cf6;
 }
+
 /* Reduce orb intensity in light mode */
 html.light-mode .orb {
   opacity: 0.1;
@@ -184,29 +196,25 @@ html.light-mode .orb {
 
 /* Additional light‑mode fixes for readability and modal appearance */
 html.light-mode .mode-btn-step {
-  color: #b91c1c !important; /* dark red */
+  color: #b91c1c !important;
 }
 html.light-mode .mode-btn-linear {
-  color: #047857 !important; /* dark green */
+  color: #047857 !important;
 }
 html.light-mode .mode-btn-chat {
-  color: #1e40af !important; /* dark blue */
+  color: #1e40af !important;
 }
-/* Ensure the modal body (inside the Step runtime) is light */
 
-/* Ensure the modal body (inside the Step runtime) is light */
 html.light-mode .runtime-modal .modal-body {
   background: var(--bg-surface);
   border-bottom-left-radius: var(--radius-xl);
   border-bottom-right-radius: var(--radius-xl);
 }
 
-/* Override the variant‑info modal background to a very soft tint */
 html.light-mode .runtime-modal.variant-info {
   background: rgba(59, 130, 246, 0.06);
 }
 
-/* Make link buttons look better on light backgrounds */
 html.light-mode .runtime-link-btn,
 html.light-mode .chat-link-btn {
   border-color: #0f766e;
@@ -221,6 +229,7 @@ html.light-mode .chat-link-btn:hover {
   color: #0d9488;
   box-shadow: 0 0 8px rgba(20, 184, 166, 0.25);
 }
+
 html.light-mode .chat-bubble.info {
   color: #1e3a5f;
 }
@@ -237,7 +246,6 @@ html.light-mode .chat-bubble.action {
   color: #4c1d95;
 }
 
-/* Round the top corners of the navbar inside runtime modals */
 html.light-mode .modal-navbar,
 html.light-mode .runtime-modal .navbar,
 html.light-mode .runtime-panel-header.navbar {
@@ -245,7 +253,58 @@ html.light-mode .runtime-panel-header.navbar {
   border-top-right-radius: var(--radius-xl);
   overflow: hidden;
 }
+html.light-mode .node-option-chip {
+  background: rgba(0, 0, 0, 0.06); /* dark translucent background */
+  border-color: rgba(0, 0, 0, 0.12); /* visible border */
+  color: var(--text-secondary); /* dark text, already #4a4a6a */
+}
+/* ======= Palette Icon Defaults (using data-type) ======= */
+.palette-node-icon {
+  color: #aaa; /* fallback */
+  background: rgba(255, 255, 255, 0.1);
+}
+.palette-node[data-type="choice"] .palette-node-icon {
+  color: var(--node-choice);
+  background: rgba(139, 92, 246, 0.3);
+}
+.palette-node[data-type="decision"] .palette-node-icon {
+  color: var(--node-decision);
+  background: rgba(249, 115, 22, 0.3);
+}
+.palette-node[data-type="message"] .palette-node-icon {
+  color: var(--node-message);
+  background: rgba(59, 130, 246, 0.3);
+}
+.palette-node[data-type="copybox"] .palette-node-icon {
+  color: var(--node-copybox);
+  background: rgba(14, 165, 233, 0.3);
+}
+.palette-node[data-type="link"] .palette-node-icon {
+  color: var(--node-link);
+  background: rgba(20, 184, 166, 0.3);
+}
+.palette-node[data-type="setvar"] .palette-node-icon {
+  color: var(--node-setvar);
+  background: rgba(192, 38, 211, 0.3);
+}
+.palette-node[data-type="input"] .palette-node-icon {
+  color: var(--node-input);
+  background: rgba(245, 158, 11, 0.3);
+}
+.palette-node[data-type="number"] .palette-node-icon {
+  color: var(--node-number);
+  background: rgba(236, 72, 153, 0.3);
+}
+.palette-node[data-type="end"] .palette-node-icon {
+  color: var(--node-end);
+  background: rgba(239, 68, 68, 0.3);
+}
+.palette-node[data-type="email"] .palette-node-icon {
+  color: var(--node-email);
+  background: rgba(99, 102, 241, 0.3);
+}
 
+/* ======= Base Styles ======= */
 *,
 *::before,
 *::after {
@@ -685,6 +744,8 @@ body {
   z-index: 5;
   border-color: transparent !important;
 }
+
+/* Node‑type selected glows */
 .canvas-node.node-choice.selected {
   border-color: var(--node-choice) !important;
   box-shadow:
@@ -693,7 +754,7 @@ body {
     0 0 0 4px rgba(139, 92, 246, 0.12) !important;
 }
 .canvas-node.node-message.selected {
-  border-color: var(--node-action) !important;
+  border-color: var(--node-message) !important;
   box-shadow:
     var(--shadow-lg),
     0 0 20px rgba(59, 130, 246, 0.35),
@@ -734,6 +795,28 @@ body {
     0 0 20px rgba(14, 165, 233, 0.35),
     0 0 0 4px rgba(14, 165, 233, 0.12) !important;
 }
+.canvas-node.node-link.selected {
+  border-color: var(--node-link) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(20, 184, 166, 0.35),
+    0 0 0 4px rgba(20, 184, 166, 0.12) !important;
+}
+.canvas-node.node-setvar.selected {
+  border-color: var(--node-setvar) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(192, 38, 211, 0.35),
+    0 0 0 4px rgba(192, 38, 211, 0.12) !important;
+}
+.canvas-node.node-email.selected {
+  border-color: var(--node-email) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(99, 102, 241, 0.35),
+    0 0 0 4px rgba(99, 102, 241, 0.12) !important;
+}
+
 .canvas-node.dragging {
   cursor: grabbing;
   box-shadow:
@@ -743,11 +826,13 @@ body {
   opacity: 0.95;
   transition: none;
 }
+
+/* Left border accents */
 .canvas-node.node-choice {
   border-left: 3px solid var(--node-choice);
 }
 .canvas-node.node-message {
-  border-left: 3px solid var(--node-action);
+  border-left: 3px solid var(--node-message);
 }
 .canvas-node.node-input {
   border-left: 3px solid var(--node-input);
@@ -767,6 +852,12 @@ body {
 .canvas-node.node-link {
   border-left: 3px solid var(--node-link);
 }
+.canvas-node.node-setvar {
+  border-left: 3px solid var(--node-setvar);
+}
+.canvas-node.node-email {
+  border-left: 3px solid var(--node-email);
+}
 
 .node-header {
   display: flex;
@@ -782,6 +873,8 @@ body {
   padding: 2px 7px;
   border-radius: 10px;
 }
+
+/* Badge colours */
 .node-choice .node-type-badge {
   background: rgba(139, 92, 246, 0.2);
   color: #c4b5fd;
@@ -809,6 +902,18 @@ body {
 .node-copybox .node-type-badge {
   background: rgba(14, 165, 233, 0.2);
   color: #7dd3fc;
+}
+.node-link .node-type-badge {
+  background: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+}
+.node-setvar .node-type-badge {
+  background: rgba(192, 38, 211, 0.2);
+  color: #e879f9;
+}
+.node-email .node-type-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
 }
 
 .node-id-label {
@@ -838,7 +943,15 @@ body {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-secondary);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  white-space: nowrap;
+  white-space: nowrap; /* keep on one line */
+  overflow: hidden; /* hide the overflow */
+  text-overflow: ellipsis; /* show '…' when truncated */
+  max-width: 100%; /* stay within the node */
+  display: inline-block;
+}
+.node-link-chip {
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.3);
 }
 
 /* Node ports */
@@ -1779,14 +1892,12 @@ body {
   margin: 0 auto;
   width: 100%;
   border-radius: 0;
-  /* hidden scrollbar */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 .runtime-panel-body::-webkit-scrollbar {
   display: none;
 }
-
 .runtime-panel-footer {
   background: var(--bg-glass);
   border-top: 1px solid var(--border-subtle);
@@ -2100,7 +2211,7 @@ body {
   border-radius: var(--radius-md);
 }
 
-/* ---- Link Node ---- */
+/* ---- Link Node (separate styles) ---- */
 .canvas-node.node-link {
   border-left: 2px solid #14b8a6;
 }
@@ -2124,44 +2235,8 @@ body {
   max-width: 90%;
 }
 
-.chat-link-btn {
-  display: block;
-  width: 100%;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid #14b8a6;
-  background: transparent;
-  color: #5eead4;
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: left;
-  line-height: 1.4;
-  margin-bottom: 0;
-}
-.chat-link-btn:hover {
-  background: rgba(20, 184, 166, 0.08);
-  border-color: #5eead4;
-  box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
-  color: #ffffff;
-}
-
-.chat-links {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
-.node-port.port-out {
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  right: -7px;
-}
-
-.runtime-link-btn,
-.chat-link-btn {
+.chat-link-btn,
+.runtime-link-btn {
   display: block;
   width: 100%;
   min-width: 200px;
@@ -2177,30 +2252,60 @@ body {
   transition: all var(--transition-fast);
   text-align: center;
   line-height: 1.4;
-  margin-bottom: 0;
+  margin-bottom: 8px;
 }
-.runtime-link-btn:hover,
-.chat-link-btn:hover {
+.chat-link-btn:hover,
+.runtime-link-btn:hover {
   background: rgba(20, 184, 166, 0.08);
   border-color: #5eead4;
   box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
   color: #ffffff;
 }
+.chat-links,
+.runtime-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* Node port overrides for link nodes */
+.node-port.port-out {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  right: -7px;
+}
 
 /* ---- Set Variable Node ---- */
 .canvas-node.node-setvar {
-  border-left: 3px solid #a855f7;
+  border-left: 3px solid var(--node-setvar);
 }
 .node-setvar .node-type-badge {
-  background: rgba(168, 85, 247, 0.2);
-  color: #c084fc;
+  background: rgba(192, 38, 211, 0.2);
+  color: #e879f9;
 }
 .node-setvar.selected {
-  border-color: #a855f7 !important;
+  border-color: var(--node-setvar) !important;
   box-shadow:
     var(--shadow-lg),
-    0 0 20px rgba(168, 85, 247, 0.35),
-    0 0 0 4px rgba(168, 85, 247, 0.12) !important;
+    0 0 20px rgba(192, 38, 211, 0.35),
+    0 0 0 4px rgba(192, 38, 211, 0.12) !important;
+}
+
+/* ---- Email Node ---- */
+.canvas-node.node-email {
+  border-left: 3px solid var(--node-email);
+}
+.node-email .node-type-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+.node-email.selected {
+  border-color: var(--node-email) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(99, 102, 241, 0.35),
+    0 0 0 4px rgba(99, 102, 241, 0.12) !important;
 }
 
 /* Mailto link builder modal */
@@ -2215,4 +2320,117 @@ body {
   border: 1px solid var(--border-medium);
   cursor: text;
   user-select: all;
+}
+
+.sidebar-search {
+  padding: 0 10px 8px;
+}
+.sidebar-search .form-input {
+  width: 100%;
+  font-size: 0.75rem;
+}
+.wysiwyg-wrapper {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-surface-2);
+}
+.wysiwyg-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.wysiwyg-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.wysiwyg-btn:hover {
+  background: rgba(219, 0, 17, 0.1);
+  color: var(--accent);
+}
+.wysiwyg-editor {
+  min-height: 80px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  outline: none;
+  word-break: break-word;
+}
+.wysiwyg-editor a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+/* ---- Mobile Warning (desktop‑only app) ---- */
+.mobile-warning {
+  display: none; /* hidden by default */
+  position: fixed;
+  inset: 0;
+  background: var(--bg-deep);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-family: "Inter", sans-serif;
+  color: var(--text-primary);
+}
+
+.mobile-warning-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.mobile-warning-content p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+/* On screens smaller than 768px, show the warning and hide the app */
+@media (max-width: 768px) {
+  .mobile-warning {
+    display: flex !important;
+  }
+
+  .app-container,
+  .bg-orbs,
+  .bg-grid {
+    display: none !important;
+  }
+}
+/* Outline email button */
+.runtime-email-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 200px; /* ← added */
+}
+.runtime-email-btn:hover {
+  background: rgba(219, 0, 17, 0.08);
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
+}
+/* Full width for email button in linear steps */
+.linear-step .runtime-email-btn {
+  width: 100%;
 }

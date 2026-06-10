@@ -468,5 +468,25 @@ body {
   transition: transform 0.2s;
 }
 .theme-float-btn:hover { transform: scale(1.1); }
+
+/* Outline email button */
+.runtime-email-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 200px;          /* ← added */
+}
+.runtime-email-btn:hover {
+  background: rgba(219,0,17,0.08);
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
+}
 `;
 }

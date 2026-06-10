@@ -25,5 +25,5 @@ const state = {
   marquee: null,
   multiDragOffsets: null,
   runtimeStepLog: [],
-  selectedConnection: null, // { sourceNodeId, optionIndex }
+  selectedConnection: null,
 };

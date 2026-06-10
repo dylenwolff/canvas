@@ -184,15 +184,22 @@ function init() {
   document
     .getElementById("btnRunChat")
     .addEventListener("click", startChatRuntime);
-  document
-    .getElementById("btnSave")
-    .addEventListener("click", saveWithNameCheck);
-  document
-    .getElementById("btnOpen")
-    .addEventListener("click", () => DOM.importFileInput.click());
+
   document.getElementById("btnZoomIn").addEventListener("click", () => {
     const r = DOM.canvasContainer.getBoundingClientRect();
     zoomAtPoint(1.2, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("btnZoom100").addEventListener("click", () => {
+    const containerRect = DOM.canvasContainer.getBoundingClientRect();
+    const centerScreenX = containerRect.width / 2,
+      centerScreenY = containerRect.height / 2;
+    const worldX = (centerScreenX - state.panX) / state.zoom,
+      worldY = (centerScreenY - state.panY) / state.zoom;
+    state.zoom = 1;
+    state.panX = centerScreenX - worldX * state.zoom;
+    state.panY = centerScreenY - worldY * state.zoom;
+    applyCanvasTransform();
+    showToast("Zoom 100%", "info");
   });
   document.getElementById("btnZoomOut").addEventListener("click", () => {
     const r = DOM.canvasContainer.getBoundingClientRect();
@@ -377,10 +384,24 @@ function init() {
         });
     }
   });
-  initTheme();
   document
     .getElementById("btnThemeToggle")
     .addEventListener("click", toggleTheme);
+  document.getElementById("nodeSearch").addEventListener("input", (e) => {
+    const query = e.target.value.toLowerCase();
+    document.querySelectorAll(".palette-node").forEach((p) => {
+      const name = p
+        .querySelector(".palette-node-name")
+        .textContent.toLowerCase();
+      const desc = p
+        .querySelector(".palette-node-desc")
+        .textContent.toLowerCase();
+      p.style.display =
+        name.includes(query) || desc.includes(query) ? "" : "none";
+    });
+  });
+
+  initTheme();
 }
 
 function renderTabs() {

@@ -88,6 +88,7 @@ function handleMenuAction(action) {
     case "toggle-minimap":
       document.querySelector(".minimap").classList.toggle("hidden");
       break;
+
     case "about":
       showToast("Canvas. – Visual Checklist Builder", "info");
       break;
@@ -156,7 +157,6 @@ function onKeyDown(e) {
     duplicateNode(proj.selectedNodeId);
   }
   if (e.key === "Delete" || e.key === "Backspace") {
-    // If a connection is selected, delete it first
     if (state.selectedConnection) {
       e.preventDefault();
       deleteConnection(
@@ -165,7 +165,18 @@ function onKeyDown(e) {
       );
       return;
     }
-    // Otherwise, delete the selected node
+    if (state.selectedNodeIds.size > 1) {
+      e.preventDefault();
+      pushUndo();
+      const idsToDelete = Array.from(state.selectedNodeIds);
+      idsToDelete.forEach((id) => deleteNodeWithoutUndo(id));
+      state.selectedNodeIds.clear();
+      renderAll();
+      updateEditorPanel();
+      showToast(`${idsToDelete.length} nodes deleted`, "info");
+      return;
+    }
+    // Existing single node delete
     if (proj.selectedNodeId && document.activeElement === document.body) {
       e.preventDefault();
       deleteNode(proj.selectedNodeId);
@@ -177,14 +188,6 @@ function onKeyDown(e) {
       clearConnectionSelection();
       renderAll();
     } else if (proj.selectedNodeId) {
-      proj.selectedNodeId = null;
-      renderNodes();
-      updateEditorPanel();
-    }
-  } else if (e.key === "Escape") {
-    if (state.runtimeActive) stopRuntime();
-    else if (DOM.importModal.style.display === "flex") closeImportModal();
-    else if (proj.selectedNodeId) {
       proj.selectedNodeId = null;
       renderNodes();
       updateEditorPanel();

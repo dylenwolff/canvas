@@ -1,0 +1,5115 @@
+// File: j:\Canvas\js\io.js
+// ---- IMPORT / EXPORT (`.canvas` files) ----
+
+function exportToXML() {
+  const proj = currentProject();
+  // No validation for broken links – only require a start node
+  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
+    showToast("Set a start node before saving", "error");
+    return;
+  }
+
+  const visited = new Set();
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<flow start="${escapeXml(proj.startNodeId)}">\n`;
+
+  function serializeNode(id) {
+    if (visited.has(id)) return "";
+    visited.add(id);
+    const node = proj.nodes.get(id);
+    if (!node) return "";
+
+    let out = `    <question id="${escapeXml(node.id)}" type="${escapeXml(node.type)}" x="${node.x}" y="${node.y}">\n`;
+    out += `        <text>${escapeXml(node.text)}</text>\n`;
+
+    if (node.type === "choice" && node.options) {
+      out += `        <options>\n`;
+      node.options.forEach((opt) => {
+        out += `            <option next="${escapeXml(opt.next || "")}">${escapeXml(opt.text)}</option>\n`;
+      });
+      out += `        </options>\n`;
+    } else if (node.type === "decision") {
+      out += `        <decision variable="${escapeXml(node.variable || "")}" operator="${escapeXml(node.operator || "equals")}" value="${escapeXml(node.value || "")}">\n`;
+      out += `            <true next="${escapeXml(node.trueNext || "")}"/>\n`;
+      out += `            <false next="${escapeXml(node.falseNext || "")}"/>\n`;
+      out += `        </decision>\n`;
+    } else if (node.type === "message") {
+      if (node.variant)
+        out += `        <variant>${escapeXml(node.variant)}</variant>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "copybox") {
+      out += `        <copy_content>${escapeXml(node.copyContent || "")}</copy_content>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "link" && node.links) {
+      out += `        <links>\n`;
+      node.links.forEach((link) => {
+        out += `            <link label="${escapeXml(link.label)}" url="${escapeXml(link.url || "")}"/>\n`;
+      });
+      out += `        </links>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "setvar") {
+      out += `        <variable>${escapeXml(node.variable || "")}</variable>\n`;
+      out += `        <value>${escapeXml(node.value || "")}</value>\n`;
+      out += `        <varType>${escapeXml(node.varType || "string")}</varType>\n`;
+      out += `        <showInRuntime>${node.showInRuntime !== false ? "true" : "false"}</showInRuntime>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "email") {
+      out += `        <email to="${escapeXml(node.to || "")}" cc="${escapeXml(node.cc || "")}" bcc="${escapeXml(node.bcc || "")}" subject="${escapeXml(node.subject || "")}" body="${escapeXml(node.body || "")}"/>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "input" || node.type === "number") {
+      if (node.variable)
+        out += `        <variable>${escapeXml(node.variable)}</variable>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type !== "end" && node.next) {
+      out += `        <next>${escapeXml(node.next)}</next>\n`;
+    }
+
+    out += `    </question>\n`;
+
+    let children = "";
+    if (node.type === "choice" && node.options) {
+      node.options.forEach((opt) => {
+        if (opt.next) children += serializeNode(opt.next);
+      });
+    } else if (node.type === "decision") {
+      if (node.trueNext) children += serializeNode(node.trueNext);
+      if (node.falseNext) children += serializeNode(node.falseNext);
+    } else if (
+      node.type === "link" ||
+      node.type === "setvar" ||
+      node.type === "email"
+    ) {
+      if (node.next) children += serializeNode(node.next);
+    } else if (node.type !== "end" && node.next) {
+      children += serializeNode(node.next);
+    }
+
+    return out + children;
+  }
+
+  xml += serializeNode(proj.startNodeId);
+  xml += "</flow>";
+
+  const blob = new Blob([xml], { type: "application/xml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const safeName =
+    (proj.name || "untitled").replace(/[^a-z0-9_\- ]/gi, "").trim() ||
+    "untitled";
+  a.download = safeName + ".canvas";
+  a.click();
+  showToast("Saved as .canvas", "success");
+  addCurrentToRecent();
+}
+
+function exportToXMLString() {
+  const proj = currentProject();
+  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) return null;
+
+  const visited = new Set();
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<flow start="${escapeXml(proj.startNodeId)}">\n`;
+
+  function serializeNode(id) {
+    if (visited.has(id)) return "";
+    visited.add(id);
+    const node = proj.nodes.get(id);
+    if (!node) return "";
+
+    let out = `    <question id="${escapeXml(node.id)}" type="${escapeXml(node.type)}" x="${node.x}" y="${node.y}">\n`;
+    out += `        <text>${escapeXml(node.text)}</text>\n`;
+
+    if (node.type === "choice" && node.options) {
+      out += `        <options>\n`;
+      node.options.forEach((opt) => {
+        out += `            <option next="${escapeXml(opt.next || "")}">${escapeXml(opt.text)}</option>\n`;
+      });
+      out += `        </options>\n`;
+    } else if (node.type === "decision") {
+      out += `        <decision variable="${escapeXml(node.variable || "")}" operator="${escapeXml(node.operator || "equals")}" value="${escapeXml(node.value || "")}">\n`;
+      out += `            <true next="${escapeXml(node.trueNext || "")}"/>\n`;
+      out += `            <false next="${escapeXml(node.falseNext || "")}"/>\n`;
+      out += `        </decision>\n`;
+    } else if (node.type === "message") {
+      if (node.variant)
+        out += `        <variant>${escapeXml(node.variant)}</variant>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "copybox") {
+      out += `        <copy_content>${escapeXml(node.copyContent || "")}</copy_content>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "link" && node.links) {
+      out += `        <links>\n`;
+      node.links.forEach((link) => {
+        out += `            <link label="${escapeXml(link.label)}" url="${escapeXml(link.url || "")}"/>\n`;
+      });
+      out += `        </links>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "setvar") {
+      out += `        <variable>${escapeXml(node.variable || "")}</variable>\n`;
+      out += `        <value>${escapeXml(node.value || "")}</value>\n`;
+      out += `        <varType>${escapeXml(node.varType || "string")}</varType>\n`;
+      out += `        <showInRuntime>${node.showInRuntime !== false ? "true" : "false"}</showInRuntime>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "email") {
+      out += `        <email to="${escapeXml(node.to || "")}" cc="${escapeXml(node.cc || "")}" bcc="${escapeXml(node.bcc || "")}" subject="${escapeXml(node.subject || "")}" body="${escapeXml(node.body || "")}"/>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "input" || node.type === "number") {
+      if (node.variable)
+        out += `        <variable>${escapeXml(node.variable)}</variable>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type !== "end" && node.next) {
+      out += `        <next>${escapeXml(node.next)}</next>\n`;
+    }
+
+    out += `    </question>\n`;
+
+    let children = "";
+    if (node.type === "choice" && node.options) {
+      node.options.forEach((opt) => {
+        if (opt.next) children += serializeNode(opt.next);
+      });
+    } else if (node.type === "decision") {
+      if (node.trueNext) children += serializeNode(node.trueNext);
+      if (node.falseNext) children += serializeNode(node.falseNext);
+    } else if (
+      node.type === "link" ||
+      node.type === "setvar" ||
+      node.type === "email"
+    ) {
+      if (node.next) children += serializeNode(node.next);
+    } else if (node.type !== "end" && node.next) {
+      children += serializeNode(node.next);
+    }
+
+    return out + children;
+  }
+
+  xml += serializeNode(proj.startNodeId);
+  xml += "</flow>";
+  return xml;
+}
+
+function importFromXML(xmlStr) {
+  const cleanXml = xmlStr
+    .replace(/^\uFEFF/, "")
+    .replace(/\r/g, "")
+    .trim();
+  const doc = new DOMParser().parseFromString(cleanXml, "application/xml");
+  const errorNode = doc.querySelector("parsererror");
+  if (errorNode) throw new Error("Invalid XML: " + errorNode.textContent);
+  const flow = doc.querySelector("flow");
+  if (!flow) throw new Error("No <flow> element found");
+  const startId = flow.getAttribute("start");
+  if (!startId) throw new Error("Missing start attribute");
+
+  const newNodes = new Map();
+
+  flow.querySelectorAll(":scope > question").forEach((q) => {
+    const id = q.getAttribute("id"),
+      type = q.getAttribute("type") || "message";
+    const text = q.querySelector("text")?.textContent.trim() || "";
+    const x = parseFloat(q.getAttribute("x")) || 100 + Math.random() * 200;
+    const y = parseFloat(q.getAttribute("y")) || 100 + Math.random() * 200;
+    const node = { id, type, text, x, y };
+
+    if (type === "choice") {
+      node.options = [];
+      q.querySelectorAll("options > option").forEach((o) =>
+        node.options.push({
+          text: o.textContent.trim(),
+          next: o.getAttribute("next") || "",
+        }),
+      );
+    } else if (type === "decision") {
+      const d = q.querySelector("decision");
+      if (d) {
+        node.variable = d.getAttribute("variable") || "";
+        node.operator = d.getAttribute("operator") || "equals";
+        node.value = d.getAttribute("value") || "";
+        node.trueNext = d.querySelector("true")?.getAttribute("next") || "";
+        node.falseNext = d.querySelector("false")?.getAttribute("next") || "";
+      }
+    } else if (type === "message") {
+      node.variant = q.querySelector("variant")?.textContent.trim() || "info";
+      node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type === "copybox") {
+      node.copyContent =
+        q.querySelector("copy_content")?.textContent.trim() ||
+        "Text to copy...";
+      node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type === "link") {
+      node.links = [];
+      q.querySelectorAll("links > link").forEach((link) => {
+        node.links.push({
+          label: link.getAttribute("label") || "Link",
+          url: link.getAttribute("url") || "",
+        });
+      });
+      node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type === "setvar") {
+      node.variable = q.querySelector("variable")?.textContent.trim() || "";
+      node.value = q.querySelector("value")?.textContent.trim() || "";
+      node.varType = q.querySelector("varType")?.textContent.trim() || "string";
+      node.showInRuntime =
+        q.querySelector("showInRuntime")?.textContent.trim() !== "false";
+      node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type === "email") {
+      const e = q.querySelector("email");
+      if (e) {
+        node.to = e.getAttribute("to") || "";
+        node.cc = e.getAttribute("cc") || "";
+        node.bcc = e.getAttribute("bcc") || "";
+        node.subject = e.getAttribute("subject") || "";
+        node.body = e.getAttribute("body") || "";
+      }
+      node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type === "input" || type === "number") {
+      node.variable = q.querySelector("variable")?.textContent.trim() || "";
+      node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type !== "end") {
+      node.next = q.querySelector("next")?.textContent.trim() || "";
+    }
+    newNodes.set(id, node);
+  });
+
+  const proj = currentProject();
+  pushUndo();
+  proj.nodes = newNodes;
+  proj.startNodeId = startId;
+  proj.selectedNodeId = null;
+  renderAll();
+  updateEditorPanel();
+  showToast("Imported", "success");
+}
+
+function validateFlow(proj) {
+  const errors = [];
+  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
+    errors.push("No start node set.");
+  }
+  proj.nodes.forEach((node) => {
+    const checkNext = (targetId, label) => {
+      if (targetId && !proj.nodes.has(targetId)) {
+        errors.push(
+          `Node "${node.id}" (${node.type}): ${label} "${targetId}" not found.`,
+        );
+      }
+    };
+    if (node.type === "choice" && node.options) {
+      node.options.forEach((opt, i) => checkNext(opt.next, `Option ${i + 1}`));
+    } else if (node.type === "decision") {
+      checkNext(node.trueNext, "True next");
+      checkNext(node.falseNext, "False next");
+    } else if (
+      node.type === "link" ||
+      node.type === "setvar" ||
+      node.type === "input" ||
+      node.type === "number" ||
+      node.type === "message" ||
+      node.type === "copybox" ||
+      node.type === "email"
+    ) {
+      checkNext(node.next, "Next");
+    }
+  });
+  // Optional: unreachable nodes
+  if (proj.startNodeId && proj.nodes.has(proj.startNodeId)) {
+    const visited = new Set();
+    function visit(id) {
+      if (!id || visited.has(id)) return;
+      const node = proj.nodes.get(id);
+      if (!node) return;
+      visited.add(id);
+      if (node.options) node.options.forEach((o) => visit(o.next));
+      if (node.trueNext) visit(node.trueNext);
+      if (node.falseNext) visit(node.falseNext);
+      if (node.next) visit(node.next);
+    }
+    visit(proj.startNodeId);
+    proj.nodes.forEach((node, id) => {
+      if (!visited.has(id) && node.type !== "end") {
+        errors.push(`Unreachable node: "${id}" (${node.type}).`);
+      }
+    });
+  }
+  return errors;
+}
+
+
+// File: j:\Canvas\js\menu.js
+// ---- MENU BAR & SAVE / NAME CHECK ----
+
+function initMenuBar() {
+  const menuItems = document.querySelectorAll(".menu-item");
+  menuItems.forEach((item) => {
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = item.classList.contains("open");
+      closeAllMenus();
+      if (!isOpen) {
+        item.classList.add("open");
+        if (item.dataset.menu === "file") renderRecentFiles();
+      }
+    });
+    item.querySelector(".menu-dropdown")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const action = e.target.closest(".menu-action");
+      if (action) {
+        handleMenuAction(action.dataset.action);
+        closeAllMenus();
+      }
+    });
+  });
+  document.addEventListener("click", closeAllMenus);
+}
+
+function closeAllMenus() {
+  document
+    .querySelectorAll(".menu-item")
+    .forEach((m) => m.classList.remove("open"));
+}
+
+function handleMenuAction(action) {
+  switch (action) {
+    case "new-project":
+      addNewTab();
+      break;
+    case "open-file":
+      DOM.importFileInput.click();
+      break;
+    case "save-project":
+      saveWithNameCheck();
+      break;
+    case "export-xml":
+      exportToXML();
+      break;
+    case "import-xml":
+      openImportModal();
+      break;
+    case "undo":
+      undo();
+      break;
+    case "redo":
+      redo();
+      break;
+    case "delete-node":
+      if (currentProject().selectedNodeId)
+        deleteNode(currentProject().selectedNodeId);
+      break;
+    case "duplicate-node":
+      if (currentProject().selectedNodeId)
+        duplicateNode(currentProject().selectedNodeId);
+      break;
+    case "clear-canvas":
+      if (confirm("Clear canvas?")) {
+        const proj = currentProject();
+        pushUndo();
+        proj.nodes.clear();
+        proj.startNodeId = null;
+        proj.selectedNodeId = null;
+        renderAll();
+        updateEditorPanel();
+        fitView();
+      }
+      break;
+    case "zoom-in":
+      zoomAtPoint(1.2, window.innerWidth / 2, window.innerHeight / 2);
+      break;
+    case "zoom-out":
+      zoomAtPoint(1 / 1.2, window.innerWidth / 2, window.innerHeight / 2);
+      break;
+    case "fit-view":
+      fitView();
+      break;
+    case "toggle-grid":
+      document.querySelector(".bg-grid").classList.toggle("hidden");
+      break;
+    case "toggle-minimap":
+      document.querySelector(".minimap").classList.toggle("hidden");
+      break;
+    case "toggle-snap":
+      state.snapToGrid = !state.snapToGrid;
+      showToast(
+        `Snap to grid ${state.snapToGrid ? "enabled" : "disabled"}`,
+        "info",
+      );
+      break;
+    case "about":
+      showToast("Canvas. – Visual Checklist Builder", "info");
+      break;
+    case "shortcuts":
+      showToast(
+        "Ctrl+Z Undo | Ctrl+Y Redo | Ctrl+S Save | Ctrl+D Duplicate | Del Delete",
+        "info",
+      );
+      break;
+    case "export-html":
+      exportToHTML();
+      break;
+    case "mailto-link":
+      openMailtoBuilder();
+      break;
+  }
+}
+
+function isDefaultProjectName(name) {
+  return (
+    !name ||
+    name === "Untitled" ||
+    name.startsWith("Flow ") ||
+    name === "New Flow"
+  );
+}
+
+function saveWithNameCheck() {
+  const proj = currentProject();
+  if (isDefaultProjectName(proj.name)) {
+    const newName = prompt("Please enter a name for your project:", proj.name);
+    if (newName !== null) {
+      const trimmed = newName.trim();
+      if (trimmed) {
+        proj.name = trimmed;
+        updateProjectNameDisplay();
+        renderTabs();
+      }
+    } else return;
+  }
+  exportToXML();
+}
+
+function updateProjectNameDisplay() {
+  const nameEl = document.getElementById("projectName");
+  if (nameEl) {
+    const proj = currentProject();
+    nameEl.textContent = proj.name || "Untitled";
+  }
+}
+// ---------- KEYBOARD & MODALS ----------
+function onKeyDown(e) {
+  const ctrl = e.ctrlKey || e.metaKey,
+    proj = currentProject();
+  if (ctrl && e.key === "z" && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+  } else if ((ctrl && e.key === "y") || (ctrl && e.key === "z" && e.shiftKey)) {
+    e.preventDefault();
+    redo();
+  } else if (ctrl && e.key === "s") {
+    e.preventDefault();
+    saveWithNameCheck();
+  } else if (ctrl && e.key === "d" && proj.selectedNodeId) {
+    e.preventDefault();
+    duplicateNode(proj.selectedNodeId);
+  }
+  if (e.key === "Delete" || e.key === "Backspace") {
+    if (state.selectedConnection) {
+      e.preventDefault();
+      deleteConnection(
+        state.selectedConnection.sourceNodeId,
+        state.selectedConnection.optionIndex,
+      );
+      return;
+    }
+    if (state.selectedNodeIds.size > 1) {
+      e.preventDefault();
+      pushUndo();
+      const idsToDelete = Array.from(state.selectedNodeIds);
+      idsToDelete.forEach((id) => deleteNodeWithoutUndo(id));
+      state.selectedNodeIds.clear();
+      renderAll();
+      updateEditorPanel();
+      showToast(`${idsToDelete.length} nodes deleted`, "info");
+      return;
+    }
+    // Existing single node delete
+    if (proj.selectedNodeId && document.activeElement === document.body) {
+      e.preventDefault();
+      deleteNode(proj.selectedNodeId);
+    }
+  } else if (e.key === "Escape") {
+    if (state.runtimeActive) stopRuntime();
+    else if (DOM.importModal.style.display === "flex") closeImportModal();
+    else if (state.selectedConnection) {
+      clearConnectionSelection();
+      renderAll();
+    } else if (proj.selectedNodeId) {
+      proj.selectedNodeId = null;
+      renderNodes();
+      updateEditorPanel();
+    }
+  } else if (e.key === "Escape") {
+    if (state.runtimeActive) stopRuntime();
+    else if (DOM.importModal.style.display === "flex") closeImportModal();
+    else if (proj.selectedNodeId) {
+      proj.selectedNodeId = null;
+      renderNodes();
+      updateEditorPanel();
+    }
+  } else if (ctrl && e.key === "=") {
+    e.preventDefault();
+    const r = DOM.canvasContainer.getBoundingClientRect();
+    zoomAtPoint(1.15, r.left + r.width / 2, r.top + r.height / 2);
+  } else if (ctrl && e.key === "-") {
+    e.preventDefault();
+    const r = DOM.canvasContainer.getBoundingClientRect();
+    zoomAtPoint(1 / 1.15, r.left + r.width / 2, r.top + r.height / 2);
+  } else if (ctrl && e.key === "0") {
+    e.preventDefault();
+    fitView();
+  }
+}
+
+function openImportModal() {
+  DOM.importModal.style.display = "flex";
+  DOM.importTextarea.value = "";
+  DOM.importError.style.display = "none";
+}
+
+function closeImportModal() {
+  DOM.importModal.style.display = "none";
+}
+
+function handleImportConfirm() {
+  DOM.importError.style.display = "none";
+  const xml = DOM.importTextarea.value.trim();
+  if (!xml) {
+    DOM.importError.textContent = "Paste XML or upload file.";
+    DOM.importError.style.display = "block";
+    return;
+  }
+  try {
+    importFromXML(xml);
+    closeImportModal();
+  } catch (e) {
+    DOM.importError.textContent = e.message;
+    DOM.importError.style.display = "block";
+  }
+}
+function handleFileUpload(file) {
+  if (!file) return;
+  const reader = new FileReader();
+
+  reader.onload = function () {
+    const content = reader.result;
+    let xml = null;
+    const name = file.name.replace(/\.[^/.]+$/, "") || "Untitled";
+
+    // ---- detect .canvas (XML) ----
+    if (
+      content.trim().startsWith("<?xml") ||
+      content.trim().startsWith("<flow")
+    ) {
+      xml = content;
+    }
+    // ---- detect exported .html with embedded XML ----
+    else {
+      // First, try the new <script id="canvas-flow-data"> tag
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, "text/html");
+      const dataTag = doc.getElementById("canvas-flow-data");
+      if (dataTag && dataTag.textContent.trim()) {
+        xml = dataTag.textContent.trim();
+      } else {
+        // Fallback: try the old template‑literal extraction
+        const match = content.match(/PROJECT_XML\s*=\s*`([^`]*)`/);
+        if (match && match[1]) {
+          xml = match[1].replace(/\\`/g, "`");
+        }
+      }
+    }
+
+    if (!xml) {
+      showToast("Unsupported file – no valid flow data found", "error");
+      return;
+    }
+
+    try {
+      const newProj = createEmptyProject(name);
+      state.projects.push(newProj);
+      state.activeProjectIndex = state.projects.length - 1;
+
+      importFromXML(xml);
+      closeImportModal();
+      renderAll();
+      updateEditorPanel();
+      renderTabs();
+      updateProjectNameDisplay();
+      markUnsaved();
+      showToast("Opened in new tab", "success");
+    } catch (e) {
+      if (state.projects.length > 1) {
+        state.projects.pop();
+        state.activeProjectIndex = state.projects.length - 1;
+      }
+      showToast("Failed to open file: " + e.message, "error");
+    }
+  };
+
+  reader.onerror = function () {
+    showToast("Error reading file", "error");
+  };
+
+  reader.readAsText(file);
+}
+function openMailtoBuilder() {
+  const modal = document.getElementById("mailtoModal");
+  if (!modal) return;
+  document.getElementById("mailtoTo").value = "";
+  document.getElementById("mailtoSubject").value = "";
+  document.getElementById("mailtoBody").value = "";
+  document.getElementById("mailtoUrl").value = "";
+  modal.style.display = "flex";
+}
+
+function closeMailtoBuilder() {
+  document.getElementById("mailtoModal").style.display = "none";
+}
+function generateMailtoUrl() {
+  const to = document.getElementById("mailtoTo").value.trim();
+  const subject = document.getElementById("mailtoSubject").value.trim();
+  const body = document.getElementById("mailtoBody").value.trim();
+  const cc = document.getElementById("mailtoCC").value.trim();
+  const bcc = document.getElementById("mailtoBCC").value.trim();
+
+  // Helper: encode but keep { and } intact
+  function encode(s) {
+    return encodeURIComponent(s).replace(/%7B/g, "{").replace(/%7D/g, "}");
+  }
+
+  let mailto = "mailto:";
+  if (to) mailto += encode(to);
+
+  const params = [];
+  if (subject) params.push("subject=" + encode(subject));
+  if (body) params.push("body=" + encode(body));
+  if (cc) params.push("cc=" + encode(cc));
+  if (bcc) params.push("bcc=" + encode(bcc));
+
+  if (params.length) mailto += "?" + params.join("&");
+  document.getElementById("mailtoUrl").value = mailto;
+}
+function deleteConnection(sourceId, optionIndex) {
+  const proj = currentProject();
+  const node = proj.nodes.get(sourceId);
+  if (!node) return;
+  pushUndo();
+  if (node.type === "choice" && node.options) {
+    node.options[optionIndex].next = "";
+  } else if (node.type === "decision") {
+    if (optionIndex === 0) node.trueNext = "";
+    else if (optionIndex === 1) node.falseNext = "";
+  } else {
+    node.next = "";
+  }
+  clearConnectionSelection();
+  renderAll();
+  showToast("Connection deleted", "info");
+}
+
+
+// File: j:\Canvas\js\nodes.js
+function createNode(type, x, y, id = null) {
+  const nodeId = id || generateId();
+  const node = { id: nodeId, type, text: getDefaultText(type), x, y };
+  if (type === "choice")
+    node.options = [
+      { text: "Yes", next: "" },
+      { text: "No", next: "" },
+    ];
+  else if (type === "decision") {
+    node.variable = "";
+    node.operator = "equals";
+    node.value = "";
+    node.trueNext = "";
+    node.falseNext = "";
+  } else if (type === "message") {
+    node.variant = "info";
+    node.next = "";
+  } else if (type === "copybox") {
+    node.copyContent = "Text to copy...";
+    node.next = "";
+  } else if (type === "link") {
+    node.links = [
+      { label: "Example", url: "https://example.com" },
+      { label: "More Info", url: "https://en.wikipedia.org" },
+    ];
+    node.next = "";
+  } else if (type === "setvar") {
+    node.variable = "";
+    node.value = "";
+    node.varType = "string";
+    node.showInRuntime = true;
+    node.next = "";
+  } else if (type === "email") {
+    node.to = "";
+    node.cc = "";
+    node.bcc = "";
+    node.subject = "";
+    node.body = "";
+    node.next = "";
+  } else if (type === "input" || type === "number") {
+    node.variable = "";
+    node.next = "";
+  } else if (type !== "end") node.next = "";
+  return node;
+}
+
+function getDefaultText(t) {
+  return (
+    {
+      choice: "New Question?",
+      decision: "Decision?",
+      message: "Message text",
+      copybox: "Copy Box",
+      link: "Useful links:",
+      setvar: "Set Variable",
+      email: "Send an email",
+
+      input: "Enter text:",
+      number: "Enter number:",
+      end: "End of Flow",
+    }[t] || "New Node"
+  );
+}
+
+function addNode(type, x, y) {
+  const proj = currentProject();
+  pushUndo();
+  const node = createNode(type, x, y);
+  proj.nodes.set(node.id, node);
+  if (!proj.startNodeId) proj.startNodeId = node.id;
+  proj.selectedNodeId = node.id;
+  renderAll();
+  updateEditorPanel();
+}
+
+function deleteNode(id) {
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  pushUndo();
+  proj.nodes.forEach((n) => {
+    if (n.next === id) n.next = "";
+    if (n.options)
+      n.options.forEach((o) => {
+        if (o.next === id) o.next = "";
+      });
+    if (n.trueNext === id) n.trueNext = "";
+    if (n.falseNext === id) n.falseNext = "";
+  });
+  proj.nodes.delete(id);
+  if (proj.startNodeId === id)
+    proj.startNodeId = proj.nodes.keys().next().value || null;
+  if (proj.selectedNodeId === id) proj.selectedNodeId = null;
+  renderAll();
+  updateEditorPanel();
+  showToast("Node deleted", "info");
+}
+
+function duplicateNode(id) {
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  pushUndo();
+  const orig = proj.nodes.get(id),
+    newNode = JSON.parse(JSON.stringify(orig));
+  newNode.id = generateId();
+  newNode.x += 60;
+  newNode.y += 60;
+  if (newNode.next) newNode.next = "";
+  if (newNode.options) newNode.options.forEach((o) => (o.next = ""));
+  if (newNode.links) newNode.links.forEach((l) => (l.url = l.url || ""));
+  if (newNode.trueNext) newNode.trueNext = "";
+  if (newNode.falseNext) newNode.falseNext = "";
+  proj.nodes.set(newNode.id, newNode);
+  proj.selectedNodeId = newNode.id;
+  renderAll();
+  updateEditorPanel();
+  showToast("Node duplicated", "info");
+}
+
+function updateNodeProperty(id, prop, val) {
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  const node = proj.nodes.get(id);
+  if (JSON.stringify(node[prop]) !== JSON.stringify(val)) {
+    pushUndo();
+    node[prop] = val;
+    renderAll();
+    updateEditorPanel();
+  }
+}
+
+// Undo/Redo
+function takeSnapshot() {
+  const proj = currentProject();
+  const d = {};
+  proj.nodes.forEach((n, id) => {
+    d[id] = JSON.parse(JSON.stringify(n));
+  });
+  return { nodesData: d, startNodeId: proj.startNodeId };
+}
+function restoreSnapshot(snap) {
+  const proj = currentProject();
+  proj.nodes.clear();
+  for (const [id, nd] of Object.entries(snap.nodesData))
+    proj.nodes.set(id, JSON.parse(JSON.stringify(nd)));
+  proj.startNodeId = snap.startNodeId;
+  proj.selectedNodeId = null;
+}
+function pushUndo() {
+  const proj = currentProject();
+  proj.undoStack.push(takeSnapshot());
+  if (proj.undoStack.length > state.maxUndo) proj.undoStack.shift();
+  proj.redoStack = [];
+}
+function undo() {
+  const proj = currentProject();
+  if (!proj.undoStack.length) return;
+  proj.redoStack.push(takeSnapshot());
+  restoreSnapshot(proj.undoStack.pop());
+  renderAll();
+  showToast("Undo", "info");
+}
+function redo() {
+  const proj = currentProject();
+  if (!proj.redoStack.length) return;
+  proj.undoStack.push(takeSnapshot());
+  restoreSnapshot(proj.redoStack.pop());
+  renderAll();
+  showToast("Redo", "info");
+}
+
+function addNode(type, x, y) {
+  const proj = currentProject();
+  pushUndo();
+  const node = createNode(type, x, y);
+  proj.nodes.set(node.id, node);
+  if (!proj.startNodeId) proj.startNodeId = node.id;
+  proj.selectedNodeId = node.id;
+  renderAll();
+  updateEditorPanel();
+}
+
+function deleteNode(id) {
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  pushUndo();
+  proj.nodes.forEach((n) => {
+    if (n.next === id) n.next = "";
+    if (n.options)
+      n.options.forEach((o) => {
+        if (o.next === id) o.next = "";
+      });
+    if (n.trueNext === id) n.trueNext = "";
+    if (n.falseNext === id) n.falseNext = "";
+  });
+  proj.nodes.delete(id);
+  if (proj.startNodeId === id)
+    proj.startNodeId = proj.nodes.keys().next().value || null;
+  if (proj.selectedNodeId === id) proj.selectedNodeId = null;
+  renderAll();
+  updateEditorPanel();
+  showToast("Node deleted", "info");
+}
+
+function duplicateNode(id) {
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  pushUndo();
+  const orig = proj.nodes.get(id),
+    newNode = JSON.parse(JSON.stringify(orig));
+  newNode.id = generateId();
+  newNode.x += 60;
+  newNode.y += 60;
+  if (newNode.next) newNode.next = "";
+  if (newNode.options) newNode.options.forEach((o) => (o.next = ""));
+  if (newNode.links) newNode.links.forEach((l) => (l.url = l.url || ""));
+  if (newNode.trueNext) newNode.trueNext = "";
+  if (newNode.falseNext) newNode.falseNext = "";
+  proj.nodes.set(newNode.id, newNode);
+  proj.selectedNodeId = newNode.id;
+  renderAll();
+  updateEditorPanel();
+  showToast("Node duplicated", "info");
+}
+
+function updateNodeProperty(id, prop, val) {
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  const node = proj.nodes.get(id);
+  if (JSON.stringify(node[prop]) !== JSON.stringify(val)) {
+    pushUndo();
+    node[prop] = val;
+    renderAll();
+    updateEditorPanel();
+  }
+}
+
+// Undo/Redo
+function takeSnapshot() {
+  const proj = currentProject();
+  const d = {};
+  proj.nodes.forEach((n, id) => {
+    d[id] = JSON.parse(JSON.stringify(n));
+  });
+  return { nodesData: d, startNodeId: proj.startNodeId };
+}
+function restoreSnapshot(snap) {
+  const proj = currentProject();
+  proj.nodes.clear();
+  for (const [id, nd] of Object.entries(snap.nodesData))
+    proj.nodes.set(id, JSON.parse(JSON.stringify(nd)));
+  proj.startNodeId = snap.startNodeId;
+  proj.selectedNodeId = null;
+}
+function pushUndo() {
+  const proj = currentProject();
+  proj.undoStack.push(takeSnapshot());
+  if (proj.undoStack.length > state.maxUndo) proj.undoStack.shift();
+  proj.redoStack = [];
+}
+function undo() {
+  const proj = currentProject();
+  if (!proj.undoStack.length) return;
+  proj.redoStack.push(takeSnapshot());
+  restoreSnapshot(proj.undoStack.pop());
+  renderAll();
+  showToast("Undo", "info");
+}
+function redo() {
+  const proj = currentProject();
+  if (!proj.redoStack.length) return;
+  proj.undoStack.push(takeSnapshot());
+  restoreSnapshot(proj.redoStack.pop());
+  renderAll();
+  showToast("Redo", "info");
+}
+function deleteNodeWithoutUndo(id) {
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  // Clear references to this node from all other nodes
+  proj.nodes.forEach((n) => {
+    if (n.next === id) n.next = "";
+    if (n.options)
+      n.options.forEach((o) => {
+        if (o.next === id) o.next = "";
+      });
+    if (n.trueNext === id) n.trueNext = "";
+    if (n.falseNext === id) n.falseNext = "";
+  });
+  proj.nodes.delete(id);
+  if (proj.startNodeId === id)
+    proj.startNodeId = proj.nodes.keys().next().value || null;
+  if (proj.selectedNodeId === id) proj.selectedNodeId = null;
+}
+
+
+// File: j:\Canvas\js\project.js
+function currentProject() {
+  if (state.projects.length === 0) {
+    state.projects.push(createEmptyProject("Untitled"));
+    state.activeProjectIndex = 0;
+  }
+  return state.projects[state.activeProjectIndex];
+}
+
+function createEmptyProject(name = "Untitled") {
+  return {
+    name,
+    nodes: new Map(),
+    startNodeId: null,
+    selectedNodeId: null,
+    undoStack: [],
+    redoStack: [],
+  };
+}
+
+function switchToProject(index) {
+  if (
+    index === state.activeProjectIndex ||
+    index < 0 ||
+    index >= state.projects.length
+  )
+    return;
+  addCurrentToRecent();
+  state.activeProjectIndex = index;
+  renderAll();
+  updateEditorPanel();
+  renderTabs();
+  updateProjectNameDisplay();
+}
+
+function addNewTab() {
+  const newProject = createEmptyProject(`Flow ${state.projects.length + 1}`);
+  state.projects.push(newProject);
+  state.activeProjectIndex = state.projects.length - 1;
+  renderAll();
+  updateEditorPanel();
+  renderTabs();
+  updateProjectNameDisplay();
+  showToast("New tab created", "info");
+}
+
+function closeTab(index) {
+  if (state.projects.length <= 1) {
+    showToast("Cannot close the last tab", "error");
+    return;
+  }
+  addCurrentToRecent();
+  state.projects.splice(index, 1);
+  if (state.activeProjectIndex >= state.projects.length)
+    state.activeProjectIndex = state.projects.length - 1;
+  renderAll();
+  updateEditorPanel();
+  renderTabs();
+  updateProjectNameDisplay();
+}
+
+
+// File: j:\Canvas\js\runtime.js
+// ---- RUNTIME (MODAL, LINEAR, CHAT) ----
+
+function copyRichText(html) {
+  // Try to copy both HTML and plain text
+  const plain = html.replace(/<[^>]*>/g, "");
+  if (navigator.clipboard && typeof ClipboardItem === "function") {
+    const blob = new Blob([html], { type: "text/html" });
+    const item = new ClipboardItem({
+      "text/html": blob,
+      "text/plain": new Blob([plain], { type: "text/plain" }),
+    });
+    navigator.clipboard.write([item]).catch(() => {
+      // Fallback to plain text
+      fallbackCopy(plain);
+    });
+  } else {
+    fallbackCopy(plain);
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+}
+
+function startRuntime() {
+  const proj = currentProject();
+  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
+    showToast("Set a start node", "error");
+    return;
+  }
+  state.runtimeActive = true;
+  state.runtimeCurrentNodeId = proj.startNodeId;
+  state.runtimeHistory = [proj.startNodeId];
+  state.runtimeVariables = {};
+  DOM.runtimeModal.style.display = "flex";
+  document.getElementById("runtimeModalTitle").textContent =
+    proj.name || "Untitled";
+  renderRuntimeStep();
+}
+
+function stopRuntime() {
+  state.runtimeActive = false;
+  DOM.runtimeModal.style.display = "none";
+  document.getElementById("runtimePanel").style.display = "none";
+  const runtimeModalContent = document.querySelector(".runtime-modal");
+  if (runtimeModalContent) {
+    runtimeModalContent.classList.remove(
+      "variant-info",
+      "variant-success",
+      "variant-warning",
+      "variant-error",
+      "variant-action",
+    );
+  }
+  DOM.runtimeBody.classList.remove("linear-runtime", "chat-runtime");
+}
+
+function substituteVariables(t) {
+  return t.replace(/\{(\w+)\}/g, (m, v) => state.runtimeVariables[v] ?? m);
+}
+
+function evaluateDecision(node) {
+  const varVal =
+    state.runtimeVariables[node.variable] !== undefined
+      ? state.runtimeVariables[node.variable]
+      : "";
+  const exp = node.value,
+    op = node.operator;
+
+  if (op === "is true") return !!varVal;
+  if (op === "is false") return !varVal;
+
+  const nv = Number(varVal),
+    ne = Number(exp);
+  if (
+    !isNaN(nv) &&
+    !isNaN(ne) &&
+    ["==", "!=", "<", "<=", ">", ">="].indexOf(op) !== -1
+  ) {
+    if (op === "==") return nv === ne;
+    if (op === "!=") return nv !== ne;
+    if (op === "<") return nv < ne;
+    if (op === "<=") return nv <= ne;
+    if (op === ">") return nv > ne;
+    if (op === ">=") return nv >= ne;
+  }
+
+  const sv = String(varVal).toLowerCase(),
+    se = exp.toLowerCase();
+  if (op === "equals") return sv === se;
+  if (op === "contains") return sv.indexOf(se) !== -1;
+  if (op === "starts_with") return sv.indexOf(se) === 0;
+  if (op === "ends_with") return sv.lastIndexOf(se) === sv.length - se.length;
+
+  if (op === "==") return sv === se;
+  if (op === "!=") return sv !== se;
+
+  return false;
+}
+
+// Helper to build mailto URL from email node
+function buildMailtoUrl(node, variables) {
+  const encode = (s) =>
+    encodeURIComponent(s).replace(/%7B/g, "{").replace(/%7D/g, "}");
+  let mailto =
+    "mailto:" + (node.to ? encode(substituteVariables(node.to)) : "");
+  const params = [];
+  if (node.cc) params.push("cc=" + encode(substituteVariables(node.cc)));
+  if (node.bcc) params.push("bcc=" + encode(substituteVariables(node.bcc)));
+  if (node.subject)
+    params.push("subject=" + encode(substituteVariables(node.subject)));
+  // For email body, use the HTML content but strip tags for mailto
+  const plainBody = (node.body || "").replace(/<[^>]*>/g, "");
+  const substitutedBody = substituteVariables(plainBody);
+  if (substitutedBody) params.push("body=" + encode(substitutedBody));
+  if (params.length) mailto += "?" + params.join("&");
+  return mailto;
+}
+
+function renderRuntimeStep() {
+  const proj = currentProject();
+  const node = proj.nodes.get(state.runtimeCurrentNodeId);
+  DOM.runtimeBody.innerHTML = "";
+  DOM.progressDots.innerHTML = "";
+  const runtimeModalContent = document.querySelector(".runtime-modal");
+  if (runtimeModalContent) {
+    runtimeModalContent.classList.remove(
+      "variant-info",
+      "variant-success",
+      "variant-warning",
+      "variant-error",
+      "variant-action",
+    );
+  }
+  if (!node) {
+    DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Node not found</p></div>`;
+    return;
+  }
+  if (node.type === "message" && runtimeModalContent)
+    runtimeModalContent.classList.add("variant-" + (node.variant || "info"));
+  const displayText = substituteVariables(node.text);
+  if (node.type === "end") {
+    DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Flow Complete</p><p>${escapeHtml(displayText)}</p></div>`;
+    return;
+  }
+  if (node.type === "choice" && node.options) {
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><div class="runtime-options">${node.options.map((o, i) => `<button class="runtime-option-btn" data-opt-idx="${i}">${escapeHtml(o.text)}</button>`).join("")}</div>`;
+    DOM.runtimeBody.querySelectorAll(".runtime-option-btn").forEach((b) =>
+      b.addEventListener("click", () => {
+        const next = node.options[b.dataset.optIdx].next;
+        if (next && proj.nodes.has(next)) {
+          state.runtimeCurrentNodeId = next;
+          state.runtimeHistory.push(next);
+          renderRuntimeStep();
+        } else
+          showToast(
+            next ? `Node "${next}" not found` : "No target set",
+            "error",
+          );
+      }),
+    );
+  } else if (node.type === "input" || node.type === "number") {
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><input class="runtime-input" type="${node.type === "number" ? "number" : "text"}" id="runtimeInput" autofocus><button class="runtime-submit-btn" id="runtimeSubmit">Continue</button>`;
+    const inp = document.getElementById("runtimeInput"),
+      btn = document.getElementById("runtimeSubmit");
+    setTimeout(() => inp.focus(), 50);
+    const go = () => {
+      const val = inp.value.trim();
+      if (!val && node.type === "input") return;
+      if (node.variable)
+        state.runtimeVariables[node.variable] =
+          node.type === "number" ? Number(val) : val;
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderRuntimeStep();
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    };
+    btn.addEventListener("click", go);
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") go();
+    });
+  } else if (node.type === "decision") {
+    const result = evaluateDecision(node),
+      next = result ? node.trueNext : node.falseNext;
+    if (next && proj.nodes.has(next)) {
+      state.runtimeCurrentNodeId = next;
+      state.runtimeHistory.push(next);
+      renderRuntimeStep();
+    } else
+      DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Decision: <strong>${result}</strong>, no next node</p></div>`;
+  } else if (node.type === "copybox") {
+    const content = substituteVariables(node.copyContent || "");
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><div class="runtime-copy-block">${content}</div><button class="btn-copy" id="btnCopyContent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="12" height="16" rx="2"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg> Copy</button><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
+    document
+      .getElementById("btnCopyContent")
+      .addEventListener("click", async () => {
+        await copyRichText(content);
+        const btn = document.getElementById("btnCopyContent");
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="12" height="16" rx="2"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg> Copy`;
+          btn.classList.remove("copied");
+        }, 2000);
+      });
+    document.getElementById("runtimeContinue").addEventListener("click", () => {
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderRuntimeStep();
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    });
+  } else if (node.type === "link") {
+    const linksHtml = (node.links || [])
+      .map(
+        (l, i) =>
+          `<button class="runtime-link-btn" data-link-url="${escapeHtml(l.url)}" data-link-idx="${i}">${escapeHtml(l.label)}</button>`,
+      )
+      .join("");
+    DOM.runtimeBody.innerHTML = `
+      <div class="runtime-question">${escapeHtml(displayText)}</div>
+      ${linksHtml ? `<div class="runtime-links">${linksHtml}</div>` : ""}
+      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}
+    `;
+    DOM.runtimeBody.querySelectorAll(".runtime-link-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const url = btn.dataset.linkUrl;
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
+      });
+    });
+    if (node.next) {
+      document
+        .getElementById("runtimeContinue")
+        .addEventListener("click", () => {
+          if (proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderRuntimeStep();
+          } else showToast(`Node "${node.next}" not found`, "error");
+        });
+    }
+  } else if (node.type === "setvar") {
+    const varName = node.variable;
+    const val = substituteVariables(node.value);
+    let parsedVal = val;
+    if (node.varType === "number") parsedVal = Number(val);
+    else if (node.varType === "boolean")
+      parsedVal = val.toLowerCase() === "true" || val === "1";
+    if (varName) state.runtimeVariables[varName] = parsedVal;
+
+    if (!node.showInRuntime) {
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderRuntimeStep();
+      } else {
+        DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Flow Complete</p></div>`;
+      }
+    } else {
+      DOM.runtimeBody.innerHTML = `
+        <div class="runtime-question">${escapeHtml(displayText)}</div>
+        <div class="runtime-message-box variant-info">
+          <p>Variable <strong>${escapeHtml(varName)}</strong> set to <strong>${escapeHtml(parsedVal)}</strong></p>
+        </div>
+        <button class="runtime-submit-btn" id="runtimeContinue">Continue</button>
+      `;
+      document
+        .getElementById("runtimeContinue")
+        .addEventListener("click", () => {
+          if (node.next && proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderRuntimeStep();
+          } else
+            showToast(
+              node.next ? `Node "${node.next}" not found` : "No next node",
+              "error",
+            );
+        });
+    }
+  } else if (node.type === "email") {
+    const mailto = buildMailtoUrl(node, state.runtimeVariables);
+    DOM.runtimeBody.innerHTML = `
+      <div class="runtime-question">${escapeHtml(displayText)}</div>
+      <button class="runtime-submit-btn" id="runtimeSendEmail">Send Email</button>
+      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}
+    `;
+    document
+      .getElementById("runtimeSendEmail")
+      .addEventListener("click", () => {
+        window.open(mailto, "_blank");
+      });
+    if (node.next) {
+      document
+        .getElementById("runtimeContinue")
+        .addEventListener("click", () => {
+          if (proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderRuntimeStep();
+          } else showToast(`Node "${node.next}" not found`, "error");
+        });
+    }
+  } else {
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
+    document.getElementById("runtimeContinue").addEventListener("click", () => {
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderRuntimeStep();
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    });
+  }
+}
+
+// ---- LINEAR RUNTIME ----
+function startLinearRuntime() {
+  const proj = currentProject();
+  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
+    showToast("Set a start node", "error");
+    return;
+  }
+  state.runtimeActive = true;
+  state.runtimeCurrentNodeId = proj.startNodeId;
+  state.runtimeHistory = [proj.startNodeId];
+  state.runtimeVariables = {};
+  state.runtimeStepLog = [];
+  document.getElementById("runtimePanel").style.display = "flex";
+  document.getElementById("runtimePanelTitle").textContent =
+    proj.name || "Runtime";
+  const body = document.getElementById("runtimePanelBody");
+  const footer = document.getElementById("runtimePanelFooter");
+  body.innerHTML = "";
+  footer.innerHTML = "";
+  body.classList.add("linear-runtime");
+  body.classList.remove("chat-runtime");
+  renderLinearStep();
+}
+
+function renderLinearStep() {
+  const proj = currentProject();
+  const node = proj.nodes.get(state.runtimeCurrentNodeId);
+  const body = document.getElementById("runtimePanelBody");
+  const footer = document.getElementById("runtimePanelFooter");
+  footer.innerHTML = "";
+
+  if (!node) {
+    body.innerHTML += `<div class="runtime-end-message"><p>Node not found</p></div>`;
+    return;
+  }
+
+  if (node.type === "setvar" && !node.showInRuntime) {
+    const varName = node.variable;
+    const val = substituteVariables(node.value);
+    let parsedVal = val;
+    if (node.varType === "number") parsedVal = Number(val);
+    else if (node.varType === "boolean")
+      parsedVal = val.toLowerCase() === "true" || val === "1";
+    if (varName) state.runtimeVariables[varName] = parsedVal;
+    if (node.next && proj.nodes.has(node.next)) {
+      state.runtimeCurrentNodeId = node.next;
+      state.runtimeHistory.push(node.next);
+      renderLinearStep();
+    }
+    return;
+  }
+
+  const displayText = substituteVariables(node.text);
+  const stepDiv = document.createElement("div");
+  stepDiv.className = "linear-step";
+  stepDiv.dataset.nodeId = node.id;
+  stepDiv.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div>`;
+
+  if (node.type === "end") {
+    stepDiv.innerHTML += `<div class="runtime-end-message"><p>Flow Complete</p></div>`;
+    body.appendChild(stepDiv);
+    body.scrollTop = body.scrollHeight;
+    return;
+  }
+  if (node.type === "message")
+    stepDiv.classList.add("variant-" + (node.variant || "info"));
+  body.appendChild(stepDiv);
+
+  if (node.type === "choice" && node.options) {
+    const optsDiv = document.createElement("div");
+    optsDiv.className = "runtime-options";
+    node.options.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "runtime-option-btn";
+      btn.textContent = opt.text;
+      btn.addEventListener("click", () => {
+        optsDiv.querySelectorAll(".runtime-option-btn").forEach((b) => {
+          b.disabled = true;
+          b.classList.remove("selected-option");
+        });
+        btn.classList.add("selected-option");
+        state.runtimeStepLog.push({
+          nodeId: node.id,
+          text: displayText,
+          answer: opt.text,
+        });
+        const next = opt.next;
+        if (next && proj.nodes.has(next)) {
+          state.runtimeCurrentNodeId = next;
+          state.runtimeHistory.push(next);
+          renderLinearStep();
+        } else
+          showToast(
+            next ? `Node "${next}" not found` : "No target set",
+            "error",
+          );
+      });
+      optsDiv.appendChild(btn);
+    });
+    stepDiv.appendChild(optsDiv);
+  } else if (node.type === "input" || node.type === "number") {
+    const row = document.createElement("div");
+    row.className = "chat-input-row";
+    const input = document.createElement("input");
+    input.className = "chat-input";
+    input.type = node.type === "number" ? "number" : "text";
+    input.placeholder = "Enter your answer… (press Enter)";
+    const go = () => {
+      const val = input.value.trim();
+      if (!val && node.type === "input") return;
+      if (node.variable)
+        state.runtimeVariables[node.variable] =
+          node.type === "number" ? Number(val) : val;
+      state.runtimeStepLog.push({
+        nodeId: node.id,
+        text: displayText,
+        answer: val,
+      });
+      input.disabled = true;
+      const next = node.next;
+      if (next && proj.nodes.has(next)) {
+        state.runtimeCurrentNodeId = next;
+        state.runtimeHistory.push(next);
+        renderLinearStep();
+      } else
+        showToast(next ? `Node "${next}" not found` : "No next node", "error");
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (input.value.trim() || node.type === "number") go();
+      }
+    });
+    row.appendChild(input);
+    stepDiv.appendChild(row);
+    input.focus();
+  } else if (node.type === "decision") {
+    const result = evaluateDecision(node);
+    state.runtimeStepLog.push({
+      nodeId: node.id,
+      text: displayText,
+      answer: result ? "True" : "False",
+    });
+    const next = result ? node.trueNext : node.falseNext;
+    if (next && proj.nodes.has(next)) {
+      state.runtimeCurrentNodeId = next;
+      state.runtimeHistory.push(next);
+      renderLinearStep();
+    } else
+      stepDiv.innerHTML += `<p>Decision: <strong>${result}</strong>, no next node.</p>`;
+  } else if (node.type === "copybox") {
+    const content = substituteVariables(node.copyContent || "");
+    const copyDiv = document.createElement("div");
+    copyDiv.className = "runtime-copy-block";
+    copyDiv.innerHTML = content; // render HTML
+    stepDiv.appendChild(copyDiv);
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "btn-copy";
+    copyBtn.textContent = "Copy";
+    copyBtn.addEventListener("click", async () => {
+      await copyRichText(content);
+      copyBtn.textContent = "✓ Copied!";
+      copyBtn.classList.add("copied");
+      setTimeout(() => {
+        copyBtn.textContent = "Copy";
+        copyBtn.classList.remove("copied");
+      }, 2000);
+    });
+    stepDiv.appendChild(copyBtn);
+    const continueBtn = document.createElement("button");
+    continueBtn.className = "runtime-submit-btn linear-continue-btn";
+    continueBtn.textContent = "Continue";
+    continueBtn.addEventListener("click", () => {
+      state.runtimeStepLog.push({
+        nodeId: node.id,
+        text: displayText,
+        answer: null,
+      });
+      continueBtn.disabled = true;
+      continueBtn.style.display = "none";
+      const nextNodeId = node.next;
+      if (nextNodeId && proj.nodes.has(nextNodeId)) {
+        state.runtimeCurrentNodeId = nextNodeId;
+        state.runtimeHistory.push(nextNodeId);
+        renderLinearStep();
+      } else
+        showToast(
+          nextNodeId ? `Node "${nextNodeId}" not found` : "No next node",
+          "error",
+        );
+    });
+    stepDiv.appendChild(continueBtn);
+  } else if (node.type === "link") {
+    const linksContainer = document.createElement("div");
+    linksContainer.className = "runtime-links";
+    (node.links || []).forEach((link) => {
+      const b = document.createElement("button");
+      b.className = "runtime-link-btn";
+      b.textContent = link.label;
+      b.addEventListener("click", () => {
+        if (link.url) window.open(link.url, "_blank", "noopener,noreferrer");
+      });
+      linksContainer.appendChild(b);
+    });
+    stepDiv.appendChild(linksContainer);
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn linear-continue-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        cont.disabled = true;
+        cont.style.display = "none";
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderLinearStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
+      });
+      stepDiv.appendChild(cont);
+    }
+  } else if (node.type === "setvar") {
+    const varName = node.variable;
+    const val = substituteVariables(node.value);
+    let parsedVal = val;
+    if (node.varType === "number") parsedVal = Number(val);
+    else if (node.varType === "boolean")
+      parsedVal = val.toLowerCase() === "true" || val === "1";
+    if (varName) state.runtimeVariables[varName] = parsedVal;
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "runtime-message-box variant-info";
+    infoDiv.innerHTML = `<p>Variable <strong>${escapeHtml(varName)}</strong> set to <strong>${escapeHtml(parsedVal)}</strong></p>`;
+    stepDiv.appendChild(infoDiv);
+    const continueBtn = document.createElement("button");
+    continueBtn.className = "runtime-submit-btn linear-continue-btn";
+    continueBtn.textContent = "Continue";
+    continueBtn.addEventListener("click", () => {
+      continueBtn.disabled = true;
+      continueBtn.style.display = "none";
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderLinearStep();
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    });
+    stepDiv.appendChild(continueBtn);
+  } else if (node.type === "email") {
+    const mailto = buildMailtoUrl(node, state.runtimeVariables);
+    stepDiv.innerHTML += `
+      <button class="runtime-submit-btn linear-continue-btn" id="linearSendEmail">Send Email</button>
+      ${node.next ? `<button class="runtime-submit-btn linear-continue-btn" id="linearContinueEmail">Continue</button>` : ""}
+    `;
+    document.getElementById("linearSendEmail").addEventListener("click", () => {
+      window.open(mailto, "_blank");
+    });
+    if (node.next) {
+      document
+        .getElementById("linearContinueEmail")
+        .addEventListener("click", () => {
+          if (proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderLinearStep();
+          } else showToast(`Node "${node.next}" not found`, "error");
+        });
+    }
+    body.appendChild(stepDiv);
+    body.scrollTop = body.scrollHeight;
+    return; // already appended
+  } else {
+    const continueBtn = document.createElement("button");
+    continueBtn.className = "runtime-submit-btn linear-continue-btn";
+    continueBtn.textContent = "Continue";
+    continueBtn.addEventListener("click", () => {
+      state.runtimeStepLog.push({
+        nodeId: node.id,
+        text: displayText,
+        answer: null,
+      });
+      continueBtn.disabled = true;
+      continueBtn.style.display = "none";
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderLinearStep();
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    });
+    stepDiv.appendChild(continueBtn);
+  }
+  body.scrollTop = body.scrollHeight;
+}
+
+// ---- CHAT RUNTIME ----
+function startChatRuntime() {
+  const proj = currentProject();
+  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
+    showToast("Set a start node", "error");
+    return;
+  }
+  state.runtimeActive = true;
+  state.runtimeCurrentNodeId = proj.startNodeId;
+  state.runtimeHistory = [proj.startNodeId];
+  state.runtimeVariables = {};
+  state.runtimeStepLog = [];
+  document.getElementById("runtimePanel").style.display = "flex";
+  document.getElementById("runtimePanelTitle").textContent =
+    proj.name || "Runtime";
+  const body = document.getElementById("runtimePanelBody");
+  const footer = document.getElementById("runtimePanelFooter");
+  body.innerHTML = "";
+  footer.innerHTML = "";
+  body.classList.add("chat-runtime");
+  body.classList.remove("linear-runtime");
+  renderChatStep();
+}
+
+function renderChatStep() {
+  const proj = currentProject();
+  const node = proj.nodes.get(state.runtimeCurrentNodeId);
+  const body = document.getElementById("runtimePanelBody");
+  const footer = document.getElementById("runtimePanelFooter");
+  footer.innerHTML = "";
+  if (!node) {
+    addChatBubble("bot", "Node not found", "error");
+    return;
+  }
+  const displayText = substituteVariables(node.text);
+  if (node.type === "end") {
+    addChatBubble("bot", "Flow Complete: " + displayText, "success");
+    return;
+  }
+  if (node.type !== "link" && node.type !== "setvar" && node.type !== "email") {
+    addChatBubble(
+      "bot",
+      displayText,
+      node.type === "message" ? node.variant || "info" : "bot",
+    );
+  }
+
+  if (node.type === "choice" && node.options) {
+    const optsDiv = document.createElement("div");
+    optsDiv.className = "chat-options";
+    node.options.forEach((opt) => {
+      const btn = document.createElement("button");
+      btn.className = "chat-option-btn";
+      btn.textContent = opt.text;
+      btn.addEventListener("click", () => {
+        addChatBubble("user", opt.text);
+        state.runtimeStepLog.push({
+          nodeId: node.id,
+          text: displayText,
+          answer: opt.text,
+        });
+        optsDiv.remove();
+        const next = opt.next;
+        if (next && proj.nodes.has(next)) {
+          state.runtimeCurrentNodeId = next;
+          state.runtimeHistory.push(next);
+          renderChatStep();
+        } else
+          showToast(
+            next ? `Node "${next}" not found` : "No target set",
+            "error",
+          );
+      });
+      optsDiv.appendChild(btn);
+    });
+    footer.appendChild(optsDiv);
+  } else if (node.type === "input" || node.type === "number") {
+    const row = document.createElement("div");
+    row.className = "chat-input-row";
+    const input = document.createElement("input");
+    input.className = "chat-input";
+    input.type = node.type === "number" ? "number" : "text";
+    input.placeholder = "Enter your answer… (press Enter)";
+    const go = () => {
+      const val = input.value.trim();
+      if (!val && node.type === "input") return;
+      if (node.variable)
+        state.runtimeVariables[node.variable] =
+          node.type === "number" ? Number(val) : val;
+      addChatBubble("user", val);
+      state.runtimeStepLog.push({
+        nodeId: node.id,
+        text: displayText,
+        answer: val,
+      });
+      input.disabled = true;
+      footer.removeChild(row);
+      const next = node.next;
+      if (next && proj.nodes.has(next)) {
+        state.runtimeCurrentNodeId = next;
+        state.runtimeHistory.push(next);
+        renderChatStep();
+      } else
+        showToast(next ? `Node "${next}" not found` : "No next node", "error");
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (input.value.trim() || node.type === "number") go();
+      }
+    });
+    row.appendChild(input);
+    footer.appendChild(row);
+    input.focus();
+  } else if (node.type === "decision") {
+    const result = evaluateDecision(node);
+    state.runtimeStepLog.push({
+      nodeId: node.id,
+      text: displayText,
+      answer: result ? "True" : "False",
+    });
+    const next = result ? node.trueNext : node.falseNext;
+    if (next && proj.nodes.has(next)) {
+      state.runtimeCurrentNodeId = next;
+      state.runtimeHistory.push(next);
+      renderChatStep();
+    } else
+      addChatBubble("bot", "Decision: " + result + ", no next node.", "error");
+  } else if (node.type === "copybox") {
+    const content = substituteVariables(node.copyContent || "");
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bot";
+    bubble.innerHTML = `<div class="chat-copy-text">${content}</div><button class="btn-copy chat-inline-copy" id="btnCopyChat">Copy</button>`;
+    body.appendChild(bubble);
+    body.scrollTop = body.scrollHeight;
+    const copyBtn = bubble.querySelector("#btnCopyChat");
+    copyBtn.addEventListener("click", async () => {
+      await copyRichText(content);
+      copyBtn.textContent = "✓ Copied!";
+      copyBtn.classList.add("copied");
+      setTimeout(() => {
+        copyBtn.textContent = "Copy";
+        copyBtn.classList.remove("copied");
+      }, 2000);
+    });
+    const continueBtn = document.createElement("button");
+    continueBtn.className = "runtime-submit-btn";
+    continueBtn.textContent = "Continue";
+    continueBtn.addEventListener("click", () => {
+      state.runtimeStepLog.push({
+        nodeId: node.id,
+        text: displayText,
+        answer: null,
+      });
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderChatStep();
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    });
+    footer.appendChild(continueBtn);
+  } else if (node.type === "link") {
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bot link-bubble";
+    const textDiv = document.createElement("div");
+    textDiv.textContent = displayText;
+    textDiv.style.whiteSpace = "pre-wrap";
+    bubble.appendChild(textDiv);
+    if (node.links && node.links.length) {
+      const linksDiv = document.createElement("div");
+      linksDiv.className = "chat-links";
+      node.links.forEach((link) => {
+        const b = document.createElement("button");
+        b.className = "chat-link-btn";
+        b.textContent = link.label;
+        b.addEventListener("click", () => {
+          if (link.url) window.open(link.url, "_blank", "noopener,noreferrer");
+        });
+        linksDiv.appendChild(b);
+      });
+      bubble.appendChild(linksDiv);
+    }
+    body.appendChild(bubble);
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderChatStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
+      });
+      footer.appendChild(cont);
+    }
+    body.scrollTop = body.scrollHeight;
+  } else if (node.type === "setvar") {
+    const varName = node.variable;
+    const val = substituteVariables(node.value);
+    let parsedVal = val;
+    if (node.varType === "number") parsedVal = Number(val);
+    else if (node.varType === "boolean")
+      parsedVal = val.toLowerCase() === "true" || val === "1";
+    if (varName) state.runtimeVariables[varName] = parsedVal;
+    if (!node.showInRuntime) {
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderChatStep();
+      }
+      return;
+    }
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bot";
+    bubble.textContent = `${displayText}\nVariable ${escapeHtml(varName)} set to ${escapeHtml(parsedVal)}`;
+    body.appendChild(bubble);
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderChatStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
+      });
+      footer.appendChild(cont);
+    }
+  } else if (node.type === "email") {
+    const mailto = buildMailtoUrl(node, state.runtimeVariables);
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bot";
+    bubble.innerHTML = `<div>${displayText}</div>
+      <button class="runtime-submit-btn" style="margin-top:8px;" id="chatSendEmail">Send Email</button>
+      ${node.next ? `<button class="runtime-submit-btn" style="margin-top:8px;" id="chatContinueEmail">Continue</button>` : ""}`;
+    body.appendChild(bubble);
+    document.getElementById("chatSendEmail").addEventListener("click", () => {
+      window.open(mailto, "_blank");
+    });
+    if (node.next) {
+      document
+        .getElementById("chatContinueEmail")
+        .addEventListener("click", () => {
+          if (proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderChatStep();
+          } else showToast(`Node "${node.next}" not found`, "error");
+        });
+    }
+    body.scrollTop = body.scrollHeight;
+  } else {
+    const continueBtn = document.createElement("button");
+    continueBtn.className = "runtime-submit-btn";
+    continueBtn.textContent = "Continue";
+    continueBtn.addEventListener("click", () => {
+      state.runtimeStepLog.push({
+        nodeId: node.id,
+        text: displayText,
+        answer: null,
+      });
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
+        renderChatStep();
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    });
+    footer.appendChild(continueBtn);
+  }
+  body.scrollTop = body.scrollHeight;
+}
+
+function addChatBubble(sender, text, variant = "") {
+  const body = document.getElementById("runtimePanelBody");
+  if (!body) return;
+  const bubble = document.createElement("div");
+  bubble.className = `chat-bubble chat-${sender} ${variant}`;
+  bubble.textContent = text;
+  body.appendChild(bubble);
+  body.scrollTop = body.scrollHeight;
+}
+
+
+// File: j:\Canvas\js\state.js
+// Global application state
+const state = {
+  projects: [],
+  activeProjectIndex: 0,
+  maxUndo: 60,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  isDraggingConnection: false,
+  dragConnectionSource: null,
+  dragConnectionMouse: { x: 0, y: 0 },
+  isDraggingNode: false,
+  dragNodeId: null,
+  dragNodeOffset: { x: 0, y: 0 },
+  dragNodeStartPos: { x: 0, y: 0 },
+  isPanning: false,
+  panStart: { x: 0, y: 0 },
+  panStartOffset: { x: 0, y: 0 },
+  runtimeActive: false,
+  runtimeCurrentNodeId: null,
+  runtimeHistory: [],
+  runtimeVariables: {},
+  saveTimeout: null,
+  selectedNodeIds: new Set(),
+  marquee: null,
+  multiDragOffsets: null,
+  runtimeStepLog: [],
+  selectedConnection: null,
+};
+
+
+// File: j:\Canvas\js\storage.js
+// ---- LOCAL STORAGE & RECENT FILES ----
+
+const RECENT_KEY = "canvas_recent";
+const MAX_RECENT = 10;
+
+function loadRecentFiles() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveRecentFile(name, xml) {
+  const recents = loadRecentFiles().filter((f) => f.name !== name);
+  recents.unshift({ name, xml, date: Date.now() });
+  if (recents.length > MAX_RECENT) recents.pop();
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recents));
+}
+function addCurrentToRecent() {
+  try {
+    const proj = currentProject();
+    if (!proj.startNodeId || proj.nodes.size === 0) return;
+    const xml = exportToXMLString();
+    if (xml) saveRecentFile(proj.name, xml);
+  } catch (e) {}
+}
+
+const STORAGE_KEY = "canvas_projects";
+
+function saveProjects() {
+  const data = state.projects.map((proj) => ({
+    name: proj.name,
+    nodesData: Array.from(proj.nodes.entries()).reduce((acc, [id, node]) => {
+      acc[id] = node;
+      return acc;
+    }, {}),
+    startNodeId: proj.startNodeId,
+  }));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn("Auto‑save failed", e);
+  }
+}
+function markUnsaved() {
+  clearTimeout(state.saveTimeout);
+  state.saveTimeout = setTimeout(saveProjects, 400);
+}
+function loadProjects() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    state.projects = data.map((d) => {
+      const proj = createEmptyProject(d.name || "Untitled");
+      proj.nodes = new Map(Object.entries(d.nodesData || {}));
+      proj.startNodeId = d.startNodeId || null;
+      return proj;
+    });
+    if (state.projects.length === 0) return false;
+    state.activeProjectIndex = 0;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function renderRecentFiles() {
+  const list = document.getElementById("recentFilesList");
+  if (!list) return;
+  list.innerHTML = "";
+  const recents = loadRecentFiles();
+  if (recents.length === 0) {
+    list.innerHTML =
+      '<div class="menu-action" style="color:var(--text-muted);cursor:default;">No recent flows</div>';
+  } else {
+    recents.forEach((r) => {
+      const item = document.createElement("div");
+      item.className = "menu-action";
+      item.textContent = r.name;
+      item.title = new Date(r.date).toLocaleString();
+      item.addEventListener("click", () => {
+        const existingIndex = state.projects.findIndex(
+          (p) => p.name === r.name,
+        );
+        if (existingIndex >= 0) {
+          switchToProject(existingIndex);
+          showToast(`Switched to "${r.name}"`, "info");
+        } else {
+          const newProj = createEmptyProject(r.name);
+          state.projects.push(newProj);
+          state.activeProjectIndex = state.projects.length - 1;
+          try {
+            importFromXML(r.xml);
+            showToast(`Opened "${r.name}"`, "success");
+          } catch (e) {
+            showToast("Failed to open recent flow", "error");
+            state.projects.pop();
+            if (state.activeProjectIndex >= state.projects.length)
+              state.activeProjectIndex = Math.max(0, state.projects.length - 1);
+          }
+          renderAll();
+          updateEditorPanel();
+          renderTabs();
+          updateProjectNameDisplay();
+          markUnsaved();
+        }
+        closeAllMenus();
+      });
+      list.appendChild(item);
+    });
+  }
+}
+
+
+// File: j:\Canvas\js\utils.js
+function generateId() {
+  return (
+    "node_" +
+    Date.now().toString(36) +
+    "_" +
+    Math.random().toString(36).substring(2, 7)
+  );
+}
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+function debounce(fn, ms) {
+  let t;
+  return (...a) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, a), ms);
+  };
+}
+function showToast(msg, type = "info") {
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  DOM.toastContainer.appendChild(t);
+  setTimeout(() => {
+    t.classList.add("removing");
+    t.addEventListener("animationend", () => t.remove());
+  }, 2200);
+}
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+function escapeXml(s) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+
+// File: j:\Canvas\js\wysiwyg.js
+// File: js/wysiwyg.js
+function createWysiwyg(container, initialHTML = "") {
+  const wrapper = document.createElement("div");
+  wrapper.className = "wysiwyg-wrapper";
+
+  // Toolbar
+  const toolbar = document.createElement("div");
+  toolbar.className = "wysiwyg-toolbar";
+  const buttons = [
+    { cmd: "bold", icon: "B", title: "Bold" },
+    { cmd: "italic", icon: "I", title: "Italic" },
+    { cmd: "underline", icon: "U", title: "Underline" },
+    { cmd: "insertUnorderedList", icon: "•", title: "Bullet List" },
+    { cmd: "insertOrderedList", icon: "1.", title: "Numbered List" },
+    { cmd: "createLink", icon: "🔗", title: "Link" },
+  ];
+  buttons.forEach((b) => {
+    const btn = document.createElement("button");
+    btn.className = "wysiwyg-btn";
+    btn.innerHTML = b.icon;
+    btn.title = b.title;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (b.cmd === "createLink") {
+        const url = prompt("Enter URL:");
+        if (url) document.execCommand(b.cmd, false, url);
+      } else {
+        document.execCommand(b.cmd, false, null);
+      }
+      editor.focus();
+    });
+    toolbar.appendChild(btn);
+  });
+  wrapper.appendChild(toolbar);
+
+  // Editor
+  const editor = document.createElement("div");
+  editor.className = "wysiwyg-editor";
+  editor.contentEditable = true;
+  editor.innerHTML = initialHTML;
+  wrapper.appendChild(editor);
+
+  container.innerHTML = "";
+  container.appendChild(wrapper);
+
+  return {
+    getHTML: () => editor.innerHTML,
+    setHTML: (html) => {
+      editor.innerHTML = html;
+    },
+    focus: () => editor.focus(),
+  };
+}
+
+
+// File: j:\Canvas\style.css
+/* ==========================================
+   CANVAS. — Visual Checklist Builder
+   Professional UI/UX Stylesheet
+   ========================================== */
+:root {
+  --bg-deep: #0a0a0f;
+  --bg-surface: #111118;
+  --bg-surface-2: #16161f;
+  --bg-glass: rgba(22, 22, 35, 0.75);
+  --bg-glass-hover: rgba(28, 28, 45, 0.85);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(219, 0, 17, 0.35);
+  --text-primary: #e8e8f0;
+  --text-secondary: #a0a0b8;
+  --text-muted: #6b6b80;
+  --accent: #db0011;
+  --accent-glow: rgba(219, 0, 17, 0.4);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.3);
+  --node-choice: #8b5cf6;
+  --node-decision: #f97316;
+  --node-message: #3b82f6;
+  --node-copybox: #0ea5e9;
+  --node-link: #14b8a6;
+  --node-setvar: #c026d3; /* deep fuchsia */
+  --node-input: #f59e0b;
+  --node-number: #ec4899;
+  --node-end: #ef4444;
+  --node-email: #6366f1; /* indigo */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+  --transition-fast: 0.15s ease;
+  --transition-smooth: 0.25s ease;
+  --font-mono:
+    "SF Mono", "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
+}
+/* ---- Light Mode ---- */
+html.light-mode {
+  --bg-deep: #f5f6f8;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f0f2f5;
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-glass-hover: rgba(255, 255, 255, 0.95);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-medium: rgba(0, 0, 0, 0.1);
+  --border-glow: rgba(219, 0, 17, 0.3);
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a6a;
+  --text-muted: #888;
+  --accent: #db0011;
+  --accent-glow: rgba(219, 0, 17, 0.25);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --danger-glow: rgba(239, 68, 68, 0.25);
+  /* Keep node colours unchanged */
+}
+
+/* Adjust the grid dots to be darker in light mode */
+html.light-mode .bg-grid {
+  background-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.05) 1px,
+    transparent 1px
+  );
+}
+
+/* ----- Light‑mode overrides for node type badges & palette icons ----- */
+html.light-mode .palette-node-icon {
+  color: #333 !important;
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Per‑type palette icon colours (using node‑type colour variables) */
+html.light-mode .palette-node[data-type="choice"] .palette-node-icon {
+  color: var(--node-choice) !important;
+  background: rgba(139, 92, 246, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="decision"] .palette-node-icon {
+  color: var(--node-decision) !important;
+  background: rgba(249, 115, 22, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="message"] .palette-node-icon {
+  color: var(--node-message) !important;
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="copybox"] .palette-node-icon {
+  color: var(--node-copybox) !important;
+  background: rgba(14, 165, 233, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="link"] .palette-node-icon {
+  color: var(--node-link) !important;
+  background: rgba(20, 184, 166, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="setvar"] .palette-node-icon {
+  color: var(--node-setvar) !important;
+  background: rgba(192, 38, 211, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="input"] .palette-node-icon {
+  color: var(--node-input) !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="number"] .palette-node-icon {
+  color: var(--node-number) !important;
+  background: rgba(236, 72, 153, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="end"] .palette-node-icon {
+  color: var(--node-end) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="email"] .palette-node-icon {
+  color: var(--node-email) !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Node type badges – darker text, slightly more opaque background */
+html.light-mode .node-choice .node-type-badge {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--node-choice);
+}
+html.light-mode .node-decision .node-type-badge {
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--node-decision);
+}
+html.light-mode .node-message .node-type-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--node-message);
+}
+html.light-mode .node-copybox .node-type-badge {
+  background: rgba(14, 165, 233, 0.15);
+  color: var(--node-copybox);
+}
+html.light-mode .node-link .node-type-badge {
+  background: rgba(20, 184, 166, 0.15);
+  color: var(--node-link);
+}
+html.light-mode .node-setvar .node-type-badge {
+  background: rgba(192, 38, 211, 0.15);
+  color: var(--node-setvar);
+}
+html.light-mode .node-input .node-type-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--node-input);
+}
+html.light-mode .node-number .node-type-badge {
+  background: rgba(236, 72, 153, 0.15);
+  color: var(--node-number);
+}
+html.light-mode .node-end .node-type-badge {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--node-end);
+}
+html.light-mode .node-email .node-type-badge {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--node-email);
+}
+
+/* Message variant badges (they appear on the canvas node headers) */
+html.light-mode .variant-pill {
+  color: inherit;
+}
+html.light-mode .variant-info .node-type-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--node-message);
+}
+html.light-mode .variant-success .node-type-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+html.light-mode .variant-warning .node-type-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+}
+html.light-mode .variant-error .node-type-badge {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+html.light-mode .variant-action .node-type-badge {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+/* Reduce orb intensity in light mode */
+html.light-mode .orb {
+  opacity: 0.1;
+}
+
+/* Additional light‑mode fixes for readability and modal appearance */
+html.light-mode .mode-btn-step {
+  color: #b91c1c !important;
+}
+html.light-mode .mode-btn-linear {
+  color: #047857 !important;
+}
+html.light-mode .mode-btn-chat {
+  color: #1e40af !important;
+}
+
+html.light-mode .runtime-modal .modal-body {
+  background: var(--bg-surface);
+  border-bottom-left-radius: var(--radius-xl);
+  border-bottom-right-radius: var(--radius-xl);
+}
+
+html.light-mode .runtime-modal.variant-info {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+html.light-mode .runtime-link-btn,
+html.light-mode .chat-link-btn {
+  border-color: #0f766e;
+  color: #0f766e;
+  background: rgba(20, 184, 166, 0.05);
+}
+
+html.light-mode .runtime-link-btn:hover,
+html.light-mode .chat-link-btn:hover {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: #0d9488;
+  color: #0d9488;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.25);
+}
+
+html.light-mode .chat-bubble.info {
+  color: #1e3a5f;
+}
+html.light-mode .chat-bubble.success {
+  color: #064e3b;
+}
+html.light-mode .chat-bubble.warning {
+  color: #78350f;
+}
+html.light-mode .chat-bubble.error {
+  color: #7f1d1d;
+}
+html.light-mode .chat-bubble.action {
+  color: #4c1d95;
+}
+
+html.light-mode .modal-navbar,
+html.light-mode .runtime-modal .navbar,
+html.light-mode .runtime-panel-header.navbar {
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  overflow: hidden;
+}
+html.light-mode .node-option-chip {
+  background: rgba(0, 0, 0, 0.06); /* dark translucent background */
+  border-color: rgba(0, 0, 0, 0.12); /* visible border */
+  color: var(--text-secondary); /* dark text, already #4a4a6a */
+}
+/* ======= Palette Icon Defaults (using data-type) ======= */
+.palette-node-icon {
+  color: #aaa; /* fallback */
+  background: rgba(255, 255, 255, 0.1);
+}
+.palette-node[data-type="choice"] .palette-node-icon {
+  color: var(--node-choice);
+  background: rgba(139, 92, 246, 0.3);
+}
+.palette-node[data-type="decision"] .palette-node-icon {
+  color: var(--node-decision);
+  background: rgba(249, 115, 22, 0.3);
+}
+.palette-node[data-type="message"] .palette-node-icon {
+  color: var(--node-message);
+  background: rgba(59, 130, 246, 0.3);
+}
+.palette-node[data-type="copybox"] .palette-node-icon {
+  color: var(--node-copybox);
+  background: rgba(14, 165, 233, 0.3);
+}
+.palette-node[data-type="link"] .palette-node-icon {
+  color: var(--node-link);
+  background: rgba(20, 184, 166, 0.3);
+}
+.palette-node[data-type="setvar"] .palette-node-icon {
+  color: var(--node-setvar);
+  background: rgba(192, 38, 211, 0.3);
+}
+.palette-node[data-type="input"] .palette-node-icon {
+  color: var(--node-input);
+  background: rgba(245, 158, 11, 0.3);
+}
+.palette-node[data-type="number"] .palette-node-icon {
+  color: var(--node-number);
+  background: rgba(236, 72, 153, 0.3);
+}
+.palette-node[data-type="end"] .palette-node-icon {
+  color: var(--node-end);
+  background: rgba(239, 68, 68, 0.3);
+}
+.palette-node[data-type="email"] .palette-node-icon {
+  color: var(--node-email);
+  background: rgba(99, 102, 241, 0.3);
+}
+
+/* ======= Base Styles ======= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ---- Animated Background ---- */
+.bg-orbs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.25;
+  animation: orbFloat 20s infinite ease-in-out;
+}
+.orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(219, 0, 17, 0.45), transparent 70%);
+  top: -15%;
+  left: -10%;
+  animation-delay: 0s;
+}
+.orb-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(180, 0, 10, 0.4), transparent 70%);
+  bottom: -15%;
+  right: -8%;
+  animation-delay: -7s;
+}
+.orb-3 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(219, 0, 17, 0.3), transparent 70%);
+  top: 50%;
+  left: 40%;
+  animation-delay: -14s;
+}
+.orb-4 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(150, 0, 10, 0.25), transparent 70%);
+  top: 30%;
+  right: 20%;
+  animation-delay: -3s;
+}
+@keyframes orbFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(40px, -30px) scale(1.05);
+  }
+  50% {
+    transform: translate(-20px, 25px) scale(0.95);
+  }
+  75% {
+    transform: translate(-35px, -15px) scale(1.02);
+  }
+}
+
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  opacity: 0.5;
+}
+
+.app-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ---- Header ---- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 100;
+  flex-shrink: 0;
+  gap: 16px;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+.logo-wordmark {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(219, 0, 17, 0.18);
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-medium);
+  margin: 0 8px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.zoom-level {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  outline: none;
+  position: relative;
+  line-height: 1.2;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+.btn-primary:hover {
+  background: #c0000f;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-glow);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+.btn-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 2px 8px var(--danger-glow);
+}
+.btn-icon {
+  padding: 6px 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  min-width: 32px;
+  justify-content: center;
+}
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.72rem;
+}
+.btn-full {
+  width: 100%;
+  justify-content: center;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+}
+#btnZoom100 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  margin: 0 2px;
+}
+
+/* ---- Main Content ---- */
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  overflow-y: auto;
+}
+.sidebar-header {
+  padding: 16px 16px 8px;
+}
+.sidebar-header h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+.sidebar-subtitle {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+.node-palette {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.palette-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+}
+.palette-node:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-medium);
+  transform: translateX(2px);
+}
+.palette-node:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+.palette-node-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.palette-node-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+}
+.palette-node-desc {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  display: block;
+}
+.sidebar-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ---- Canvas ---- */
+.canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  cursor: default;
+}
+.canvas-container:active {
+  cursor: default;
+}
+.canvas-container.panning {
+  cursor: grabbing;
+}
+.canvas-workspace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 9999999px;
+  height: 9999999px;
+  transform-origin: 0 0;
+  transition: none;
+}
+.canvas-workspace.animating {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.connections-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.connections-svg path {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.nodes-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+.drag-line-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ---- Canvas Nodes ---- */
+.canvas-node {
+  position: absolute;
+  min-width: 170px;
+  max-width: 240px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  cursor: grab;
+  pointer-events: all;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  z-index: 3;
+  box-shadow: var(--shadow-sm);
+}
+.canvas-node:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-md);
+}
+.canvas-node.selected {
+  z-index: 5;
+  border-color: transparent !important;
+}
+
+/* Node‑type selected glows */
+.canvas-node.node-choice.selected {
+  border-color: var(--node-choice) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(139, 92, 246, 0.35),
+    0 0 0 4px rgba(139, 92, 246, 0.12) !important;
+}
+.canvas-node.node-message.selected {
+  border-color: var(--node-message) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(59, 130, 246, 0.35),
+    0 0 0 4px rgba(59, 130, 246, 0.12) !important;
+}
+.canvas-node.node-input.selected {
+  border-color: var(--node-input) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(245, 158, 11, 0.35),
+    0 0 0 4px rgba(245, 158, 11, 0.12) !important;
+}
+.canvas-node.node-number.selected {
+  border-color: var(--node-number) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(236, 72, 153, 0.35),
+    0 0 0 4px rgba(236, 72, 153, 0.12) !important;
+}
+.canvas-node.node-end.selected {
+  border-color: var(--node-end) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(239, 68, 68, 0.35),
+    0 0 0 4px rgba(239, 68, 68, 0.12) !important;
+}
+.canvas-node.node-decision.selected {
+  border-color: var(--node-decision) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(249, 115, 22, 0.35),
+    0 0 0 4px rgba(249, 115, 22, 0.12) !important;
+}
+.canvas-node.node-copybox.selected {
+  border-color: var(--node-copybox) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(14, 165, 233, 0.35),
+    0 0 0 4px rgba(14, 165, 233, 0.12) !important;
+}
+.canvas-node.node-link.selected {
+  border-color: var(--node-link) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(20, 184, 166, 0.35),
+    0 0 0 4px rgba(20, 184, 166, 0.12) !important;
+}
+.canvas-node.node-setvar.selected {
+  border-color: var(--node-setvar) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(192, 38, 211, 0.35),
+    0 0 0 4px rgba(192, 38, 211, 0.12) !important;
+}
+.canvas-node.node-email.selected {
+  border-color: var(--node-email) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(99, 102, 241, 0.35),
+    0 0 0 4px rgba(99, 102, 241, 0.12) !important;
+}
+
+.canvas-node.dragging {
+  cursor: grabbing;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 25px rgba(219, 0, 17, 0.25);
+  z-index: 6;
+  opacity: 0.95;
+  transition: none;
+}
+
+/* Left border accents */
+.canvas-node.node-choice {
+  border-left: 3px solid var(--node-choice);
+}
+.canvas-node.node-message {
+  border-left: 3px solid var(--node-message);
+}
+.canvas-node.node-input {
+  border-left: 3px solid var(--node-input);
+}
+.canvas-node.node-number {
+  border-left: 3px solid var(--node-number);
+}
+.canvas-node.node-end {
+  border-left: 3px solid var(--node-end);
+}
+.canvas-node.node-decision {
+  border-left: 3px solid var(--node-decision);
+}
+.canvas-node.node-copybox {
+  border-left: 3px solid var(--node-copybox);
+}
+.canvas-node.node-link {
+  border-left: 3px solid var(--node-link);
+}
+.canvas-node.node-setvar {
+  border-left: 3px solid var(--node-setvar);
+}
+.canvas-node.node-email {
+  border-left: 3px solid var(--node-email);
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.node-type-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+/* Badge colours */
+.node-choice .node-type-badge {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+}
+.node-message .node-type-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+.node-input .node-type-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.node-number .node-type-badge {
+  background: rgba(236, 72, 153, 0.2);
+  color: #f9a8d4;
+}
+.node-end .node-type-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+.node-decision .node-type-badge {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+}
+.node-copybox .node-type-badge {
+  background: rgba(14, 165, 233, 0.2);
+  color: #7dd3fc;
+}
+.node-link .node-type-badge {
+  background: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+}
+.node-setvar .node-type-badge {
+  background: rgba(192, 38, 211, 0.2);
+  color: #e879f9;
+}
+.node-email .node-type-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.node-id-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-left: auto;
+}
+.node-text-preview {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.node-options-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.node-option-chip {
+  font-size: 0.6rem;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap; /* keep on one line */
+  overflow: hidden; /* hide the overflow */
+  text-overflow: ellipsis; /* show '…' when truncated */
+  max-width: 100%; /* stay within the node */
+  display: inline-block;
+}
+.node-link-chip {
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.3);
+}
+
+/* Node ports */
+.node-port {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg-surface-2);
+  border: 2px solid var(--border-medium);
+  cursor: crosshair;
+  transition: all var(--transition-fast);
+  z-index: 7;
+  pointer-events: all;
+}
+.node-port:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  transform: scale(1.25);
+}
+.node-port.port-in {
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.node-port.port-in:hover {
+  transform: translateY(-50%) scale(1.25);
+}
+.node-port.port-out {
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.node-port.port-out:hover {
+  transform: translateY(-50%) scale(1.25);
+}
+.node-option-port {
+  position: absolute;
+  right: -7px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--bg-surface-2);
+  border: 2px solid var(--border-medium);
+  cursor: crosshair;
+  pointer-events: all;
+  transition: all var(--transition-fast);
+  z-index: 7;
+}
+.node-option-port:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  transform: scale(1.25);
+}
+.node-option-port-label {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.node-option-port:hover .node-option-port-label {
+  opacity: 1;
+}
+.decision-port-label {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Message variants */
+.canvas-node.variant-info {
+  border-left-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.06);
+}
+.canvas-node.variant-success {
+  border-left-color: #10b981;
+  background: rgba(16, 185, 129, 0.06);
+}
+.canvas-node.variant-warning {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.06);
+}
+.canvas-node.variant-error {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.06);
+}
+.canvas-node.variant-action {
+  border-left-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.06);
+}
+.variant-info .node-type-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+.variant-success .node-type-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+.variant-warning .node-type-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.variant-error .node-type-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+.variant-action .node-type-badge {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+}
+
+/* SVG connections */
+.connection-path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke var(--transition-fast);
+}
+
+/* ---- Editor Panel ---- */
+.editor-panel {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  transition:
+    transform var(--transition-smooth),
+    opacity var(--transition-smooth);
+  overflow-y: auto;
+}
+.editor-panel.collapsed {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.panel-header h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+.panel-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.panel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.form-input,
+.form-textarea {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  transition: all var(--transition-fast);
+  outline: none;
+  resize: vertical;
+}
+.form-textarea {
+  min-height: auto;
+}
+.form-select {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  transition: all var(--transition-fast);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0a0b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+.form-select option {
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+.panel-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  gap: 8px;
+}
+.option-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.option-row .form-input {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+.option-row input[data-opt-field="next"] {
+  flex: 0.45 !important;
+  min-width: 55px;
+}
+.btn-remove-option {
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+.btn-remove-option:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+.btn-add-option {
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-medium);
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  text-align: center;
+  width: 100%;
+  margin-top: 6px;
+}
+.btn-add-option:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(219, 0, 17, 0.06);
+}
+
+/* ---- Minimap ---- */
+.minimap {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 150px;
+  height: 110px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  z-index: 40;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.minimap:hover {
+  transform: scale(1.04);
+  box-shadow: var(--shadow-lg);
+}
+.minimap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.minimap-viewport {
+  position: absolute;
+  border: 1.5px solid var(--accent);
+  border-radius: 3px;
+  background: rgba(219, 0, 17, 0.08);
+  pointer-events: none;
+}
+
+/* ---- Modals ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.modal-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 50px rgba(0, 0, 0, 0.5);
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(25px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Runtime modal (Step) */
+.runtime-modal .modal-body {
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+.runtime-question {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.runtime-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.runtime-option-btn {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+.runtime-option-btn:hover {
+  background: rgba(219, 0, 17, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.runtime-input {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+.runtime-submit-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px var(--accent-glow);
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.runtime-submit-btn:hover {
+  background: #c0000f;
+  box-shadow: 0 4px 15px var(--accent-glow);
+}
+.runtime-end-message {
+  text-align: center;
+  padding: 30px;
+  color: var(--success);
+}
+.progress-dots {
+  display: none;
+}
+
+/* Copy box runtime */
+.runtime-copy-block {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin: 8px 0;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-secondary);
+  font-family: inherit;
+}
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-top: 6px;
+}
+.btn-copy:hover {
+  background: rgba(219, 0, 17, 0.12);
+  border-color: var(--accent);
+}
+.btn-copy.copied {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+/* Import modal */
+.import-modal {
+  max-width: 500px;
+}
+.import-dropzone {
+  border: 2px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
+}
+.import-dropzone:hover {
+  border-color: var(--accent);
+  background: rgba(219, 0, 17, 0.03);
+}
+.import-dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(219, 0, 17, 0.08);
+  box-shadow: 0 0 20px rgba(219, 0, 17, 0.15);
+}
+.import-textarea {
+  width: 100%;
+  min-height: auto;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  resize: vertical;
+  outline: none;
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  pointer-events: all;
+  animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast.success {
+  border-left: 3px solid var(--success);
+}
+.toast.error {
+  border-left: 3px solid var(--danger);
+}
+.toast.info {
+  border-left: 3px solid var(--accent);
+}
+.toast.removing {
+  animation: toastOut 0.3s ease-in forwards;
+}
+@keyframes toastIn {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes toastOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+/* Scrollbar (global) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Tab Bar */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 10px;
+  gap: 2px;
+  z-index: 98;
+  flex-shrink: 0;
+  overflow-x: auto;
+  height: 34px;
+}
+.tabs-container {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  overflow-x: auto;
+  height: 100%;
+}
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  border-radius: 0;
+}
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+}
+.tab-btn.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+  background: rgba(219, 0, 17, 0.06);
+}
+.tab-close {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.tab-close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+.tab-add-btn {
+  margin-left: 4px;
+  font-size: 1.1rem;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+/* Menu Bar */
+.menu-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 12px;
+  z-index: 99;
+  flex-shrink: 0;
+  height: 30px;
+  gap: 0;
+}
+.menu-item {
+  position: relative;
+  padding: 0 10px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+.menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 170px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  display: none;
+  z-index: 200;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.menu-item.open .menu-dropdown {
+  display: block;
+}
+.menu-action {
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.menu-action:hover {
+  background: rgba(219, 0, 17, 0.12);
+  color: #fff;
+}
+.menu-separator {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+.menu-label {
+  padding: 4px 12px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.recent-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+.recent-list .menu-action {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+.hidden {
+  display: none !important;
+}
+
+/* Editable project name */
+.project-name {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.15s;
+  outline: none;
+  cursor: text;
+  margin-left: 8px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.project-name:hover {
+  border-bottom-color: var(--border-medium);
+}
+.project-name:focus {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: var(--accent);
+  max-width: 300px;
+}
+
+/* Marquee selection box */
+.marquee-box {
+  position: absolute;
+  border: 2px dashed #db0011;
+  background: rgba(219, 0, 17, 0.12);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Runtime message box (Step modal) */
+.runtime-message-box {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+  margin-bottom: 8px;
+}
+.runtime-message-box .runtime-question {
+  margin: 0;
+  font-size: 1rem;
+}
+.runtime-message-box.variant-info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: #3b82f6;
+}
+.runtime-message-box.variant-success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+}
+.runtime-message-box.variant-warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: #f59e0b;
+}
+.runtime-message-box.variant-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+}
+.runtime-message-box.variant-action {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: #8b5cf6;
+}
+
+/* Runtime modal close button */
+.runtime-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  font-size: 1.4rem;
+  width: 32px;
+  height: 32px;
+}
+
+/* Runtime modal variant backgrounds (Step modal) */
+.runtime-modal.variant-info {
+  background: rgba(59, 130, 246, 0.08);
+  border-left: 4px solid #3b82f6;
+}
+.runtime-modal.variant-success {
+  background: rgba(16, 185, 129, 0.08);
+  border-left: 4px solid #10b981;
+}
+.runtime-modal.variant-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 4px solid #f59e0b;
+}
+.runtime-modal.variant-error {
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 4px solid #ef4444;
+}
+.runtime-modal.variant-action {
+  background: rgba(139, 92, 246, 0.08);
+  border-left: 4px solid #8b5cf6;
+}
+
+/* Variant pills on canvas nodes */
+.variant-pill {
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.03em;
+}
+.variant-pill.variant-info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+.variant-pill.variant-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+.variant-pill.variant-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.variant-pill.variant-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+.variant-pill.variant-action {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+}
+
+/* ---- Full‑screen Runtime Panel (Linear / Chat) ---- */
+.runtime-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-deep);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  font-family: "Inter", sans-serif;
+}
+.runtime-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+}
+.runtime-header-spacer {
+  width: 32px;
+}
+.runtime-panel-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  flex: 1;
+}
+.runtime-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.runtime-panel-body::-webkit-scrollbar {
+  display: none;
+}
+.runtime-panel-footer {
+  background: var(--bg-glass);
+  border-top: 1px solid var(--border-subtle);
+  padding: 16px 24px;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+.runtime-panel-footer:empty {
+  display: none;
+}
+
+/* Linear steps */
+.linear-step {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.linear-step .runtime-question {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+.linear-step .runtime-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.linear-step .runtime-option-btn {
+  flex: 1 1 auto;
+  min-width: 100px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.linear-step .runtime-option-btn:hover {
+  background: rgba(219, 0, 17, 0.08);
+  border-color: var(--accent);
+}
+.linear-step .runtime-option-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.linear-step .runtime-option-btn.selected-option {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.linear-answer {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Chat bubbles */
+.chat-bubble {
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.5;
+  word-break: break-word;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  animation: bubbleIn 0.2s ease-out;
+}
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.chat-bot {
+  align-self: flex-start;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+}
+.chat-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+}
+.chat-bubble.success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--success);
+  color: var(--success);
+}
+.chat-bubble.error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.chat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chat-option-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.chat-option-btn:hover {
+  background: rgba(219, 0, 17, 0.08);
+  border-color: var(--accent);
+}
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+.chat-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.chat-input:focus {
+  border-color: var(--accent);
+}
+.chat-send-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.chat-send-btn:hover {
+  background: #c0000f;
+}
+.chat-copy-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-family: inherit;
+}
+.chat-inline-copy {
+  margin-top: 6px;
+}
+
+/* Linear step variant backgrounds */
+.linear-step.variant-info {
+  background: rgba(59, 130, 246, 0.06);
+  border-left: 3px solid #3b82f6;
+}
+.linear-step.variant-success {
+  background: rgba(16, 185, 129, 0.06);
+  border-left: 3px solid #10b981;
+}
+.linear-step.variant-warning {
+  background: rgba(245, 158, 11, 0.06);
+  border-left: 3px solid #f59e0b;
+}
+.linear-step.variant-error {
+  background: rgba(239, 68, 68, 0.06);
+  border-left: 3px solid #ef4444;
+}
+.linear-step.variant-action {
+  background: rgba(139, 92, 246, 0.06);
+  border-left: 3px solid #8b5cf6;
+}
+
+/* Linear continue button */
+.linear-continue-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  transition: background 0.15s;
+}
+.linear-step.variant-info .linear-continue-btn {
+  background: #3b82f6;
+}
+.linear-step.variant-success .linear-continue-btn {
+  background: #10b981;
+}
+.linear-step.variant-warning .linear-continue-btn {
+  background: #f59e0b;
+  color: #000;
+}
+.linear-step.variant-error .linear-continue-btn {
+  background: #ef4444;
+}
+.linear-step.variant-action .linear-continue-btn {
+  background: #8b5cf6;
+}
+
+/* Chat bubble variant colors */
+.chat-bubble.info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+.chat-bubble.success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--success);
+  color: var(--success);
+}
+.chat-bubble.warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: #f59e0b;
+  color: #fcd34d;
+}
+.chat-bubble.error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.chat-bubble.action {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: #8b5cf6;
+  color: #c4b5fd;
+}
+
+/* Message variant button colours (Step modal) */
+.runtime-modal.variant-info .runtime-submit-btn {
+  background: #3b82f6;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
+}
+.runtime-modal.variant-success .runtime-submit-btn {
+  background: #10b981;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.4);
+}
+.runtime-modal.variant-warning .runtime-submit-btn {
+  background: #f59e0b;
+  color: #000;
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
+}
+.runtime-modal.variant-error .runtime-submit-btn {
+  background: #ef4444;
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.4);
+}
+.runtime-modal.variant-action .runtime-submit-btn {
+  background: #8b5cf6;
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4);
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+}
+.navbar-logo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.navbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  flex: 1;
+}
+
+.modal-content.runtime-modal {
+  border-radius: var(--radius-xl);
+}
+.runtime-panel-header.navbar {
+  border-radius: 0;
+}
+.runtime-submit-btn,
+.runtime-option-btn,
+.btn-copy {
+  border-radius: var(--radius-md);
+}
+
+/* ---- Link Node (separate styles) ---- */
+.canvas-node.node-link {
+  border-left: 2px solid #14b8a6;
+}
+.node-link .node-type-badge {
+  background: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+}
+.node-link.selected {
+  border-color: #14b8a6 !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(20, 184, 166, 0.35),
+    0 0 0 4px rgba(20, 184, 166, 0.12) !important;
+}
+.node-link-chip {
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.3);
+}
+
+.chat-bubble.link-bubble {
+  max-width: 90%;
+}
+
+.chat-link-btn,
+.runtime-link-btn {
+  display: block;
+  width: 100%;
+  min-width: 200px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid #14b8a6;
+  background: transparent;
+  color: #5eead4;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.chat-link-btn:hover,
+.runtime-link-btn:hover {
+  background: rgba(20, 184, 166, 0.08);
+  border-color: #5eead4;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
+  color: #ffffff;
+}
+.chat-links,
+.runtime-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* Node port overrides for link nodes */
+.node-port.port-out {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  right: -7px;
+}
+
+/* ---- Set Variable Node ---- */
+.canvas-node.node-setvar {
+  border-left: 3px solid var(--node-setvar);
+}
+.node-setvar .node-type-badge {
+  background: rgba(192, 38, 211, 0.2);
+  color: #e879f9;
+}
+.node-setvar.selected {
+  border-color: var(--node-setvar) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(192, 38, 211, 0.35),
+    0 0 0 4px rgba(192, 38, 211, 0.12) !important;
+}
+
+/* ---- Email Node ---- */
+.canvas-node.node-email {
+  border-left: 3px solid var(--node-email);
+}
+.node-email .node-type-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+.node-email.selected {
+  border-color: var(--node-email) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(99, 102, 241, 0.35),
+    0 0 0 4px rgba(99, 102, 241, 0.12) !important;
+}
+
+/* Mailto link builder modal */
+.mailto-modal {
+  max-width: 420px;
+}
+.mailto-modal .form-group {
+  margin-bottom: 12px;
+}
+.mailto-modal #mailtoUrl {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-medium);
+  cursor: text;
+  user-select: all;
+}
+
+.sidebar-search {
+  padding: 0 10px 8px;
+}
+.sidebar-search .form-input {
+  width: 100%;
+  font-size: 0.75rem;
+}
+.wysiwyg-wrapper {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-surface-2);
+}
+.wysiwyg-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.wysiwyg-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.wysiwyg-btn:hover {
+  background: rgba(219, 0, 17, 0.1);
+  color: var(--accent);
+}
+.wysiwyg-editor {
+  min-height: 80px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  outline: none;
+  word-break: break-word;
+}
+.wysiwyg-editor a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+/* ---- Mobile Warning (desktop‑only app) ---- */
+.mobile-warning {
+  display: none; /* hidden by default */
+  position: fixed;
+  inset: 0;
+  background: var(--bg-deep);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-family: "Inter", sans-serif;
+  color: var(--text-primary);
+}
+
+.mobile-warning-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.mobile-warning-content p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+/* On screens smaller than 768px, show the warning and hide the app */
+@media (max-width: 768px) {
+  .mobile-warning {
+    display: flex !important;
+  }
+
+  .app-container,
+  .bg-orbs,
+  .bg-grid {
+    display: none !important;
+  }
+}
+
+
+// File: j:\Canvas\js\app.js
+// ---- INITIALISATION ----
+
+function init() {
+  const hasSaved = loadProjects();
+  if (!hasSaved) {
+    state.projects = [];
+    const proj = createEmptyProject("Quick Test");
+    state.projects.push(proj);
+    state.activeProjectIndex = 0;
+
+    const bx = 50000,
+      by = 50000,
+      dy = 160;
+
+    // 1. Welcome message (info variant)
+    const n1 = createNode("message", bx, by, "welcome");
+    n1.text = "👋 Welcome! This flow quickly tests every node type.";
+    n1.variant = "info";
+    n1.next = "ask_name";
+    proj.nodes.set("welcome", n1);
+
+    // 2. Input – user name
+    const n2 = createNode("input", bx, by + dy, "ask_name");
+    n2.text = "What's your name?";
+    n2.variable = "name";
+    n2.next = "ask_age";
+    proj.nodes.set("ask_name", n2);
+
+    // 3. Number – user age
+    const n3 = createNode("number", bx, by + dy * 2, "ask_age");
+    n3.text = "Enter your age:";
+    n3.variable = "age";
+    n3.next = "dec_numeric";
+    proj.nodes.set("ask_age", n3);
+
+    // 4. Decision – numeric (age >= 18)
+    const n4 = createNode("decision", bx, by + dy * 3, "dec_numeric");
+    n4.text = "Are you 18 or older?";
+    n4.variable = "age";
+    n4.operator = ">=";
+    n4.value = "18";
+    n4.trueNext = "msg_adult";
+    n4.falseNext = "msg_minor";
+    proj.nodes.set("dec_numeric", n4);
+
+    // 5a. Message – success (adult)
+    const n5a = createNode("message", bx + 300, by + dy * 3, "msg_adult");
+    n5a.text = "You're an adult, {name}! ✅";
+    n5a.variant = "success";
+    n5a.next = "set_silent";
+    proj.nodes.set("msg_adult", n5a);
+
+    // 5b. Message – warning (minor)
+    const n5b = createNode("message", bx - 300, by + dy * 3, "msg_minor");
+    n5b.text = "You're under 18, {name}. ⚠️";
+    n5b.variant = "warning";
+    n5b.next = "set_silent";
+    proj.nodes.set("msg_minor", n5b);
+
+    // 6. SetVar – silent (boolean)
+    const n6 = createNode("setvar", bx, by + dy * 4, "set_silent");
+    n6.text = "Silently set isTested = true";
+    n6.variable = "isTested";
+    n6.value = "true";
+    n6.varType = "boolean";
+    n6.showInRuntime = false;
+    n6.next = "set_visible";
+    proj.nodes.set("set_silent", n6);
+
+    // 7. SetVar – visible (number)
+    const n7 = createNode("setvar", bx, by + dy * 5, "set_visible");
+    n7.text = "Visibly set score = 100";
+    n7.variable = "score";
+    n7.value = "100";
+    n7.varType = "number";
+    n7.showInRuntime = true;
+    n7.next = "dec_bool";
+    proj.nodes.set("set_visible", n7);
+
+    // 8. Decision – boolean (isTested is true)
+    const n8 = createNode("decision", bx, by + dy * 6, "dec_bool");
+    n8.text = "Is isTested true?";
+    n8.variable = "isTested";
+    n8.operator = "is true";
+    n8.value = "";
+    n8.trueNext = "msg_bool_true";
+    n8.falseNext = "msg_bool_false";
+    proj.nodes.set("dec_bool", n8);
+
+    // 9a. Message – boolean true (success)
+    const n9a = createNode("message", bx + 300, by + dy * 6, "msg_bool_true");
+    n9a.text = "Boolean isTested is true! ✅";
+    n9a.variant = "success";
+    n9a.next = "copybox_cmd";
+    proj.nodes.set("msg_bool_true", n9a);
+
+    // 9b. Message – boolean false (error)
+    const n9b = createNode("message", bx - 300, by + dy * 6, "msg_bool_false");
+    n9b.text = "Boolean isTested is false? That's odd. ❌";
+    n9b.variant = "error";
+    n9b.next = "copybox_cmd";
+    proj.nodes.set("msg_bool_false", n9b);
+
+    // 10. Copy Box
+    const n10 = createNode("copybox", bx, by + dy * 7, "copybox_cmd");
+    n10.text = "Copy this command:";
+    n10.copyContent = "echo 'Canvas is awesome!'";
+    n10.next = "msg_action";
+    proj.nodes.set("copybox_cmd", n10);
+
+    // 11. Message – action variant
+    const n11 = createNode("message", bx, by + dy * 8, "msg_action");
+    n11.text = "Action required: Click Continue.";
+    n11.variant = "action";
+    n11.next = "link_node";
+    proj.nodes.set("msg_action", n11);
+
+    // 12. Link node
+    const n12 = createNode("link", bx, by + dy * 9, "link_node");
+    n12.text = "Useful links:";
+    n12.links = [
+      { label: "Canvas GitHub", url: "https://github.com" },
+      { label: "MDN Web Docs", url: "https://developer.mozilla.org" },
+    ];
+    n12.next = "final_end";
+    proj.nodes.set("link_node", n12);
+
+    // 13. End
+    const n13 = createNode("end", bx, by + dy * 10, "final_end");
+    n13.text = "Test complete! Thanks, {name}. Your score is {score}.";
+    proj.nodes.set("final_end", n13);
+
+    proj.startNodeId = "welcome";
+    saveProjects();
+  }
+  if (state.projects.length === 0) {
+    state.projects.push(createEmptyProject("Untitled"));
+    state.activeProjectIndex = 0;
+  }
+
+  renderAll();
+  updateEditorPanel();
+  updateZoomDisplay();
+  fitView();
+  renderTabs();
+  updateProjectNameDisplay();
+  initMenuBar();
+
+  DOM.canvasContainer.addEventListener("contextmenu", (e) =>
+    e.preventDefault(),
+  );
+  DOM.canvasContainer.addEventListener("mousedown", onCanvasMouseDown);
+  DOM.canvasContainer.addEventListener("wheel", onCanvasWheel, {
+    passive: false,
+  });
+  DOM.canvasContainer.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  });
+  DOM.canvasContainer.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData("text/plain");
+    if (type) {
+      const coords = getCanvasCoords(e);
+      addNode(type, Math.round(coords.x - 90), Math.round(coords.y - 25));
+    }
+  });
+  document.querySelectorAll(".palette-node").forEach((p) => {
+    p.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData(
+        "text/plain",
+        e.target.closest(".palette-node").dataset.type,
+      );
+    });
+  });
+
+  document.getElementById("btnAddTab").addEventListener("click", addNewTab);
+  document.getElementById("btnUndo").addEventListener("click", undo);
+  document.getElementById("btnRedo").addEventListener("click", redo);
+  document.getElementById("btnRunFlow").addEventListener("click", startRuntime);
+  document
+    .getElementById("btnRunLinear")
+    .addEventListener("click", startLinearRuntime);
+  document
+    .getElementById("btnRunChat")
+    .addEventListener("click", startChatRuntime);
+
+  document.getElementById("btnZoomOut").addEventListener("click", () => {
+    const r = DOM.canvasContainer.getBoundingClientRect();
+    zoomAtPoint(1 / 1.2, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("btnFitView").addEventListener("click", fitView);
+  document.getElementById("btnClearCanvas").addEventListener("click", () => {
+    if (confirm("Clear canvas?")) {
+      const proj = currentProject();
+      pushUndo();
+      proj.nodes.clear();
+      proj.startNodeId = null;
+      proj.selectedNodeId = null;
+      renderAll();
+      updateEditorPanel();
+      fitView();
+    }
+  });
+  document.getElementById("btnClosePanel").addEventListener("click", () => {
+    currentProject().selectedNodeId = null;
+    renderNodes();
+    updateEditorPanel();
+  });
+  document.getElementById("btnDeleteNode").addEventListener("click", () => {
+    if (currentProject().selectedNodeId)
+      deleteNode(currentProject().selectedNodeId);
+  });
+  document.getElementById("btnDuplicateNode").addEventListener("click", () => {
+    if (currentProject().selectedNodeId)
+      duplicateNode(currentProject().selectedNodeId);
+  });
+  document
+    .getElementById("btnCloseRuntime")
+    .addEventListener("click", stopRuntime);
+  document
+    .getElementById("btnClosePanelRuntime")
+    .addEventListener("click", stopRuntime);
+  DOM.runtimeModal.addEventListener("click", (e) => {
+    if (e.target === DOM.runtimeModal) stopRuntime();
+  });
+  document
+    .getElementById("btnCloseImport")
+    .addEventListener("click", closeImportModal);
+  DOM.importModal.addEventListener("click", (e) => {
+    if (e.target === DOM.importModal) closeImportModal();
+  });
+  document
+    .getElementById("btnImportConfirm")
+    .addEventListener("click", handleImportConfirm);
+  DOM.importDropzone.addEventListener("click", () =>
+    DOM.importFileInput.click(),
+  );
+  DOM.importFileInput.setAttribute("accept", ".canvas,.html");
+  DOM.importFileInput.addEventListener("change", (e) => {
+    if (e.target.files[0]) handleFileUpload(e.target.files[0]);
+  });
+  DOM.importDropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    DOM.importDropzone.classList.add("dragover");
+  });
+  DOM.importDropzone.addEventListener("dragleave", () =>
+    DOM.importDropzone.classList.remove("dragover"),
+  );
+  DOM.importDropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    DOM.importDropzone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
+  });
+  DOM.minimapCanvas.addEventListener("click", (e) => {
+    const proj = currentProject();
+    if (!proj.nodes.size) return;
+
+    const rect = DOM.minimapCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    // Calculate the bounding box of all nodes (same as renderMinimap)
+    let mnX = Infinity,
+      mnY = Infinity,
+      mxX = -Infinity,
+      mxY = -Infinity;
+    proj.nodes.forEach((n) => {
+      const r = getNodeRect(n.id);
+      mnX = Math.min(mnX, n.x);
+      mnY = Math.min(mnY, n.y);
+      mxX = Math.max(mxX, n.x + r.width);
+      mxY = Math.max(mxY, n.y + r.height);
+    });
+    const pad = 60;
+    const ww = mxX - mnX + pad * 2;
+    const wh = mxY - mnY + pad * 2;
+    const w = DOM.minimapCanvas.width;
+    const h = DOM.minimapCanvas.height;
+    const s = Math.min(w / ww, h / wh);
+    const ox = (w - ww * s) / 2;
+    const oy = (h - wh * s) / 2;
+
+    // Convert minimap pixel to world coordinates
+    const worldX = (mx - ox) / s + mnX - pad;
+    const worldY = (my - oy) / s + mnY - pad;
+
+    // Center the view on that point
+    const containerRect = DOM.canvasContainer.getBoundingClientRect();
+    state.panX = containerRect.width / 2 - worldX * state.zoom;
+    state.panY = containerRect.height / 2 - worldY * state.zoom;
+    applyCanvasTransform();
+  });
+  document.addEventListener("keydown", onKeyDown);
+  const projectNameEl = document.getElementById("projectName");
+  if (projectNameEl) {
+    projectNameEl.addEventListener("blur", () => {
+      const proj = currentProject();
+      const newName = projectNameEl.textContent.trim() || "Untitled";
+      if (proj.name !== newName) {
+        proj.name = newName;
+        renderTabs();
+        markUnsaved();
+      }
+    });
+    projectNameEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        projectNameEl.blur();
+      }
+    });
+  }
+  window.addEventListener(
+    "resize",
+    debounce(() => renderAll(), 200),
+  );
+  document.getElementById("btnZoom100").addEventListener("click", () => {
+    const containerRect = DOM.canvasContainer.getBoundingClientRect();
+    const centerScreenX = containerRect.width / 2,
+      centerScreenY = containerRect.height / 2;
+    const worldX = (centerScreenX - state.panX) / state.zoom;
+    const worldY = (centerScreenY - state.panY) / state.zoom;
+    state.zoom = 1;
+    state.panX = centerScreenX - worldX * state.zoom;
+    state.panY = centerScreenY - worldY * state.zoom;
+    applyCanvasTransform();
+    showToast("Zoom 100%", "info");
+  });
+  // Mailto builder
+  document
+    .getElementById("btnCloseMailto")
+    .addEventListener("click", closeMailtoBuilder);
+  document.getElementById("mailtoModal").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("mailtoModal"))
+      closeMailtoBuilder();
+  });
+  document
+    .getElementById("mailtoTo")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoCC")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoBCC")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoSubject")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoBody")
+    .addEventListener("input", generateMailtoUrl);
+  document.getElementById("btnCopyMailto").addEventListener("click", () => {
+    const url = document.getElementById("mailtoUrl").value;
+    if (url) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          showToast("Mailto URL copied!", "success");
+        })
+        .catch(() => {
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          showToast("Mailto URL copied!", "success");
+        });
+    }
+  });
+  document
+    .getElementById("btnThemeToggle")
+    .addEventListener("click", toggleTheme);
+  document.getElementById("nodeSearch").addEventListener("input", (e) => {
+    const query = e.target.value.toLowerCase();
+    document.querySelectorAll(".palette-node").forEach((p) => {
+      const name = p
+        .querySelector(".palette-node-name")
+        .textContent.toLowerCase();
+      const desc = p
+        .querySelector(".palette-node-desc")
+        .textContent.toLowerCase();
+      p.style.display =
+        name.includes(query) || desc.includes(query) ? "" : "none";
+    });
+  });
+
+  initTheme();
+}
+
+function renderTabs() {
+  const container = document.getElementById("tabsContainer");
+  if (!container) return;
+  container.innerHTML = "";
+  state.projects.forEach((proj, idx) => {
+    const tab = document.createElement("div");
+    tab.className =
+      "tab-btn" + (idx === state.activeProjectIndex ? " active" : "");
+    tab.innerHTML = `<span class="tab-name">${escapeHtml(proj.name)}</span>${state.projects.length > 1 ? `<span class="tab-close" data-close-index="${idx}">×</span>` : ""}`;
+    tab.addEventListener("click", (e) => {
+      if (e.target.classList.contains("tab-close")) {
+        e.stopPropagation();
+        closeTab(parseInt(e.target.dataset.closeIndex));
+        return;
+      }
+      switchToProject(idx);
+    });
+    container.appendChild(tab);
+  });
+}
+// ---- Theme management ----
+function getCurrentTheme() {
+  return document.documentElement.classList.contains("light-mode")
+    ? "light"
+    : "dark";
+}
+
+function setTheme(theme) {
+  if (theme === "light") {
+    document.documentElement.classList.add("light-mode");
+  } else {
+    document.documentElement.classList.remove("light-mode");
+  }
+  updateThemeIcon();
+  localStorage.setItem("canvas-theme", theme);
+}
+
+function toggleTheme() {
+  const current = getCurrentTheme();
+  setTheme(current === "dark" ? "light" : "dark");
+}
+
+function updateThemeIcon() {
+  const btn = document.getElementById("btnThemeToggle");
+  if (!btn) return;
+  const isLight = getCurrentTheme() === "light";
+  btn.innerHTML = isLight
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+       </svg>` // moon icon for switching to dark
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <circle cx="12" cy="12" r="5"/>
+         <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+       </svg>`; // sun icon for switching to light
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("canvas-theme");
+  if (saved) {
+    setTheme(saved);
+  } else {
+    // default to dark (already applied by default CSS)
+    updateThemeIcon();
+  }
+}
+document.addEventListener("DOMContentLoaded", init);
+
+

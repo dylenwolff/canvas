@@ -1,6 +1,11 @@
 // File: js/export/export.js
 function exportToHTML() {
   const proj = currentProject();
+  const errors = validateFlow(proj);
+  if (errors.length > 0) {
+    showToast("Cannot export HTML: " + errors.join("; "), "error");
+    return;
+  }
   if (!proj.startNodeId || proj.nodes.size === 0) {
     showToast("Nothing to export", "error");
     return;

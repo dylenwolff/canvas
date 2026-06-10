@@ -30,6 +30,15 @@ function createNode(type, x, y, id = null) {
     node.varType = "string";
     node.showInRuntime = true;
     node.next = "";
+  } else if (type === "email") {
+    node.to = "";
+    node.cc = "";
+    node.bcc = "";
+    node.subject = "";
+    node.body = "";
+    node.buttonLabel = "Send Email";
+
+    node.next = "";
   } else if (type === "input" || type === "number") {
     node.variable = "";
     node.next = "";
@@ -46,6 +55,8 @@ function getDefaultText(t) {
       copybox: "Copy Box",
       link: "Useful links:",
       setvar: "Set Variable",
+      email: "Send an email",
+
       input: "Enter text:",
       number: "Enter number:",
       end: "End of Flow",
@@ -158,87 +169,6 @@ function redo() {
   renderAll();
   showToast("Redo", "info");
 }
-function getDefaultText(t) {
-  return (
-    {
-      choice: "New Question?",
-      decision: "Decision?",
-      message: "Message text",
-      copybox: "Copy Box",
-      link: "Useful links:",
-      setvar: "Set Variable",
-      input: "Enter text:",
-      number: "Enter number:",
-      end: "End of Flow",
-    }[t] || "New Node"
-  );
-}
-
-function addNode(type, x, y) {
-  const proj = currentProject();
-  pushUndo();
-  const node = createNode(type, x, y);
-  proj.nodes.set(node.id, node);
-  if (!proj.startNodeId) proj.startNodeId = node.id;
-  proj.selectedNodeId = node.id;
-  renderAll();
-  updateEditorPanel();
-}
-
-function deleteNode(id) {
-  const proj = currentProject();
-  if (!proj.nodes.has(id)) return;
-  pushUndo();
-  proj.nodes.forEach((n) => {
-    if (n.next === id) n.next = "";
-    if (n.options)
-      n.options.forEach((o) => {
-        if (o.next === id) o.next = "";
-      });
-    if (n.trueNext === id) n.trueNext = "";
-    if (n.falseNext === id) n.falseNext = "";
-  });
-  proj.nodes.delete(id);
-  if (proj.startNodeId === id)
-    proj.startNodeId = proj.nodes.keys().next().value || null;
-  if (proj.selectedNodeId === id) proj.selectedNodeId = null;
-  renderAll();
-  updateEditorPanel();
-  showToast("Node deleted", "info");
-}
-
-function duplicateNode(id) {
-  const proj = currentProject();
-  if (!proj.nodes.has(id)) return;
-  pushUndo();
-  const orig = proj.nodes.get(id),
-    newNode = JSON.parse(JSON.stringify(orig));
-  newNode.id = generateId();
-  newNode.x += 60;
-  newNode.y += 60;
-  if (newNode.next) newNode.next = "";
-  if (newNode.options) newNode.options.forEach((o) => (o.next = ""));
-  if (newNode.links) newNode.links.forEach((l) => (l.url = l.url || ""));
-  if (newNode.trueNext) newNode.trueNext = "";
-  if (newNode.falseNext) newNode.falseNext = "";
-  proj.nodes.set(newNode.id, newNode);
-  proj.selectedNodeId = newNode.id;
-  renderAll();
-  updateEditorPanel();
-  showToast("Node duplicated", "info");
-}
-
-function updateNodeProperty(id, prop, val) {
-  const proj = currentProject();
-  if (!proj.nodes.has(id)) return;
-  const node = proj.nodes.get(id);
-  if (JSON.stringify(node[prop]) !== JSON.stringify(val)) {
-    pushUndo();
-    node[prop] = val;
-    renderAll();
-    updateEditorPanel();
-  }
-}
 
 // Undo/Redo
 function takeSnapshot() {
@@ -278,4 +208,22 @@ function redo() {
   restoreSnapshot(proj.redoStack.pop());
   renderAll();
   showToast("Redo", "info");
+}
+function deleteNodeWithoutUndo(id) {
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  // Clear references to this node from all other nodes
+  proj.nodes.forEach((n) => {
+    if (n.next === id) n.next = "";
+    if (n.options)
+      n.options.forEach((o) => {
+        if (o.next === id) o.next = "";
+      });
+    if (n.trueNext === id) n.trueNext = "";
+    if (n.falseNext === id) n.falseNext = "";
+  });
+  proj.nodes.delete(id);
+  if (proj.startNodeId === id)
+    proj.startNodeId = proj.nodes.keys().next().value || null;
+  if (proj.selectedNodeId === id) proj.selectedNodeId = null;
 }

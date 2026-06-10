@@ -1,16 +1,29 @@
 // ---- RUNTIME (MODAL, LINEAR, CHAT) ----
 
-async function copyRichText(html) {
-  const plainText = html.replace(/<[^>]*>/g, "");
-  try {
-    await navigator.clipboard.writeText(plainText);
-  } catch {
-    const temp = document.createElement("textarea");
-    temp.value = plainText;
-    document.body.appendChild(temp);
-    temp.select();
+function copyRichText(html) {
+  // Try to copy both HTML and plain text
+  const plain = html.replace(/<[^>]*>/g, "");
+  if (navigator.clipboard && typeof ClipboardItem === "function") {
+    const blob = new Blob([html], { type: "text/html" });
+    const item = new ClipboardItem({
+      "text/html": blob,
+      "text/plain": new Blob([plain], { type: "text/plain" }),
+    });
+    navigator.clipboard.write([item]).catch(() => {
+      // Fallback to plain text
+      fallbackCopy(plain);
+    });
+  } else {
+    fallbackCopy(plain);
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
     document.execCommand("copy");
-    document.body.removeChild(temp);
+    document.body.removeChild(ta);
   }
 }
 
@@ -59,11 +72,9 @@ function evaluateDecision(node) {
   const exp = node.value,
     op = node.operator;
 
-  // Boolean operators first (ignore exp)
   if (op === "is true") return !!varVal;
   if (op === "is false") return !varVal;
 
-  // Numeric operators
   const nv = Number(varVal),
     ne = Number(exp);
   if (
@@ -79,7 +90,6 @@ function evaluateDecision(node) {
     if (op === ">=") return nv >= ne;
   }
 
-  // String operators
   const sv = String(varVal).toLowerCase(),
     se = exp.toLowerCase();
   if (op === "equals") return sv === se;
@@ -87,11 +97,29 @@ function evaluateDecision(node) {
   if (op === "starts_with") return sv.indexOf(se) === 0;
   if (op === "ends_with") return sv.lastIndexOf(se) === sv.length - se.length;
 
-  // Fallback to string equality if op is ==, != etc. and not number
   if (op === "==") return sv === se;
   if (op === "!=") return sv !== se;
 
   return false;
+}
+
+// Helper to build mailto URL from email node
+function buildMailtoUrl(node, variables) {
+  const encode = (s) =>
+    encodeURIComponent(s).replace(/%7B/g, "{").replace(/%7D/g, "}");
+  let mailto =
+    "mailto:" + (node.to ? encode(substituteVariables(node.to)) : "");
+  const params = [];
+  if (node.cc) params.push("cc=" + encode(substituteVariables(node.cc)));
+  if (node.bcc) params.push("bcc=" + encode(substituteVariables(node.bcc)));
+  if (node.subject)
+    params.push("subject=" + encode(substituteVariables(node.subject)));
+  // For email body, use the HTML content but strip tags for mailto
+  const plainBody = (node.body || "").replace(/<[^>]*>/g, "");
+  const substitutedBody = substituteVariables(plainBody);
+  if (substitutedBody) params.push("body=" + encode(substitutedBody));
+  if (params.length) mailto += "?" + params.join("&");
+  return mailto;
 }
 
 function renderRuntimeStep() {
@@ -172,7 +200,7 @@ function renderRuntimeStep() {
       DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Decision: <strong>${result}</strong>, no next node</p></div>`;
   } else if (node.type === "copybox") {
     const content = substituteVariables(node.copyContent || "");
-    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><div class="runtime-copy-block">${escapeHtml(content)}</div><button class="btn-copy" id="btnCopyContent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="12" height="16" rx="2"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg> Copy</button><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><div class="runtime-copy-block">${content}</div><button class="btn-copy" id="btnCopyContent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="12" height="16" rx="2"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg> Copy</button><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
     document
       .getElementById("btnCopyContent")
       .addEventListener("click", async () => {
@@ -229,15 +257,12 @@ function renderRuntimeStep() {
     const varName = node.variable;
     const val = substituteVariables(node.value);
     let parsedVal = val;
-    if (node.varType === "number") {
-      parsedVal = Number(val);
-    } else if (node.varType === "boolean") {
+    if (node.varType === "number") parsedVal = Number(val);
+    else if (node.varType === "boolean")
       parsedVal = val.toLowerCase() === "true" || val === "1";
-    }
     if (varName) state.runtimeVariables[varName] = parsedVal;
 
     if (!node.showInRuntime) {
-      // Skip UI, advance immediately
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
         state.runtimeHistory.push(node.next);
@@ -246,7 +271,6 @@ function renderRuntimeStep() {
         DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Flow Complete</p></div>`;
       }
     } else {
-      // Show a simple step
       DOM.runtimeBody.innerHTML = `
         <div class="runtime-question">${escapeHtml(displayText)}</div>
         <div class="runtime-message-box variant-info">
@@ -268,6 +292,32 @@ function renderRuntimeStep() {
             );
         });
     }
+  } else if (node.type === "email") {
+    const mailto = buildMailtoUrl(node, state.runtimeVariables);
+    DOM.runtimeBody.innerHTML =
+      `
+      <div class="runtime-question">${escapeHtml(displayText)}</div>
+      <button class="runtime-email-btn" id="runtimeSendEmail">` +
+      escapeHtml(node.buttonLabel || "Send Email") +
+      `</button>
+      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}
+    `;
+    document
+      .getElementById("runtimeSendEmail")
+      .addEventListener("click", () => {
+        window.open(mailto, "_blank");
+      });
+    if (node.next) {
+      document
+        .getElementById("runtimeContinue")
+        .addEventListener("click", () => {
+          if (proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderRuntimeStep();
+          } else showToast(`Node "${node.next}" not found`, "error");
+        });
+    }
   } else {
     DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
     document.getElementById("runtimeContinue").addEventListener("click", () => {
@@ -284,7 +334,7 @@ function renderRuntimeStep() {
   }
 }
 
-// ---- LINEAR RUNTIME (FULL‑SCREEN) ----
+// ---- LINEAR RUNTIME ----
 function startLinearRuntime() {
   const proj = currentProject();
   if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
@@ -307,6 +357,7 @@ function startLinearRuntime() {
   body.classList.remove("chat-runtime");
   renderLinearStep();
 }
+
 function renderLinearStep() {
   const proj = currentProject();
   const node = proj.nodes.get(state.runtimeCurrentNodeId);
@@ -319,7 +370,6 @@ function renderLinearStep() {
     return;
   }
 
-  // ----- Hidden SetVar: no visible step, just advance -----
   if (node.type === "setvar" && !node.showInRuntime) {
     const varName = node.variable;
     const val = substituteVariables(node.value);
@@ -328,7 +378,6 @@ function renderLinearStep() {
     else if (node.varType === "boolean")
       parsedVal = val.toLowerCase() === "true" || val === "1";
     if (varName) state.runtimeVariables[varName] = parsedVal;
-
     if (node.next && proj.nodes.has(node.next)) {
       state.runtimeCurrentNodeId = node.next;
       state.runtimeHistory.push(node.next);
@@ -338,7 +387,6 @@ function renderLinearStep() {
   }
 
   const displayText = substituteVariables(node.text);
-
   const stepDiv = document.createElement("div");
   stepDiv.className = "linear-step";
   stepDiv.dataset.nodeId = node.id;
@@ -350,11 +398,8 @@ function renderLinearStep() {
     body.scrollTop = body.scrollHeight;
     return;
   }
-
-  if (node.type === "message") {
+  if (node.type === "message")
     stepDiv.classList.add("variant-" + (node.variant || "info"));
-  }
-
   body.appendChild(stepDiv);
 
   if (node.type === "choice" && node.options) {
@@ -380,12 +425,11 @@ function renderLinearStep() {
           state.runtimeCurrentNodeId = next;
           state.runtimeHistory.push(next);
           renderLinearStep();
-        } else {
+        } else
           showToast(
             next ? `Node "${next}" not found` : "No target set",
             "error",
           );
-        }
       });
       optsDiv.appendChild(btn);
     });
@@ -397,40 +441,32 @@ function renderLinearStep() {
     input.className = "chat-input";
     input.type = node.type === "number" ? "number" : "text";
     input.placeholder = "Enter your answer… (press Enter)";
-
     const go = () => {
       const val = input.value.trim();
       if (!val && node.type === "input") return;
-      if (node.variable) {
+      if (node.variable)
         state.runtimeVariables[node.variable] =
           node.type === "number" ? Number(val) : val;
-      }
       state.runtimeStepLog.push({
         nodeId: node.id,
         text: displayText,
         answer: val,
       });
       input.disabled = true;
-      if (node.next && proj.nodes.has(node.next)) {
-        state.runtimeCurrentNodeId = node.next;
-        state.runtimeHistory.push(node.next);
+      const next = node.next;
+      if (next && proj.nodes.has(next)) {
+        state.runtimeCurrentNodeId = next;
+        state.runtimeHistory.push(next);
         renderLinearStep();
-      } else {
-        showToast(
-          node.next ? `Node "${node.next}" not found` : "No next node",
-          "error",
-        );
-      }
+      } else
+        showToast(next ? `Node "${next}" not found` : "No next node", "error");
     };
-
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        const val = input.value.trim();
-        if (val || node.type === "number") go();
+        if (input.value.trim() || node.type === "number") go();
       }
     });
-
     row.appendChild(input);
     stepDiv.appendChild(row);
     input.focus();
@@ -446,16 +482,14 @@ function renderLinearStep() {
       state.runtimeCurrentNodeId = next;
       state.runtimeHistory.push(next);
       renderLinearStep();
-    } else {
+    } else
       stepDiv.innerHTML += `<p>Decision: <strong>${result}</strong>, no next node.</p>`;
-    }
   } else if (node.type === "copybox") {
     const content = substituteVariables(node.copyContent || "");
     const copyDiv = document.createElement("div");
     copyDiv.className = "runtime-copy-block";
-    copyDiv.textContent = content;
+    copyDiv.innerHTML = content; // render HTML
     stepDiv.appendChild(copyDiv);
-
     const copyBtn = document.createElement("button");
     copyBtn.className = "btn-copy";
     copyBtn.textContent = "Copy";
@@ -469,7 +503,6 @@ function renderLinearStep() {
       }, 2000);
     });
     stepDiv.appendChild(copyBtn);
-
     const continueBtn = document.createElement("button");
     continueBtn.className = "runtime-submit-btn linear-continue-btn";
     continueBtn.textContent = "Continue";
@@ -486,12 +519,11 @@ function renderLinearStep() {
         state.runtimeCurrentNodeId = nextNodeId;
         state.runtimeHistory.push(nextNodeId);
         renderLinearStep();
-      } else {
+      } else
         showToast(
           nextNodeId ? `Node "${nextNodeId}" not found` : "No next node",
           "error",
         );
-      }
     });
     stepDiv.appendChild(continueBtn);
   } else if (node.type === "link") {
@@ -523,7 +555,6 @@ function renderLinearStep() {
       stepDiv.appendChild(cont);
     }
   } else if (node.type === "setvar") {
-    // visible SetVar – already not hidden because we checked early
     const varName = node.variable;
     const val = substituteVariables(node.value);
     let parsedVal = val;
@@ -531,12 +562,10 @@ function renderLinearStep() {
     else if (node.varType === "boolean")
       parsedVal = val.toLowerCase() === "true" || val === "1";
     if (varName) state.runtimeVariables[varName] = parsedVal;
-
     const infoDiv = document.createElement("div");
     infoDiv.className = "runtime-message-box variant-info";
     infoDiv.innerHTML = `<p>Variable <strong>${escapeHtml(varName)}</strong> set to <strong>${escapeHtml(parsedVal)}</strong></p>`;
     stepDiv.appendChild(infoDiv);
-
     const continueBtn = document.createElement("button");
     continueBtn.className = "runtime-submit-btn linear-continue-btn";
     continueBtn.textContent = "Continue";
@@ -554,6 +583,42 @@ function renderLinearStep() {
         );
     });
     stepDiv.appendChild(continueBtn);
+  } else if (node.type === "email") {
+    const mailto = buildMailtoUrl(node, state.runtimeVariables);
+    const btnContainer = document.createElement("div");
+    btnContainer.style.display = "flex";
+    btnContainer.style.flexDirection = "column";
+    btnContainer.style.gap = "12px";
+    btnContainer.style.marginTop = "12px";
+
+    const sendBtn = document.createElement("button");
+    sendBtn.className = "runtime-email-btn";
+    sendBtn.textContent = node.buttonLabel || "Send Email";
+    sendBtn.addEventListener("click", () => {
+      window.open(mailto, "_blank");
+    });
+    btnContainer.appendChild(sendBtn);
+
+    if (node.next) {
+      const contBtn = document.createElement("button");
+      contBtn.className = "runtime-submit-btn linear-continue-btn";
+      contBtn.textContent = "Continue";
+      contBtn.addEventListener("click", () => {
+        contBtn.disabled = true;
+        contBtn.style.display = "none";
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderLinearStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
+      });
+      btnContainer.appendChild(contBtn);
+    }
+
+    stepDiv.appendChild(btnContainer);
+    body.appendChild(stepDiv);
+    body.scrollTop = body.scrollHeight;
+    return;
   } else {
     const continueBtn = document.createElement("button");
     continueBtn.className = "runtime-submit-btn linear-continue-btn";
@@ -570,19 +635,18 @@ function renderLinearStep() {
         state.runtimeCurrentNodeId = node.next;
         state.runtimeHistory.push(node.next);
         renderLinearStep();
-      } else {
+      } else
         showToast(
           node.next ? `Node "${node.next}" not found` : "No next node",
           "error",
         );
-      }
     });
     stepDiv.appendChild(continueBtn);
   }
-
   body.scrollTop = body.scrollHeight;
 }
-// ---- CHAT RUNTIME (FULL‑SCREEN) ----
+
+// ---- CHAT RUNTIME ----
 function startChatRuntime() {
   const proj = currentProject();
   if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
@@ -621,8 +685,7 @@ function renderChatStep() {
     addChatBubble("bot", "Flow Complete: " + displayText, "success");
     return;
   }
-
-  if (node.type !== "link" && node.type !== "setvar") {
+  if (node.type !== "link" && node.type !== "setvar" && node.type !== "email") {
     addChatBubble(
       "bot",
       displayText,
@@ -644,6 +707,7 @@ function renderChatStep() {
           text: displayText,
           answer: opt.text,
         });
+        optsDiv.remove();
         const next = opt.next;
         if (next && proj.nodes.has(next)) {
           state.runtimeCurrentNodeId = next;
@@ -654,7 +718,6 @@ function renderChatStep() {
             next ? `Node "${next}" not found` : "No target set",
             "error",
           );
-        optsDiv.remove();
       });
       optsDiv.appendChild(btn);
     });
@@ -666,14 +729,12 @@ function renderChatStep() {
     input.className = "chat-input";
     input.type = node.type === "number" ? "number" : "text";
     input.placeholder = "Enter your answer… (press Enter)";
-
     const go = () => {
       const val = input.value.trim();
       if (!val && node.type === "input") return;
-      if (node.variable) {
+      if (node.variable)
         state.runtimeVariables[node.variable] =
           node.type === "number" ? Number(val) : val;
-      }
       addChatBubble("user", val);
       state.runtimeStepLog.push({
         nodeId: node.id,
@@ -682,26 +743,20 @@ function renderChatStep() {
       });
       input.disabled = true;
       footer.removeChild(row);
-      if (node.next && proj.nodes.has(node.next)) {
-        state.runtimeCurrentNodeId = node.next;
-        state.runtimeHistory.push(node.next);
+      const next = node.next;
+      if (next && proj.nodes.has(next)) {
+        state.runtimeCurrentNodeId = next;
+        state.runtimeHistory.push(next);
         renderChatStep();
-      } else {
-        showToast(
-          node.next ? `Node "${node.next}" not found` : "No next node",
-          "error",
-        );
-      }
+      } else
+        showToast(next ? `Node "${next}" not found` : "No next node", "error");
     };
-
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        const val = input.value.trim();
-        if (val || node.type === "number") go();
+        if (input.value.trim() || node.type === "number") go();
       }
     });
-
     row.appendChild(input);
     footer.appendChild(row);
     input.focus();
@@ -723,7 +778,7 @@ function renderChatStep() {
     const content = substituteVariables(node.copyContent || "");
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bot";
-    bubble.innerHTML = `<div class="chat-copy-text">${escapeHtml(content)}</div><button class="btn-copy chat-inline-copy" id="btnCopyChat">Copy</button>`;
+    bubble.innerHTML = `<div class="chat-copy-text">${content}</div><button class="btn-copy chat-inline-copy" id="btnCopyChat">Copy</button>`;
     body.appendChild(bubble);
     body.scrollTop = body.scrollHeight;
     const copyBtn = bubble.querySelector("#btnCopyChat");
@@ -763,7 +818,6 @@ function renderChatStep() {
     textDiv.textContent = displayText;
     textDiv.style.whiteSpace = "pre-wrap";
     bubble.appendChild(textDiv);
-
     if (node.links && node.links.length) {
       const linksDiv = document.createElement("div");
       linksDiv.className = "chat-links";
@@ -779,7 +833,6 @@ function renderChatStep() {
       bubble.appendChild(linksDiv);
     }
     body.appendChild(bubble);
-
     if (node.next) {
       const cont = document.createElement("button");
       cont.className = "runtime-submit-btn";
@@ -802,7 +855,6 @@ function renderChatStep() {
     else if (node.varType === "boolean")
       parsedVal = val.toLowerCase() === "true" || val === "1";
     if (varName) state.runtimeVariables[varName] = parsedVal;
-
     if (!node.showInRuntime) {
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
@@ -828,6 +880,30 @@ function renderChatStep() {
       });
       footer.appendChild(cont);
     }
+  } else if (node.type === "email") {
+    const mailto = buildMailtoUrl(node, state.runtimeVariables);
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble chat-bot";
+    bubble.innerHTML = `<div>${displayText}</div>
+      <button class="runtime-email-btn" style="margin-top:8px;" id="chatSendEmail">${escapeHtml(node.buttonLabel || "Send Email")}</button>`;
+    body.appendChild(bubble);
+    document.getElementById("chatSendEmail").addEventListener("click", () => {
+      window.open(mailto, "_blank");
+    });
+    if (node.next) {
+      const continueBtn = document.createElement("button");
+      continueBtn.className = "runtime-submit-btn";
+      continueBtn.textContent = "Continue";
+      continueBtn.addEventListener("click", () => {
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderChatStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
+      });
+      footer.appendChild(continueBtn);
+    }
+    body.scrollTop = body.scrollHeight;
   } else {
     const continueBtn = document.createElement("button");
     continueBtn.className = "runtime-submit-btn";

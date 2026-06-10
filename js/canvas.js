@@ -183,19 +183,17 @@ function onNodeMouseDown(e) {
   document.addEventListener("mousemove", onNodeMouseMove);
   document.addEventListener("mouseup", onNodeMouseUp);
 }
+
 function onNodeMouseMove(e) {
   if (!state.isDraggingNode) return;
   const proj = currentProject();
   const coords = getCanvasCoords(e);
 
-  // ----- Auto‑scroll near canvas edges -----
   const margin = 60;
   const baseSpeed = 8;
   const canvasRect = DOM.canvasContainer.getBoundingClientRect();
-
   const mouseX = e.clientX;
   const mouseY = e.clientY;
-
   let scrollX = 0,
     scrollY = 0;
 
@@ -206,7 +204,6 @@ function onNodeMouseMove(e) {
     const dist = mouseX - (canvasRect.right - margin);
     scrollX = -baseSpeed * Math.min(1, dist / margin);
   }
-
   if (mouseY < canvasRect.top + margin) {
     const dist = canvasRect.top + margin - mouseY;
     scrollY = baseSpeed * Math.min(1, dist / margin);
@@ -219,16 +216,14 @@ function onNodeMouseMove(e) {
     state.panX += scrollX;
     state.panY += scrollY;
     applyCanvasTransform();
-    // Recalculate coordinates after pan change
     const newCoords = getCanvasCoords(e);
-    // Update the node position based on the new pan-adjusted coordinates
     if (state.multiDragOffsets && state.multiDragOffsets.length > 1) {
       const refStart = state.multiDragOffsets.find(
         (entry) => entry.id === state.dragNodeId,
       );
       if (refStart) {
-        const newX = Math.round(newCoords.x - state.dragNodeOffset.x),
-          newY = Math.round(newCoords.y - state.dragNodeOffset.y);
+        const newX = Math.round(newCoords.x - state.dragNodeOffset.x);
+        const newY = Math.round(newCoords.y - state.dragNodeOffset.y);
         const dx = newX - refStart.startX,
           dy = newY - refStart.startY;
         state.multiDragOffsets.forEach((entry) => {
@@ -264,17 +259,16 @@ function onNodeMouseMove(e) {
     }
     renderConnections();
     renderMinimap();
-    return; // Don't fall through to the old position update
+    return;
   }
 
-  // Original logic when not scrolling
   if (state.multiDragOffsets && state.multiDragOffsets.length > 1) {
     const refStart = state.multiDragOffsets.find(
       (entry) => entry.id === state.dragNodeId,
     );
     if (!refStart) return;
-    const newX = Math.round(coords.x - state.dragNodeOffset.x),
-      newY = Math.round(coords.y - state.dragNodeOffset.y);
+    const newX = Math.round(coords.x - state.dragNodeOffset.x);
+    const newY = Math.round(coords.y - state.dragNodeOffset.y);
     const dx = newX - refStart.startX,
       dy = newY - refStart.startY;
     state.multiDragOffsets.forEach((entry) => {
@@ -310,6 +304,7 @@ function onNodeMouseMove(e) {
   renderConnections();
   renderMinimap();
 }
+
 function onNodeMouseUp(e) {
   document.removeEventListener("mousemove", onNodeMouseMove);
   document.removeEventListener("mouseup", onNodeMouseUp);
@@ -345,6 +340,7 @@ function onNodeMouseUp(e) {
     renderAll();
   }
 }
+
 function onPortMouseDown(e) {
   e.stopPropagation();
   e.preventDefault();
@@ -367,11 +363,10 @@ function onPortMouseDown(e) {
   updateDragLine();
   document.addEventListener("mousemove", onConnectionDragMove);
   document.addEventListener("mouseup", onConnectionDragUp);
-  console.log("Connection drag started", state.isDraggingConnection);
 }
+
 function onConnectionDragMove(e) {
   if (!state.isDraggingConnection) return;
-
   const coords = getCanvasCoords(e);
   state.dragConnectionMouse = { x: coords.x, y: coords.y };
   updateDragLine();
@@ -379,37 +374,35 @@ function onConnectionDragMove(e) {
   const margin = 60;
   const baseSpeed = 12;
   const canvasRect = DOM.canvasContainer.getBoundingClientRect();
-
   const mouseX = e.clientX;
   const mouseY = e.clientY;
-
   let scrollX = 0,
     scrollY = 0;
 
   if (mouseX < canvasRect.left + margin) {
-    const dist = canvasRect.left + margin - mouseX;
-    scrollX = baseSpeed * Math.min(1, dist / margin);
+    scrollX =
+      baseSpeed * Math.min(1, (canvasRect.left + margin - mouseX) / margin);
   } else if (mouseX > canvasRect.right - margin) {
-    const dist = mouseX - (canvasRect.right - margin);
-    scrollX = -baseSpeed * Math.min(1, dist / margin);
+    scrollX =
+      -baseSpeed * Math.min(1, (mouseX - (canvasRect.right - margin)) / margin);
   }
-
   if (mouseY < canvasRect.top + margin) {
-    const dist = canvasRect.top + margin - mouseY;
-    scrollY = baseSpeed * Math.min(1, dist / margin);
+    scrollY =
+      baseSpeed * Math.min(1, (canvasRect.top + margin - mouseY) / margin);
   } else if (mouseY > canvasRect.bottom - margin) {
-    const dist = mouseY - (canvasRect.bottom - margin);
-    scrollY = -baseSpeed * Math.min(1, dist / margin);
+    scrollY =
+      -baseSpeed *
+      Math.min(1, (mouseY - (canvasRect.bottom - margin)) / margin);
   }
 
   if (scrollX !== 0 || scrollY !== 0) {
     state.panX += scrollX;
     state.panY += scrollY;
     applyCanvasTransform();
-    updateDragLine(); // reposition the line after pan change
-    console.log("Auto‑scroll:", scrollX.toFixed(2), scrollY.toFixed(2));
+    updateDragLine();
   }
 }
+
 function onConnectionDragUp(e) {
   document.removeEventListener("mousemove", onConnectionDragMove);
   document.removeEventListener("mouseup", onConnectionDragUp);
@@ -492,7 +485,6 @@ function onCanvasMouseDown(e) {
     return;
   }
 
-  // Deselect any connection when clicking empty space
   if (e.button === 0 && state.selectedConnection) {
     clearConnectionSelection();
     renderAll();
@@ -504,7 +496,7 @@ function onCanvasMouseDown(e) {
     !e.target.closest(".node-port") &&
     !e.target.closest(".node-option-port") &&
     !e.target.closest(".minimap") &&
-    !e.target.closest(".connection-path") // don't start marquee if clicking a connection
+    !e.target.closest(".connection-path")
   ) {
     e.preventDefault();
     const coords = getCanvasCoords(e);
@@ -604,3 +596,8 @@ function onCanvasWheel(e) {
   e.preventDefault();
   zoomAtPoint(e.deltaY < 0 ? 1.08 : 1 / 1.08, e.clientX, e.clientY);
 }
+
+// Prevent context menu on long press
+DOM.canvasContainer.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+});

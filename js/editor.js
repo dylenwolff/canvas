@@ -7,7 +7,27 @@ function renderAll() {
   updateZoomDisplay();
   markUnsaved();
 }
+function savePanelFocus() {
+  const focused = document.activeElement;
+  if (!focused || !DOM.panelForm.contains(focused)) return null;
+  return {
+    id: focused.id,
+    start: focused.selectionStart,
+    end: focused.selectionEnd,
+    dir: focused.selectionDirection,
+  };
+}
 
+function restorePanelFocus(info) {
+  if (!info) return;
+  const el = document.getElementById(info.id);
+  if (el) {
+    el.focus();
+    if (typeof info.start === "number") {
+      el.setSelectionRange(info.start, info.end, info.dir);
+    }
+  }
+}
 function renderNodes() {
   const marqueeEl = document.getElementById("marqueeBox");
   DOM.nodesLayer.innerHTML = "";
@@ -239,6 +259,7 @@ function refreshNodePreview(nodeId) {
 
 // ---------- EDITOR PANEL (plain textarea) ----------
 function updateEditorPanel() {
+  const focusInfo = savePanelFocus();
   const proj = currentProject();
   const id = proj.selectedNodeId;
   if (!id || !proj.nodes.has(id)) {
@@ -262,6 +283,7 @@ function updateEditorPanel() {
       <option value="copybox" ${node.type === "copybox" ? "selected" : ""}>Copy Box</option>
       <option value="link" ${node.type === "link" ? "selected" : ""}>Link</option>
       <option value="setvar" ${node.type === "setvar" ? "selected" : ""}>Set Variable</option>
+      <option value="email" ${node.type === "email" ? "selected" : ""}>Email</option>
       <option value="input" ${node.type === "input" ? "selected" : ""}>Input</option>
       <option value="number" ${node.type === "number" ? "selected" : ""}>Number</option>
       <option value="end" ${node.type === "end" ? "selected" : ""}>End</option>
@@ -317,7 +339,20 @@ function updateEditorPanel() {
     <div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editSetNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>
   `;
   }
-
+  if (node.type === "email") {
+    html += `
+    <div class="form-group"><label class="form-label">To</label><input class="form-input" id="editEmailTo" value="${escapeHtml(node.to || "")}" placeholder="user@example.com"></div>
+    <div class="form-group"><label class="form-label">CC</label><input class="form-input" id="editEmailCC" value="${escapeHtml(node.cc || "")}" placeholder=""></div>
+    <div class="form-group"><label class="form-label">BCC</label><input class="form-input" id="editEmailBCC" value="${escapeHtml(node.bcc || "")}" placeholder=""></div>
+    <div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="editEmailSubject" value="${escapeHtml(node.subject || "")}" placeholder="Hello"></div>
+    <div class="form-group">
+      <label class="form-label">Body</label>
+      <textarea class="form-textarea" id="editEmailBody" rows="4">${escapeHtml(node.body || "")}</textarea>
+    </div>
+    <div class="form-group"><label class="form-label">Button Label</label><input class="form-input" id="editEmailButtonLabel" value="${escapeHtml(node.buttonLabel || "Send Email")}" placeholder="Send Email"></div>
+    <div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editEmailNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>
+  `;
+  }
   if (node.type === "decision") {
     const varOpts = Array.from(proj.nodes.values())
       .filter(
@@ -373,6 +408,58 @@ function updateEditorPanel() {
   html += `<div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="editIsStart" ${proj.startNodeId === id ? "checked" : ""}> Start Node</label></div>`;
 
   DOM.panelForm.innerHTML = html;
+
+  // ======= Email field bindings (must be after innerHTML) =======
+  const emailTo = document.getElementById("editEmailTo");
+  if (emailTo)
+    emailTo.addEventListener(
+      "input",
+      debounce(() => updateNodeProperty(id, "to", emailTo.value.trim()), 300),
+    );
+  const emailCC = document.getElementById("editEmailCC");
+  if (emailCC)
+    emailCC.addEventListener(
+      "input",
+      debounce(() => updateNodeProperty(id, "cc", emailCC.value.trim()), 300),
+    );
+  const emailBCC = document.getElementById("editEmailBCC");
+  if (emailBCC)
+    emailBCC.addEventListener(
+      "input",
+      debounce(() => updateNodeProperty(id, "bcc", emailBCC.value.trim()), 300),
+    );
+  const emailSubject = document.getElementById("editEmailSubject");
+  if (emailSubject)
+    emailSubject.addEventListener(
+      "input",
+      debounce(
+        () => updateNodeProperty(id, "subject", emailSubject.value.trim()),
+        300,
+      ),
+    );
+  const emailButtonLabel = document.getElementById("editEmailButtonLabel");
+  if (emailButtonLabel)
+    emailButtonLabel.addEventListener(
+      "input",
+      debounce(
+        () =>
+          updateNodeProperty(
+            id,
+            "buttonLabel",
+            emailButtonLabel.value.trim() || "Send Email",
+          ),
+        300,
+      ),
+    );
+  const emailNext = document.getElementById("editEmailNext");
+  if (emailNext)
+    emailNext.addEventListener(
+      "input",
+      debounce(
+        () => updateNodeProperty(id, "next", emailNext.value.trim()),
+        300,
+      ),
+    );
 
   // ----- EVENT BINDINGS -----
   document.getElementById("editNodeType").addEventListener("change", (e) => {
@@ -528,7 +615,7 @@ function updateEditorPanel() {
     );
   }
 
-  // Copy content
+  // Copy content (this is the old textarea fallback, but now we use WYSIWYG; keeping it won't hurt)
   const copyTextArea = document.getElementById("editCopyContent");
   if (copyTextArea) {
     copyTextArea.addEventListener(
@@ -545,7 +632,23 @@ function updateEditorPanel() {
       }, 300),
     );
   }
-
+  // Email body textarea
+  const emailBodyTextArea = document.getElementById("editEmailBody");
+  if (emailBodyTextArea) {
+    emailBodyTextArea.addEventListener(
+      "input",
+      debounce(() => {
+        const val = emailBodyTextArea.value;
+        const proj = currentProject();
+        const node = proj.nodes.get(id);
+        if (node && node.body !== val) {
+          pushUndo();
+          node.body = val;
+          markUnsaved();
+        }
+      }, 300),
+    );
+  }
   // Variable name (input/number)
   const varNameInp = document.getElementById("editVariableName");
   if (varNameInp) {
@@ -581,7 +684,6 @@ function updateEditorPanel() {
   if (decOp)
     decOp.addEventListener("change", () => {
       updateNodeProperty(id, "operator", decOp.value);
-      // Hide/show the value field based on boolean operators
       const valGroup = document.getElementById("editDecisionValueGroup");
       if (valGroup) {
         if (decOp.value === "is true" || decOp.value === "is false") {
@@ -767,4 +869,5 @@ function updateEditorPanel() {
       }
     });
   });
+  restorePanelFocus(focusInfo);
 }

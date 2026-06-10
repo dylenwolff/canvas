@@ -2,6 +2,7 @@
 
 function exportToXML() {
   const proj = currentProject();
+  // No validation for broken links – only require a start node
   if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
     showToast("Set a start node before saving", "error");
     return;
@@ -50,6 +51,9 @@ function exportToXML() {
       out += `        <varType>${escapeXml(node.varType || "string")}</varType>\n`;
       out += `        <showInRuntime>${node.showInRuntime !== false ? "true" : "false"}</showInRuntime>\n`;
       if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "email") {
+      out += `        <email to="${escapeXml(node.to || "")}" cc="${escapeXml(node.cc || "")}" bcc="${escapeXml(node.bcc || "")}" subject="${escapeXml(node.subject || "")}" body="${escapeXml(node.body || "")}" buttonLabel="${escapeXml(node.buttonLabel || "Send Email")}"/>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type === "input" || node.type === "number") {
       if (node.variable)
         out += `        <variable>${escapeXml(node.variable)}</variable>\n`;
@@ -68,9 +72,11 @@ function exportToXML() {
     } else if (node.type === "decision") {
       if (node.trueNext) children += serializeNode(node.trueNext);
       if (node.falseNext) children += serializeNode(node.falseNext);
-    } else if (node.type === "link") {
-      if (node.next) children += serializeNode(node.next);
-    } else if (node.type === "setvar") {
+    } else if (
+      node.type === "link" ||
+      node.type === "setvar" ||
+      node.type === "email"
+    ) {
       if (node.next) children += serializeNode(node.next);
     } else if (node.type !== "end" && node.next) {
       children += serializeNode(node.next);
@@ -141,6 +147,9 @@ function exportToXMLString() {
       out += `        <varType>${escapeXml(node.varType || "string")}</varType>\n`;
       out += `        <showInRuntime>${node.showInRuntime !== false ? "true" : "false"}</showInRuntime>\n`;
       if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "email") {
+      out += `        <email to="${escapeXml(node.to || "")}" cc="${escapeXml(node.cc || "")}" bcc="${escapeXml(node.bcc || "")}" subject="${escapeXml(node.subject || "")}" body="${escapeXml(node.body || "")}" buttonLabel="${escapeXml(node.buttonLabel || "Send Email")}"/>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type === "input" || node.type === "number") {
       if (node.variable)
         out += `        <variable>${escapeXml(node.variable)}</variable>\n`;
@@ -159,9 +168,11 @@ function exportToXMLString() {
     } else if (node.type === "decision") {
       if (node.trueNext) children += serializeNode(node.trueNext);
       if (node.falseNext) children += serializeNode(node.falseNext);
-    } else if (node.type === "link") {
-      if (node.next) children += serializeNode(node.next);
-    } else if (node.type === "setvar") {
+    } else if (
+      node.type === "link" ||
+      node.type === "setvar" ||
+      node.type === "email"
+    ) {
       if (node.next) children += serializeNode(node.next);
     } else if (node.type !== "end" && node.next) {
       children += serializeNode(node.next);
@@ -239,6 +250,17 @@ function importFromXML(xmlStr) {
       node.showInRuntime =
         q.querySelector("showInRuntime")?.textContent.trim() !== "false";
       node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type === "email") {
+      const e = q.querySelector("email");
+      if (e) {
+        node.to = e.getAttribute("to") || "";
+        node.cc = e.getAttribute("cc") || "";
+        node.bcc = e.getAttribute("bcc") || "";
+        node.subject = e.getAttribute("subject") || "";
+        node.body = e.getAttribute("body") || "";
+        node.buttonLabel = e.getAttribute("buttonLabel") || "Send Email";
+      }
+      node.next = q.querySelector("next")?.textContent.trim() || "";
     } else if (type === "input" || type === "number") {
       node.variable = q.querySelector("variable")?.textContent.trim() || "";
       node.next = q.querySelector("next")?.textContent.trim() || "";
@@ -256,4 +278,57 @@ function importFromXML(xmlStr) {
   renderAll();
   updateEditorPanel();
   showToast("Imported", "success");
+}
+
+function validateFlow(proj) {
+  const errors = [];
+  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
+    errors.push("No start node set.");
+  }
+  proj.nodes.forEach((node) => {
+    const checkNext = (targetId, label) => {
+      if (targetId && !proj.nodes.has(targetId)) {
+        errors.push(
+          `Node "${node.id}" (${node.type}): ${label} "${targetId}" not found.`,
+        );
+      }
+    };
+    if (node.type === "choice" && node.options) {
+      node.options.forEach((opt, i) => checkNext(opt.next, `Option ${i + 1}`));
+    } else if (node.type === "decision") {
+      checkNext(node.trueNext, "True next");
+      checkNext(node.falseNext, "False next");
+    } else if (
+      node.type === "link" ||
+      node.type === "setvar" ||
+      node.type === "input" ||
+      node.type === "number" ||
+      node.type === "message" ||
+      node.type === "copybox" ||
+      node.type === "email"
+    ) {
+      checkNext(node.next, "Next");
+    }
+  });
+  // Optional: unreachable nodes
+  if (proj.startNodeId && proj.nodes.has(proj.startNodeId)) {
+    const visited = new Set();
+    function visit(id) {
+      if (!id || visited.has(id)) return;
+      const node = proj.nodes.get(id);
+      if (!node) return;
+      visited.add(id);
+      if (node.options) node.options.forEach((o) => visit(o.next));
+      if (node.trueNext) visit(node.trueNext);
+      if (node.falseNext) visit(node.falseNext);
+      if (node.next) visit(node.next);
+    }
+    visit(proj.startNodeId);
+    proj.nodes.forEach((node, id) => {
+      if (!visited.has(id) && node.type !== "end") {
+        errors.push(`Unreachable node: "${id}" (${node.type}).`);
+      }
+    });
+  }
+  return errors;
 }

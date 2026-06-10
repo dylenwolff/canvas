@@ -29,15 +29,16 @@ function getNodeInputPosition(node) {
 // Map node types to their accent colours
 function getSourceColor(node) {
   const colors = {
-    choice: "#8b5cf6", // purple
-    decision: "#f97316", // orange – overridden per branch
-    message: "#3b82f6", // blue
-    copybox: "#0ea5e9", // sky
-    link: "#14b8a6", // teal
-    setvar: "#a855f7", // violet
-    input: "#f59e0b", // amber
-    number: "#ec4899", // pink
-    end: "#6b7280", // gray
+    choice: "#8b5cf6",
+    decision: "#f97316",
+    message: "#3b82f6",
+    copybox: "#0ea5e9",
+    link: "#14b8a6",
+    setvar: "#c026d3", // was #a855f7
+    input: "#f59e0b",
+    number: "#ec4899",
+    email: "#6366f1", // new
+    end: "#6b7280",
   };
   return colors[node.type] || "#db0011"; // fallback red
 }
