@@ -249,6 +249,14 @@
             </div>
           </div>
         </div>
+        <div class="menu-item" data-menu="tools">
+          <span>Tools</span>
+          <div class="menu-dropdown" id="dropdown-tools">
+            <div class="menu-action" data-action="mailto-link">
+              Create mailto: Link
+            </div>
+          </div>
+        </div>
         <div class="menu-item" data-menu="help">
           <span>Help</span>
           <div class="menu-dropdown" id="dropdown-help">
@@ -617,7 +625,70 @@
         </div>
       </div>
     </div>
-
+    <!-- Mailto link builder modal -->
+    <div class="modal-overlay" id="mailtoModal" style="display: none">
+      <div class="modal-content mailto-modal">
+        <div class="modal-header">
+          <h2>Create mailto: Link</h2>
+          <button class="btn btn-ghost btn-icon" id="btnCloseMailto">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">To (email)</label>
+            <input
+              class="form-input"
+              id="mailtoTo"
+              placeholder="user@example.com"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">CC</label>
+            <input
+              class="form-input"
+              id="mailtoCC"
+              placeholder="cc@example.com"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">BCC</label>
+            <input
+              class="form-input"
+              id="mailtoBCC"
+              placeholder="bcc@example.com"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input class="form-input" id="mailtoSubject" placeholder="Hello" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Body</label>
+            <textarea
+              class="form-textarea"
+              id="mailtoBody"
+              rows="3"
+              placeholder="Write your message..."
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Generated URL</label>
+            <input
+              class="form-input"
+              id="mailtoUrl"
+              readonly
+              style="
+                font-family: var(--font-mono);
+                font-size: 0.75rem;
+                opacity: 0.8;
+              "
+            />
+          </div>
+          <button class="btn btn-primary btn-full" id="btnCopyMailto">
+            Copy URL
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="runtime-panel" id="runtimePanel" style="display: none">
       <div class="runtime-panel-header navbar">
         <span class="navbar-logo"

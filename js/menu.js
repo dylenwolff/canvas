@@ -100,6 +100,9 @@ function handleMenuAction(action) {
     case "export-html":
       exportToHTML();
       break;
+    case "mailto-link":
+      openMailtoBuilder();
+      break;
   }
 }
 
@@ -269,4 +272,41 @@ function handleFileUpload(file) {
   };
 
   reader.readAsText(file);
+}
+function openMailtoBuilder() {
+  const modal = document.getElementById("mailtoModal");
+  if (!modal) return;
+  document.getElementById("mailtoTo").value = "";
+  document.getElementById("mailtoSubject").value = "";
+  document.getElementById("mailtoBody").value = "";
+  document.getElementById("mailtoUrl").value = "";
+  modal.style.display = "flex";
+}
+
+function closeMailtoBuilder() {
+  document.getElementById("mailtoModal").style.display = "none";
+}
+function generateMailtoUrl() {
+  const to = document.getElementById("mailtoTo").value.trim();
+  const subject = document.getElementById("mailtoSubject").value.trim();
+  const body = document.getElementById("mailtoBody").value.trim();
+  const cc = document.getElementById("mailtoCC").value.trim();
+  const bcc = document.getElementById("mailtoBCC").value.trim();
+
+  // Helper: encode but keep { and } intact
+  function encode(s) {
+    return encodeURIComponent(s).replace(/%7B/g, "{").replace(/%7D/g, "}");
+  }
+
+  let mailto = "mailto:";
+  if (to) mailto += encode(to);
+
+  const params = [];
+  if (subject) params.push("subject=" + encode(subject));
+  if (body) params.push("body=" + encode(body));
+  if (cc) params.push("cc=" + encode(cc));
+  if (bcc) params.push("bcc=" + encode(bcc));
+
+  if (params.length) mailto += "?" + params.join("&");
+  document.getElementById("mailtoUrl").value = mailto;
 }

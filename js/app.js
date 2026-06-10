@@ -335,6 +335,48 @@ function init() {
     applyCanvasTransform();
     showToast("Zoom 100%", "info");
   });
+  // Mailto builder
+  document
+    .getElementById("btnCloseMailto")
+    .addEventListener("click", closeMailtoBuilder);
+  document.getElementById("mailtoModal").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("mailtoModal"))
+      closeMailtoBuilder();
+  });
+  document
+    .getElementById("mailtoTo")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoCC")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoBCC")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoSubject")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoBody")
+    .addEventListener("input", generateMailtoUrl);
+  document.getElementById("btnCopyMailto").addEventListener("click", () => {
+    const url = document.getElementById("mailtoUrl").value;
+    if (url) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          showToast("Mailto URL copied!", "success");
+        })
+        .catch(() => {
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          showToast("Mailto URL copied!", "success");
+        });
+    }
+  });
 }
 
 function renderTabs() {
