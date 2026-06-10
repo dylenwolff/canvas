@@ -377,6 +377,10 @@ function init() {
         });
     }
   });
+  initTheme();
+  document
+    .getElementById("btnThemeToggle")
+    .addEventListener("click", toggleTheme);
 }
 
 function renderTabs() {
@@ -399,5 +403,49 @@ function renderTabs() {
     container.appendChild(tab);
   });
 }
+// ---- Theme management ----
+function getCurrentTheme() {
+  return document.documentElement.classList.contains("light-mode")
+    ? "light"
+    : "dark";
+}
 
+function setTheme(theme) {
+  if (theme === "light") {
+    document.documentElement.classList.add("light-mode");
+  } else {
+    document.documentElement.classList.remove("light-mode");
+  }
+  updateThemeIcon();
+  localStorage.setItem("canvas-theme", theme);
+}
+
+function toggleTheme() {
+  const current = getCurrentTheme();
+  setTheme(current === "dark" ? "light" : "dark");
+}
+
+function updateThemeIcon() {
+  const btn = document.getElementById("btnThemeToggle");
+  if (!btn) return;
+  const isLight = getCurrentTheme() === "light";
+  btn.innerHTML = isLight
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+       </svg>` // moon icon for switching to dark
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <circle cx="12" cy="12" r="5"/>
+         <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+       </svg>`; // sun icon for switching to light
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("canvas-theme");
+  if (saved) {
+    setTheme(saved);
+  } else {
+    // default to dark (already applied by default CSS)
+    updateThemeIcon();
+  }
+}
 document.addEventListener("DOMContentLoaded", init);

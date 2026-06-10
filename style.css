@@ -41,6 +41,210 @@
   --font-mono:
     "SF Mono", "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
 }
+/* ---- Light Mode ---- */
+html.light-mode {
+  --bg-deep: #f5f6f8;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f0f2f5;
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-glass-hover: rgba(255, 255, 255, 0.95);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-medium: rgba(0, 0, 0, 0.1);
+  --border-glow: rgba(219, 0, 17, 0.3);
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a6a;
+  --text-muted: #888;
+  --accent: #db0011;
+  --accent-glow: rgba(219, 0, 17, 0.25);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --danger-glow: rgba(239, 68, 68, 0.25);
+  /* Keep node colours unchanged */
+}
+
+/* Adjust the grid dots to be darker in light mode */
+html.light-mode .bg-grid {
+  background-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.05) 1px,
+    transparent 1px
+  );
+}
+/* ----- Light‑mode overrides for node type badges & palette icons ----- */
+html.light-mode .palette-node-icon {
+  color: #333 !important; /* fallback */
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Per‑type palette icon colours (using node‑type colour variables) */
+html.light-mode .palette-node[data-type="choice"] .palette-node-icon {
+  color: var(--node-choice) !important;
+  background: rgba(139, 92, 246, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="decision"] .palette-node-icon {
+  color: var(--node-decision) !important;
+  background: rgba(249, 115, 22, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="message"] .palette-node-icon {
+  color: var(--node-action) !important;
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="copybox"] .palette-node-icon {
+  color: var(--node-copybox) !important;
+  background: rgba(14, 165, 233, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="link"] .palette-node-icon {
+  color: var(--node-link) !important;
+  background: rgba(20, 184, 166, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="setvar"] .palette-node-icon {
+  color: #a855f7 !important; /* no var for setvar yet */
+  background: rgba(168, 85, 247, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="input"] .palette-node-icon {
+  color: var(--node-input) !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="number"] .palette-node-icon {
+  color: var(--node-number) !important;
+  background: rgba(236, 72, 153, 0.15) !important;
+}
+html.light-mode .palette-node[data-type="end"] .palette-node-icon {
+  color: var(--node-end) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+/* Node type badges – darker text, slightly more opaque background */
+html.light-mode .node-choice .node-type-badge {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--node-choice);
+}
+html.light-mode .node-decision .node-type-badge {
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--node-decision);
+}
+html.light-mode .node-message .node-type-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--node-action);
+}
+html.light-mode .node-copybox .node-type-badge {
+  background: rgba(14, 165, 233, 0.15);
+  color: var(--node-copybox);
+}
+html.light-mode .node-link .node-type-badge {
+  background: rgba(20, 184, 166, 0.15);
+  color: var(--node-link);
+}
+html.light-mode .node-setvar .node-type-badge {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+}
+html.light-mode .node-input .node-type-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--node-input);
+}
+html.light-mode .node-number .node-type-badge {
+  background: rgba(236, 72, 153, 0.15);
+  color: var(--node-number);
+}
+html.light-mode .node-end .node-type-badge {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--node-end);
+}
+
+/* Message variant badges (they appear on the canvas node headers) */
+html.light-mode .variant-pill {
+  color: inherit;
+}
+html.light-mode .variant-info .node-type-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--node-action);
+}
+html.light-mode .variant-success .node-type-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+html.light-mode .variant-warning .node-type-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+}
+html.light-mode .variant-error .node-type-badge {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+html.light-mode .variant-action .node-type-badge {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+/* Reduce orb intensity in light mode */
+html.light-mode .orb {
+  opacity: 0.1;
+}
+
+/* Additional light‑mode fixes for readability and modal appearance */
+html.light-mode .mode-btn-step {
+  color: #b91c1c !important; /* dark red */
+}
+html.light-mode .mode-btn-linear {
+  color: #047857 !important; /* dark green */
+}
+html.light-mode .mode-btn-chat {
+  color: #1e40af !important; /* dark blue */
+}
+/* Ensure the modal body (inside the Step runtime) is light */
+
+/* Ensure the modal body (inside the Step runtime) is light */
+html.light-mode .runtime-modal .modal-body {
+  background: var(--bg-surface);
+  border-bottom-left-radius: var(--radius-xl);
+  border-bottom-right-radius: var(--radius-xl);
+}
+
+/* Override the variant‑info modal background to a very soft tint */
+html.light-mode .runtime-modal.variant-info {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+/* Make link buttons look better on light backgrounds */
+html.light-mode .runtime-link-btn,
+html.light-mode .chat-link-btn {
+  border-color: #0f766e;
+  color: #0f766e;
+  background: rgba(20, 184, 166, 0.05);
+}
+
+html.light-mode .runtime-link-btn:hover,
+html.light-mode .chat-link-btn:hover {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: #0d9488;
+  color: #0d9488;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.25);
+}
+html.light-mode .chat-bubble.info {
+  color: #1e3a5f;
+}
+html.light-mode .chat-bubble.success {
+  color: #064e3b;
+}
+html.light-mode .chat-bubble.warning {
+  color: #78350f;
+}
+html.light-mode .chat-bubble.error {
+  color: #7f1d1d;
+}
+html.light-mode .chat-bubble.action {
+  color: #4c1d95;
+}
+
+/* Round the top corners of the navbar inside runtime modals */
+html.light-mode .modal-navbar,
+html.light-mode .runtime-modal .navbar,
+html.light-mode .runtime-panel-header.navbar {
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  overflow: hidden;
+}
 
 *,
 *::before,

@@ -1,3 +1,1768 @@
+// File: j:\Canvas\index.html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="icon/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="icon/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="icon/favicon-16x16.png"
+    />
+    <link rel="manifest" href="icon/site.webmanifest" />
+  </head>
+  <body>
+    <div class="bg-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="orb orb-4"></div>
+    </div>
+    <div class="bg-grid"></div>
+
+    <div id="app" class="app-container">
+      <header class="app-header">
+        <div class="header-left">
+          <div class="logo">
+            <span class="logo-wordmark"
+              >Canvas<font style="color: red; font-size: 2rem; line-height: 0"
+                >.</font
+              ></span
+            >
+          </div>
+          <span class="badge">v1.0</span>
+          <span
+            class="project-name"
+            id="projectName"
+            contenteditable="true"
+            spellcheck="false"
+            >Untitled</span
+          >
+        </div>
+        <div class="header-center">
+          <button class="btn btn-ghost" id="btnUndo" title="Undo (Ctrl+Z)">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg
+            ><span class="btn-label">Undo</span>
+          </button>
+          <button class="btn btn-ghost" id="btnRedo" title="Redo (Ctrl+Y)">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg
+            ><span class="btn-label">Redo</span>
+          </button>
+          <div class="header-divider"></div>
+          <button
+            class="btn btn-primary"
+            id="btnRunFlow"
+            title="Step‑by‑step modal"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" /></svg
+            ><span class="btn-label">Step</span>
+          </button>
+          <button class="btn btn-primary" id="btnRunLinear" title="Linear list">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <circle cx="4" cy="6" r="1.5" />
+              <circle cx="4" cy="12" r="1.5" />
+              <circle cx="4" cy="18" r="1.5" /></svg
+            ><span class="btn-label">Linear</span>
+          </button>
+          <button
+            class="btn btn-primary"
+            id="btnRunChat"
+            title="Chat conversation"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              /></svg
+            ><span class="btn-label">Chat</span>
+          </button>
+          <button class="btn btn-outline" id="btnSave">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+              />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" /></svg
+            ><span class="btn-label">Save</span>
+          </button>
+          <button class="btn btn-outline" id="btnOpen">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+              /></svg
+            ><span class="btn-label">Open</span>
+          </button>
+        </div>
+        <div class="header-right">
+          <button
+            class="btn btn-ghost btn-icon"
+            id="btnZoom100"
+            title="Zoom 100%"
+          >
+            1:1
+          </button>
+          <button class="btn btn-ghost btn-icon" id="btnZoomIn" title="Zoom In">
+            +
+          </button>
+          <span class="zoom-level" id="zoomLevel">100%</span>
+          <button
+            class="btn btn-ghost btn-icon"
+            id="btnZoomOut"
+            title="Zoom Out"
+          >
+            −
+          </button>
+          <button
+            class="btn btn-ghost btn-icon"
+            id="btnFitView"
+            title="Fit View"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <rect x="7" y="7" width="10" height="10" rx="1" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <nav class="menu-bar" id="menuBar">
+        <div class="menu-item" data-menu="file">
+          <span>File</span>
+          <div class="menu-dropdown" id="dropdown-file">
+            <div class="menu-action" data-action="new-project">New Project</div>
+            <div class="menu-action" data-action="open-file">Open</div>
+            <div class="menu-action" data-action="save-project">
+              Save (Ctrl+S)
+            </div>
+            <div class="menu-action" data-action="export-html">
+              Export as HTML
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-label">Recent Flows</div>
+            <div id="recentFilesList" class="recent-list"></div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="edit">
+          <span>Edit</span>
+          <div class="menu-dropdown" id="dropdown-edit">
+            <div class="menu-action" data-action="undo">Undo (Ctrl+Z)</div>
+            <div class="menu-action" data-action="redo">Redo (Ctrl+Y)</div>
+            <div class="menu-separator"></div>
+            <div class="menu-action" data-action="delete-node">
+              Delete Node (Del)
+            </div>
+            <div class="menu-action" data-action="duplicate-node">
+              Duplicate Node (Ctrl+D)
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-action" data-action="clear-canvas">
+              Clear Canvas
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="view">
+          <span>View</span>
+          <div class="menu-dropdown" id="dropdown-view">
+            <div class="menu-action" data-action="zoom-in">Zoom In</div>
+            <div class="menu-action" data-action="zoom-out">Zoom Out</div>
+            <div class="menu-action" data-action="fit-view">
+              Fit View (Ctrl+0)
+            </div>
+            <div class="menu-separator"></div>
+            <div class="menu-action" data-action="toggle-grid">Toggle Grid</div>
+            <div class="menu-action" data-action="toggle-minimap">
+              Toggle Minimap
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="tools">
+          <span>Tools</span>
+          <div class="menu-dropdown" id="dropdown-tools">
+            <div class="menu-action" data-action="mailto-link">
+              Create mailto: Link
+            </div>
+          </div>
+        </div>
+        <div class="menu-item" data-menu="help">
+          <span>Help</span>
+          <div class="menu-dropdown" id="dropdown-help">
+            <div class="menu-action" data-action="about">About Canvas.</div>
+            <div class="menu-action" data-action="shortcuts">
+              Keyboard Shortcuts
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div class="tab-bar" id="tabBar">
+        <button
+          class="btn btn-ghost btn-icon tab-add-btn"
+          id="btnAddTab"
+          title="New Tab"
+        >
+          +
+        </button>
+        <div class="tabs-container" id="tabsContainer"></div>
+      </div>
+
+      <div class="main-content">
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-header">
+            <h3>Node Types</h3>
+            <span class="sidebar-subtitle">Drag to canvas</span>
+          </div>
+          <div class="node-palette" id="nodePalette">
+            <div class="palette-node" data-type="choice" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(139, 92, 246, 0.3); color: #a78bfa"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Choice</span>
+                <span class="palette-node-desc">Branching question</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="decision" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(249, 115, 22, 0.3); color: #fdba74"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M21 2H3v6l7 4-7 4v6h18v-6l-7-4 7-4V2z"
+                    stroke-linejoin="round"
+                  />
+                  <line
+                    x1="12"
+                    y1="12"
+                    x2="12"
+                    y2="12"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Decision</span>
+                <span class="palette-node-desc">True/False branch</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="message" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(59, 130, 246, 0.3); color: #60a5fa"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <polyline points="7 10 12 15 17 10" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Message</span>
+                <span class="palette-node-desc">Display text</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="copybox" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(14, 165, 233, 0.3); color: #38bdf8"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="8" y="2" width="12" height="16" rx="2" />
+                  <path
+                    d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h2"
+                  />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Copy Box</span>
+                <span class="palette-node-desc">Text + copy button</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="link" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(20, 184, 166, 0.3); color: #5eead4"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                  />
+                  <path
+                    d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                  />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Link</span>
+                <span class="palette-node-desc">Multiple URL buttons</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="setvar" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(168, 85, 247, 0.3); color: #c084fc"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M4 7h16M4 12h16M4 17h10" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Set Variable</span>
+                <span class="palette-node-desc">Assign a variable</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="input" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(245, 158, 11, 0.3); color: #fbbf24"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <line x1="8" y1="10" x2="16" y2="10" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Input</span>
+                <span class="palette-node-desc">Text entry</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="number" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(236, 72, 153, 0.3); color: #f472b6"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <text
+                    x="12"
+                    y="16"
+                    text-anchor="middle"
+                    font-size="12"
+                    font-weight="700"
+                    fill="currentColor"
+                    stroke="none"
+                  >
+                    #
+                  </text>
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">Number</span>
+                <span class="palette-node-desc">Numeric entry</span>
+              </div>
+            </div>
+            <div class="palette-node" data-type="end" draggable="true">
+              <div
+                class="palette-node-icon"
+                style="background: rgba(239, 68, 68, 0.3); color: #f87171"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <rect x="8" y="8" width="8" height="8" rx="2" />
+                </svg>
+              </div>
+              <div class="palette-node-info">
+                <span class="palette-node-name">End</span>
+                <span class="palette-node-desc">Terminal point</span>
+              </div>
+            </div>
+          </div>
+          <div class="sidebar-footer">
+            <button class="btn btn-ghost btn-sm" id="btnClearCanvas">
+              Clear Canvas
+            </button>
+          </div>
+        </aside>
+
+        <div class="canvas-container" id="canvasContainer">
+          <div class="canvas-workspace" id="canvasWorkspace">
+            <svg class="connections-svg" id="connectionsSvg"></svg>
+            <div class="nodes-layer" id="nodesLayer"></div>
+            <svg class="drag-line-svg" id="dragLineSvg">
+              <path
+                id="dragLinePath"
+                d=""
+                stroke="rgba(139,92,246,0.8)"
+                stroke-width="2.5"
+                fill="none"
+                stroke-dasharray="8,4"
+                style="display: none"
+              />
+            </svg>
+          </div>
+          <div class="minimap" id="minimap">
+            <canvas id="minimapCanvas" width="160" height="120"></canvas>
+            <div class="minimap-viewport" id="minimapViewport"></div>
+          </div>
+        </div>
+
+        <div class="editor-panel" id="editorPanel">
+          <div class="panel-header">
+            <h3>Node Editor</h3>
+            <button
+              class="btn btn-ghost btn-icon btn-close-panel"
+              id="btnClosePanel"
+            >
+              ×
+            </button>
+          </div>
+          <div class="panel-body" id="panelBody">
+            <div class="panel-empty" id="panelEmpty">
+              <p>Select a node to edit</p>
+            </div>
+            <div class="panel-form" id="panelForm" style="display: none"></div>
+          </div>
+          <div class="panel-footer" id="panelFooter" style="display: none">
+            <button class="btn btn-danger btn-sm" id="btnDeleteNode">
+              Delete Node
+            </button>
+            <button class="btn btn-ghost btn-sm" id="btnDuplicateNode">
+              Duplicate
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="runtimeModal" style="display: none">
+      <div class="modal-content runtime-modal">
+        <div class="navbar modal-navbar">
+          <span class="navbar-logo"
+            >Canvas<font
+              style="color: #db0011; font-size: 1.4rem; line-height: 0"
+              >.</font
+            ></span
+          >
+          <span class="navbar-title" id="runtimeModalTitle">Runtime</span>
+          <button class="btn btn-ghost btn-icon" id="btnCloseRuntime">×</button>
+        </div>
+        <div class="modal-body" id="runtimeBody"></div>
+        <div class="runtime-progress" id="runtimeProgress">
+          <div class="progress-dots" id="progressDots"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="importModal" style="display: none">
+      <div class="modal-content import-modal">
+        <div class="modal-header">
+          <h2>Import Canvas</h2>
+          <button class="btn btn-ghost btn-icon" id="btnCloseImport">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="import-dropzone" id="importDropzone">
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <p>Drop .canvas or exported .html file here or click to open</p>
+            <input type="file" id="importFileInput" style="display: none" />
+          </div>
+          <div class="import-divider"><span>or paste XML</span></div>
+          <textarea
+            id="importTextarea"
+            class="import-textarea"
+            placeholder="Paste your .canvas content here..."
+          ></textarea>
+          <button class="btn btn-primary btn-full" id="btnImportConfirm">
+            Import
+          </button>
+          <div
+            class="import-error"
+            id="importError"
+            style="display: none"
+          ></div>
+        </div>
+      </div>
+    </div>
+    <!-- Mailto link builder modal -->
+    <div class="modal-overlay" id="mailtoModal" style="display: none">
+      <div class="modal-content mailto-modal">
+        <div class="modal-header">
+          <h2>Create mailto: Link</h2>
+          <button class="btn btn-ghost btn-icon" id="btnCloseMailto">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">To (email)</label>
+            <input
+              class="form-input"
+              id="mailtoTo"
+              placeholder="user@example.com"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">CC</label>
+            <input
+              class="form-input"
+              id="mailtoCC"
+              placeholder="cc@example.com"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">BCC</label>
+            <input
+              class="form-input"
+              id="mailtoBCC"
+              placeholder="bcc@example.com"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input class="form-input" id="mailtoSubject" placeholder="Hello" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Body</label>
+            <textarea
+              class="form-textarea"
+              id="mailtoBody"
+              rows="3"
+              placeholder="Write your message..."
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Generated URL</label>
+            <input
+              class="form-input"
+              id="mailtoUrl"
+              readonly
+              style="
+                font-family: var(--font-mono);
+                font-size: 0.75rem;
+                opacity: 0.8;
+              "
+            />
+          </div>
+          <button class="btn btn-primary btn-full" id="btnCopyMailto">
+            Copy URL
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="runtime-panel" id="runtimePanel" style="display: none">
+      <div class="runtime-panel-header navbar">
+        <span class="navbar-logo"
+          >Canvas<font style="color: #db0011; font-size: 1.4rem; line-height: 0"
+            >.</font
+          ></span
+        >
+        <span class="navbar-title" id="runtimePanelTitle">Runtime</span>
+        <button class="btn btn-ghost btn-icon" id="btnClosePanelRuntime">
+          ×
+        </button>
+      </div>
+      <div class="runtime-panel-body" id="runtimePanelBody">
+        <div id="runtimeContent"></div>
+      </div>
+      <div class="runtime-panel-footer" id="runtimePanelFooter"></div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <!-- Core state and utilities -->
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/dom.js"></script>
+
+    <!-- Project and node operations -->
+    <script src="js/project.js"></script>
+    <script src="js/nodes.js"></script>
+
+    <!-- IO (import/export) – if you put these functions elsewhere, adjust accordingly -->
+    <script src="js/io.js"></script>
+    <!-- contains exportToXML, exportToXMLString, importFromXML -->
+
+    <!-- Rendering and editor -->
+    <script src="js/editor.js"></script>
+
+    <!-- SVG connections -->
+    <script src="js/connections.js"></script>
+
+    <!-- Canvas, zoom, pan, minimap, mouse handlers -->
+    <script src="js/canvas.js"></script>
+
+    <!-- Runtime modes (Step, Linear, Chat) -->
+    <script src="js/runtime.js"></script>
+
+    <!-- Local storage and recent files -->
+    <script src="js/storage.js"></script>
+
+    <!-- Menu bar, keyboard shortcuts, modals -->
+    <script src="js/menu.js"></script>
+
+    <!-- Application initialisation (init, renderTabs, event wiring) -->
+    <script src="js/app.js"></script>
+
+    <script src="js/exportHTML.js"></script>
+  </body>
+</html>
+
+
+// File: j:\Canvas\js\app.js
+// ---- INITIALISATION ----
+
+function init() {
+  const hasSaved = loadProjects();
+  if (!hasSaved) {
+    state.projects = [];
+    const proj = createEmptyProject("Quick Test");
+    state.projects.push(proj);
+    state.activeProjectIndex = 0;
+
+    const bx = 50000,
+      by = 50000,
+      dy = 160;
+
+    // 1. Welcome message (info variant)
+    const n1 = createNode("message", bx, by, "welcome");
+    n1.text = "👋 Welcome! This flow quickly tests every node type.";
+    n1.variant = "info";
+    n1.next = "ask_name";
+    proj.nodes.set("welcome", n1);
+
+    // 2. Input – user name
+    const n2 = createNode("input", bx, by + dy, "ask_name");
+    n2.text = "What's your name?";
+    n2.variable = "name";
+    n2.next = "ask_age";
+    proj.nodes.set("ask_name", n2);
+
+    // 3. Number – user age
+    const n3 = createNode("number", bx, by + dy * 2, "ask_age");
+    n3.text = "Enter your age:";
+    n3.variable = "age";
+    n3.next = "dec_numeric";
+    proj.nodes.set("ask_age", n3);
+
+    // 4. Decision – numeric (age >= 18)
+    const n4 = createNode("decision", bx, by + dy * 3, "dec_numeric");
+    n4.text = "Are you 18 or older?";
+    n4.variable = "age";
+    n4.operator = ">=";
+    n4.value = "18";
+    n4.trueNext = "msg_adult";
+    n4.falseNext = "msg_minor";
+    proj.nodes.set("dec_numeric", n4);
+
+    // 5a. Message – success (adult)
+    const n5a = createNode("message", bx + 300, by + dy * 3, "msg_adult");
+    n5a.text = "You're an adult, {name}! ✅";
+    n5a.variant = "success";
+    n5a.next = "set_silent";
+    proj.nodes.set("msg_adult", n5a);
+
+    // 5b. Message – warning (minor)
+    const n5b = createNode("message", bx - 300, by + dy * 3, "msg_minor");
+    n5b.text = "You're under 18, {name}. ⚠️";
+    n5b.variant = "warning";
+    n5b.next = "set_silent";
+    proj.nodes.set("msg_minor", n5b);
+
+    // 6. SetVar – silent (boolean)
+    const n6 = createNode("setvar", bx, by + dy * 4, "set_silent");
+    n6.text = "Silently set isTested = true";
+    n6.variable = "isTested";
+    n6.value = "true";
+    n6.varType = "boolean";
+    n6.showInRuntime = false;
+    n6.next = "set_visible";
+    proj.nodes.set("set_silent", n6);
+
+    // 7. SetVar – visible (number)
+    const n7 = createNode("setvar", bx, by + dy * 5, "set_visible");
+    n7.text = "Visibly set score = 100";
+    n7.variable = "score";
+    n7.value = "100";
+    n7.varType = "number";
+    n7.showInRuntime = true;
+    n7.next = "dec_bool";
+    proj.nodes.set("set_visible", n7);
+
+    // 8. Decision – boolean (isTested is true)
+    const n8 = createNode("decision", bx, by + dy * 6, "dec_bool");
+    n8.text = "Is isTested true?";
+    n8.variable = "isTested";
+    n8.operator = "is true";
+    n8.value = "";
+    n8.trueNext = "msg_bool_true";
+    n8.falseNext = "msg_bool_false";
+    proj.nodes.set("dec_bool", n8);
+
+    // 9a. Message – boolean true (success)
+    const n9a = createNode("message", bx + 300, by + dy * 6, "msg_bool_true");
+    n9a.text = "Boolean isTested is true! ✅";
+    n9a.variant = "success";
+    n9a.next = "copybox_cmd";
+    proj.nodes.set("msg_bool_true", n9a);
+
+    // 9b. Message – boolean false (error)
+    const n9b = createNode("message", bx - 300, by + dy * 6, "msg_bool_false");
+    n9b.text = "Boolean isTested is false? That's odd. ❌";
+    n9b.variant = "error";
+    n9b.next = "copybox_cmd";
+    proj.nodes.set("msg_bool_false", n9b);
+
+    // 10. Copy Box
+    const n10 = createNode("copybox", bx, by + dy * 7, "copybox_cmd");
+    n10.text = "Copy this command:";
+    n10.copyContent = "echo 'Canvas is awesome!'";
+    n10.next = "msg_action";
+    proj.nodes.set("copybox_cmd", n10);
+
+    // 11. Message – action variant
+    const n11 = createNode("message", bx, by + dy * 8, "msg_action");
+    n11.text = "Action required: Click Continue.";
+    n11.variant = "action";
+    n11.next = "link_node";
+    proj.nodes.set("msg_action", n11);
+
+    // 12. Link node
+    const n12 = createNode("link", bx, by + dy * 9, "link_node");
+    n12.text = "Useful links:";
+    n12.links = [
+      { label: "Canvas GitHub", url: "https://github.com" },
+      { label: "MDN Web Docs", url: "https://developer.mozilla.org" },
+    ];
+    n12.next = "final_end";
+    proj.nodes.set("link_node", n12);
+
+    // 13. End
+    const n13 = createNode("end", bx, by + dy * 10, "final_end");
+    n13.text = "Test complete! Thanks, {name}. Your score is {score}.";
+    proj.nodes.set("final_end", n13);
+
+    proj.startNodeId = "welcome";
+    saveProjects();
+  }
+  if (state.projects.length === 0) {
+    state.projects.push(createEmptyProject("Untitled"));
+    state.activeProjectIndex = 0;
+  }
+
+  renderAll();
+  updateEditorPanel();
+  updateZoomDisplay();
+  fitView();
+  renderTabs();
+  updateProjectNameDisplay();
+  initMenuBar();
+
+  DOM.canvasContainer.addEventListener("contextmenu", (e) =>
+    e.preventDefault(),
+  );
+  DOM.canvasContainer.addEventListener("mousedown", onCanvasMouseDown);
+  DOM.canvasContainer.addEventListener("wheel", onCanvasWheel, {
+    passive: false,
+  });
+  DOM.canvasContainer.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  });
+  DOM.canvasContainer.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData("text/plain");
+    if (type) {
+      const coords = getCanvasCoords(e);
+      addNode(type, Math.round(coords.x - 90), Math.round(coords.y - 25));
+    }
+  });
+  document.querySelectorAll(".palette-node").forEach((p) => {
+    p.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData(
+        "text/plain",
+        e.target.closest(".palette-node").dataset.type,
+      );
+    });
+  });
+
+  document.getElementById("btnAddTab").addEventListener("click", addNewTab);
+  document.getElementById("btnUndo").addEventListener("click", undo);
+  document.getElementById("btnRedo").addEventListener("click", redo);
+  document.getElementById("btnRunFlow").addEventListener("click", startRuntime);
+  document
+    .getElementById("btnRunLinear")
+    .addEventListener("click", startLinearRuntime);
+  document
+    .getElementById("btnRunChat")
+    .addEventListener("click", startChatRuntime);
+  document
+    .getElementById("btnSave")
+    .addEventListener("click", saveWithNameCheck);
+  document
+    .getElementById("btnOpen")
+    .addEventListener("click", () => DOM.importFileInput.click());
+  document.getElementById("btnZoomIn").addEventListener("click", () => {
+    const r = DOM.canvasContainer.getBoundingClientRect();
+    zoomAtPoint(1.2, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("btnZoomOut").addEventListener("click", () => {
+    const r = DOM.canvasContainer.getBoundingClientRect();
+    zoomAtPoint(1 / 1.2, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("btnFitView").addEventListener("click", fitView);
+  document.getElementById("btnClearCanvas").addEventListener("click", () => {
+    if (confirm("Clear canvas?")) {
+      const proj = currentProject();
+      pushUndo();
+      proj.nodes.clear();
+      proj.startNodeId = null;
+      proj.selectedNodeId = null;
+      renderAll();
+      updateEditorPanel();
+      fitView();
+    }
+  });
+  document.getElementById("btnClosePanel").addEventListener("click", () => {
+    currentProject().selectedNodeId = null;
+    renderNodes();
+    updateEditorPanel();
+  });
+  document.getElementById("btnDeleteNode").addEventListener("click", () => {
+    if (currentProject().selectedNodeId)
+      deleteNode(currentProject().selectedNodeId);
+  });
+  document.getElementById("btnDuplicateNode").addEventListener("click", () => {
+    if (currentProject().selectedNodeId)
+      duplicateNode(currentProject().selectedNodeId);
+  });
+  document
+    .getElementById("btnCloseRuntime")
+    .addEventListener("click", stopRuntime);
+  document
+    .getElementById("btnClosePanelRuntime")
+    .addEventListener("click", stopRuntime);
+  DOM.runtimeModal.addEventListener("click", (e) => {
+    if (e.target === DOM.runtimeModal) stopRuntime();
+  });
+  document
+    .getElementById("btnCloseImport")
+    .addEventListener("click", closeImportModal);
+  DOM.importModal.addEventListener("click", (e) => {
+    if (e.target === DOM.importModal) closeImportModal();
+  });
+  document
+    .getElementById("btnImportConfirm")
+    .addEventListener("click", handleImportConfirm);
+  DOM.importDropzone.addEventListener("click", () =>
+    DOM.importFileInput.click(),
+  );
+  DOM.importFileInput.setAttribute("accept", ".canvas,.html");
+  DOM.importFileInput.addEventListener("change", (e) => {
+    if (e.target.files[0]) handleFileUpload(e.target.files[0]);
+  });
+  DOM.importDropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    DOM.importDropzone.classList.add("dragover");
+  });
+  DOM.importDropzone.addEventListener("dragleave", () =>
+    DOM.importDropzone.classList.remove("dragover"),
+  );
+  DOM.importDropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    DOM.importDropzone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
+  });
+  DOM.minimapCanvas.addEventListener("click", (e) => {
+    const proj = currentProject();
+    if (!proj.nodes.size) return;
+
+    const rect = DOM.minimapCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    // Calculate the bounding box of all nodes (same as renderMinimap)
+    let mnX = Infinity,
+      mnY = Infinity,
+      mxX = -Infinity,
+      mxY = -Infinity;
+    proj.nodes.forEach((n) => {
+      const r = getNodeRect(n.id);
+      mnX = Math.min(mnX, n.x);
+      mnY = Math.min(mnY, n.y);
+      mxX = Math.max(mxX, n.x + r.width);
+      mxY = Math.max(mxY, n.y + r.height);
+    });
+    const pad = 60;
+    const ww = mxX - mnX + pad * 2;
+    const wh = mxY - mnY + pad * 2;
+    const w = DOM.minimapCanvas.width;
+    const h = DOM.minimapCanvas.height;
+    const s = Math.min(w / ww, h / wh);
+    const ox = (w - ww * s) / 2;
+    const oy = (h - wh * s) / 2;
+
+    // Convert minimap pixel to world coordinates
+    const worldX = (mx - ox) / s + mnX - pad;
+    const worldY = (my - oy) / s + mnY - pad;
+
+    // Center the view on that point
+    const containerRect = DOM.canvasContainer.getBoundingClientRect();
+    state.panX = containerRect.width / 2 - worldX * state.zoom;
+    state.panY = containerRect.height / 2 - worldY * state.zoom;
+    applyCanvasTransform();
+  });
+  document.addEventListener("keydown", onKeyDown);
+  const projectNameEl = document.getElementById("projectName");
+  if (projectNameEl) {
+    projectNameEl.addEventListener("blur", () => {
+      const proj = currentProject();
+      const newName = projectNameEl.textContent.trim() || "Untitled";
+      if (proj.name !== newName) {
+        proj.name = newName;
+        renderTabs();
+        markUnsaved();
+      }
+    });
+    projectNameEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        projectNameEl.blur();
+      }
+    });
+  }
+  window.addEventListener(
+    "resize",
+    debounce(() => renderAll(), 200),
+  );
+  document.getElementById("btnZoom100").addEventListener("click", () => {
+    const containerRect = DOM.canvasContainer.getBoundingClientRect();
+    const centerScreenX = containerRect.width / 2,
+      centerScreenY = containerRect.height / 2;
+    const worldX = (centerScreenX - state.panX) / state.zoom;
+    const worldY = (centerScreenY - state.panY) / state.zoom;
+    state.zoom = 1;
+    state.panX = centerScreenX - worldX * state.zoom;
+    state.panY = centerScreenY - worldY * state.zoom;
+    applyCanvasTransform();
+    showToast("Zoom 100%", "info");
+  });
+  // Mailto builder
+  document
+    .getElementById("btnCloseMailto")
+    .addEventListener("click", closeMailtoBuilder);
+  document.getElementById("mailtoModal").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("mailtoModal"))
+      closeMailtoBuilder();
+  });
+  document
+    .getElementById("mailtoTo")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoCC")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoBCC")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoSubject")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoBody")
+    .addEventListener("input", generateMailtoUrl);
+  document.getElementById("btnCopyMailto").addEventListener("click", () => {
+    const url = document.getElementById("mailtoUrl").value;
+    if (url) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          showToast("Mailto URL copied!", "success");
+        })
+        .catch(() => {
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          showToast("Mailto URL copied!", "success");
+        });
+    }
+  });
+}
+
+function renderTabs() {
+  const container = document.getElementById("tabsContainer");
+  if (!container) return;
+  container.innerHTML = "";
+  state.projects.forEach((proj, idx) => {
+    const tab = document.createElement("div");
+    tab.className =
+      "tab-btn" + (idx === state.activeProjectIndex ? " active" : "");
+    tab.innerHTML = `<span class="tab-name">${escapeHtml(proj.name)}</span>${state.projects.length > 1 ? `<span class="tab-close" data-close-index="${idx}">×</span>` : ""}`;
+    tab.addEventListener("click", (e) => {
+      if (e.target.classList.contains("tab-close")) {
+        e.stopPropagation();
+        closeTab(parseInt(e.target.dataset.closeIndex));
+        return;
+      }
+      switchToProject(idx);
+    });
+    container.appendChild(tab);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
+
+// File: j:\Canvas\js\canvas.js
+// ---- CANVAS / ZOOM / PAN / MINIMAP / MOUSE HANDLERS ----
+
+function updateZoomDisplay() {
+  DOM.zoomLevel.textContent = Math.round(state.zoom * 100) + "%";
+}
+
+function applyCanvasTransform(animate = false) {
+  if (animate) {
+    DOM.canvasWorkspace.classList.add("animating");
+    setTimeout(() => DOM.canvasWorkspace.classList.remove("animating"), 400);
+  } else {
+    DOM.canvasWorkspace.classList.remove("animating");
+  }
+  DOM.canvasWorkspace.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+  updateZoomDisplay();
+  renderMinimap();
+}
+
+function zoomAtPoint(f, cx, cy) {
+  const r = DOM.canvasContainer.getBoundingClientRect();
+  const mx = cx - r.left,
+    my = cy - r.top;
+  const old = state.zoom;
+  state.zoom = clamp(state.zoom * f, 0.2, 3);
+  state.panX = mx - (mx - state.panX) * (state.zoom / old);
+  state.panY = my - (my - state.panY) * (state.zoom / old);
+  applyCanvasTransform();
+}
+
+function fitView() {
+  const proj = currentProject();
+  if (!proj.nodes.size) {
+    state.zoom = 1;
+    state.panX = 0;
+    state.panY = 0;
+    applyCanvasTransform(true);
+    return;
+  }
+  let mnX = Infinity,
+    mnY = Infinity,
+    mxX = -Infinity,
+    mxY = -Infinity;
+  proj.nodes.forEach((n) => {
+    const r = getNodeRect(n.id);
+    mnX = Math.min(mnX, n.x);
+    mnY = Math.min(mnY, n.y);
+    mxX = Math.max(mxX, n.x + r.width);
+    mxY = Math.max(mxY, n.y + r.height);
+  });
+  const rect = DOM.canvasContainer.getBoundingClientRect();
+  state.zoom = clamp(
+    Math.min(rect.width / (mxX - mnX + 80), rect.height / (mxY - mnY + 80)),
+    0.2,
+    2,
+  );
+  state.panX = rect.width / 2 - (mnX + (mxX - mnX) / 2) * state.zoom;
+  state.panY = rect.height / 2 - (mnY + (mxY - mnY) / 2) * state.zoom;
+  applyCanvasTransform(true);
+}
+
+function renderMinimap() {
+  const proj = currentProject();
+  const ctx = DOM.minimapCanvas.getContext("2d");
+  const w = DOM.minimapCanvas.width,
+    h = DOM.minimapCanvas.height;
+  ctx.clearRect(0, 0, w, h);
+  if (!proj.nodes.size) {
+    DOM.minimapViewport.style.display = "none";
+    return;
+  }
+
+  let mnX = Infinity,
+    mnY = Infinity,
+    mxX = -Infinity,
+    mxY = -Infinity;
+  proj.nodes.forEach((n) => {
+    const r = getNodeRect(n.id);
+    mnX = Math.min(mnX, n.x);
+    mnY = Math.min(mnY, n.y);
+    mxX = Math.max(mxX, n.x + r.width);
+    mxY = Math.max(mxY, n.y + r.height);
+  });
+  const pad = 60,
+    ww = mxX - mnX + pad * 2,
+    wh = mxY - mnY + pad * 2;
+  const s = Math.min(w / ww, h / wh);
+  const ox = (w - ww * s) / 2,
+    oy = (h - wh * s) / 2;
+
+  proj.nodes.forEach((n) => {
+    const r = getNodeRect(n.id);
+    ctx.fillStyle =
+      n.id === proj.selectedNodeId
+        ? "rgba(219,0,17,0.7)"
+        : "rgba(200,200,220,0.5)";
+    ctx.fillRect(
+      ox + (n.x - mnX + pad) * s,
+      oy + (n.y - mnY + pad) * s,
+      r.width * s,
+      r.height * s,
+    );
+  });
+
+  const vp = DOM.canvasContainer.getBoundingClientRect();
+  DOM.minimapViewport.style.display = "block";
+  DOM.minimapViewport.style.left =
+    clamp(ox + (-state.panX / state.zoom - mnX + pad) * s, 0, w - 1) + "px";
+  DOM.minimapViewport.style.top =
+    clamp(oy + (-state.panY / state.zoom - mnY + pad) * s, 0, h - 1) + "px";
+  DOM.minimapViewport.style.width =
+    clamp((vp.width / state.zoom) * s, 4, w) + "px";
+  DOM.minimapViewport.style.height =
+    clamp((vp.height / state.zoom) * s, 4, h) + "px";
+}
+
+function getCanvasCoords(e) {
+  const r = DOM.canvasContainer.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left - state.panX) / state.zoom,
+    y: (e.clientY - r.top - state.panY) / state.zoom,
+    screenX: e.clientX,
+    screenY: e.clientY,
+  };
+}
+
+// ---------- MOUSE HANDLERS ----------
+function onNodeMouseDown(e) {
+  if (e.button !== 0) return;
+  if (e.target.closest(".node-port,.node-option-port")) return;
+  const nodeEl = e.target.closest(".canvas-node");
+  if (!nodeEl) return;
+  const id = nodeEl.dataset.nodeId;
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  e.stopPropagation();
+  e.preventDefault();
+  const ctrl = e.ctrlKey || e.metaKey;
+
+  if (state.selectedNodeIds.has(id) && state.selectedNodeIds.size > 1) {
+    state.isDraggingNode = true;
+    state.dragNodeId = id;
+    state.multiDragOffsets = [];
+    state.selectedNodeIds.forEach((nid) => {
+      const node = proj.nodes.get(nid);
+      if (node)
+        state.multiDragOffsets.push({
+          id: nid,
+          startX: node.x,
+          startY: node.y,
+        });
+    });
+    const coords = getCanvasCoords(e);
+    const refNode = proj.nodes.get(id);
+    state.dragNodeOffset = { x: coords.x - refNode.x, y: coords.y - refNode.y };
+    nodeEl.classList.add("dragging");
+    document.addEventListener("mousemove", onNodeMouseMove);
+    document.addEventListener("mouseup", onNodeMouseUp);
+    return;
+  }
+
+  if (ctrl) {
+    if (state.selectedNodeIds.has(id)) state.selectedNodeIds.delete(id);
+    else state.selectedNodeIds.add(id);
+    proj.selectedNodeId = state.selectedNodeIds.size === 1 ? id : null;
+    renderNodes();
+    updateEditorPanel();
+    return;
+  }
+
+  state.selectedNodeIds.clear();
+  state.selectedNodeIds.add(id);
+  proj.selectedNodeId = id;
+  renderNodes();
+  updateEditorPanel();
+  state.isDraggingNode = true;
+  state.dragNodeId = id;
+  state.multiDragOffsets = null;
+  const node = proj.nodes.get(id);
+  state.dragNodeStartPos = { x: node.x, y: node.y };
+  const coords = getCanvasCoords(e);
+  state.dragNodeOffset = { x: coords.x - node.x, y: coords.y - node.y };
+  nodeEl.classList.add("dragging");
+  document.addEventListener("mousemove", onNodeMouseMove);
+  document.addEventListener("mouseup", onNodeMouseUp);
+}
+function onNodeMouseMove(e) {
+  if (!state.isDraggingNode) return;
+  const proj = currentProject();
+  const coords = getCanvasCoords(e);
+
+  // ----- Auto‑scroll near canvas edges -----
+  const margin = 60;
+  const baseSpeed = 8;
+  const canvasRect = DOM.canvasContainer.getBoundingClientRect();
+
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+
+  let scrollX = 0,
+    scrollY = 0;
+
+  if (mouseX < canvasRect.left + margin) {
+    const dist = canvasRect.left + margin - mouseX;
+    scrollX = baseSpeed * Math.min(1, dist / margin);
+  } else if (mouseX > canvasRect.right - margin) {
+    const dist = mouseX - (canvasRect.right - margin);
+    scrollX = -baseSpeed * Math.min(1, dist / margin);
+  }
+
+  if (mouseY < canvasRect.top + margin) {
+    const dist = canvasRect.top + margin - mouseY;
+    scrollY = baseSpeed * Math.min(1, dist / margin);
+  } else if (mouseY > canvasRect.bottom - margin) {
+    const dist = mouseY - (canvasRect.bottom - margin);
+    scrollY = -baseSpeed * Math.min(1, dist / margin);
+  }
+
+  if (scrollX !== 0 || scrollY !== 0) {
+    state.panX += scrollX;
+    state.panY += scrollY;
+    applyCanvasTransform();
+    // Recalculate coordinates after pan change
+    const newCoords = getCanvasCoords(e);
+    // Update the node position based on the new pan-adjusted coordinates
+    if (state.multiDragOffsets && state.multiDragOffsets.length > 1) {
+      const refStart = state.multiDragOffsets.find(
+        (entry) => entry.id === state.dragNodeId,
+      );
+      if (refStart) {
+        const newX = Math.round(newCoords.x - state.dragNodeOffset.x),
+          newY = Math.round(newCoords.y - state.dragNodeOffset.y);
+        const dx = newX - refStart.startX,
+          dy = newY - refStart.startY;
+        state.multiDragOffsets.forEach((entry) => {
+          const node = proj.nodes.get(entry.id);
+          if (node) {
+            node.x = entry.startX + dx;
+            node.y = entry.startY + dy;
+            const el = DOM.nodesLayer.querySelector(
+              `[data-node-id="${entry.id}"]`,
+            );
+            if (el) {
+              el.style.left = node.x + "px";
+              el.style.top = node.y + "px";
+              positionOptionPorts(el, node);
+            }
+          }
+        });
+      }
+    } else {
+      const node = proj.nodes.get(state.dragNodeId);
+      if (node) {
+        node.x = Math.round(newCoords.x - state.dragNodeOffset.x);
+        node.y = Math.round(newCoords.y - state.dragNodeOffset.y);
+        const el = DOM.nodesLayer.querySelector(
+          `[data-node-id="${state.dragNodeId}"]`,
+        );
+        if (el) {
+          el.style.left = node.x + "px";
+          el.style.top = node.y + "px";
+          positionOptionPorts(el, node);
+        }
+      }
+    }
+    renderConnections();
+    renderMinimap();
+    return; // Don't fall through to the old position update
+  }
+
+  // Original logic when not scrolling
+  if (state.multiDragOffsets && state.multiDragOffsets.length > 1) {
+    const refStart = state.multiDragOffsets.find(
+      (entry) => entry.id === state.dragNodeId,
+    );
+    if (!refStart) return;
+    const newX = Math.round(coords.x - state.dragNodeOffset.x),
+      newY = Math.round(coords.y - state.dragNodeOffset.y);
+    const dx = newX - refStart.startX,
+      dy = newY - refStart.startY;
+    state.multiDragOffsets.forEach((entry) => {
+      const node = proj.nodes.get(entry.id);
+      if (node) {
+        node.x = entry.startX + dx;
+        node.y = entry.startY + dy;
+        const el = DOM.nodesLayer.querySelector(`[data-node-id="${entry.id}"]`);
+        if (el) {
+          el.style.left = node.x + "px";
+          el.style.top = node.y + "px";
+          positionOptionPorts(el, node);
+        }
+      }
+    });
+    renderConnections();
+    renderMinimap();
+    return;
+  }
+
+  const node = proj.nodes.get(state.dragNodeId);
+  if (!node) return;
+  node.x = Math.round(coords.x - state.dragNodeOffset.x);
+  node.y = Math.round(coords.y - state.dragNodeOffset.y);
+  const el = DOM.nodesLayer.querySelector(
+    `[data-node-id="${state.dragNodeId}"]`,
+  );
+  if (el) {
+    el.style.left = node.x + "px";
+    el.style.top = node.y + "px";
+    positionOptionPorts(el, node);
+  }
+  renderConnections();
+  renderMinimap();
+}
+function onNodeMouseUp(e) {
+  document.removeEventListener("mousemove", onNodeMouseMove);
+  document.removeEventListener("mouseup", onNodeMouseUp);
+  if (state.isDraggingNode) {
+    const proj = currentProject();
+    if (state.multiDragOffsets && state.multiDragOffsets.length > 1) {
+      let moved = false;
+      state.multiDragOffsets.forEach((entry) => {
+        const node = proj.nodes.get(entry.id);
+        if (node && (node.x !== entry.startX || node.y !== entry.startY))
+          moved = true;
+      });
+      if (moved) pushUndo();
+    } else {
+      const node = proj.nodes.get(state.dragNodeId);
+      if (
+        node &&
+        (node.x !== state.dragNodeStartPos.x ||
+          node.y !== state.dragNodeStartPos.y)
+      )
+        pushUndo();
+    }
+    const draggedIds = state.multiDragOffsets
+      ? state.multiDragOffsets.map((e) => e.id)
+      : [state.dragNodeId];
+    draggedIds.forEach((nid) => {
+      const el = DOM.nodesLayer.querySelector(`[data-node-id="${nid}"]`);
+      if (el) el.classList.remove("dragging");
+    });
+    state.isDraggingNode = false;
+    state.dragNodeId = null;
+    state.multiDragOffsets = null;
+    renderAll();
+  }
+}
+function onPortMouseDown(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  const port = e.target.closest(".node-port,.node-option-port");
+  if (!port) return;
+  const nodeId = port.dataset.nodeId,
+    portType = port.dataset.portType;
+  if (portType !== "out") return;
+  const optIdx =
+    port.dataset.optionIndex !== undefined
+      ? parseInt(port.dataset.optionIndex)
+      : -1;
+  state.isDraggingConnection = true;
+  state.dragConnectionSource = {
+    nodeId,
+    optionIndex: optIdx >= 0 ? optIdx : null,
+  };
+  const coords = getCanvasCoords(e);
+  state.dragConnectionMouse = { x: coords.x, y: coords.y };
+  updateDragLine();
+  document.addEventListener("mousemove", onConnectionDragMove);
+  document.addEventListener("mouseup", onConnectionDragUp);
+  console.log("Connection drag started", state.isDraggingConnection);
+}
+function onConnectionDragMove(e) {
+  if (!state.isDraggingConnection) return;
+
+  const coords = getCanvasCoords(e);
+  state.dragConnectionMouse = { x: coords.x, y: coords.y };
+  updateDragLine();
+
+  const margin = 60;
+  const baseSpeed = 12;
+  const canvasRect = DOM.canvasContainer.getBoundingClientRect();
+
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+
+  let scrollX = 0,
+    scrollY = 0;
+
+  if (mouseX < canvasRect.left + margin) {
+    const dist = canvasRect.left + margin - mouseX;
+    scrollX = baseSpeed * Math.min(1, dist / margin);
+  } else if (mouseX > canvasRect.right - margin) {
+    const dist = mouseX - (canvasRect.right - margin);
+    scrollX = -baseSpeed * Math.min(1, dist / margin);
+  }
+
+  if (mouseY < canvasRect.top + margin) {
+    const dist = canvasRect.top + margin - mouseY;
+    scrollY = baseSpeed * Math.min(1, dist / margin);
+  } else if (mouseY > canvasRect.bottom - margin) {
+    const dist = mouseY - (canvasRect.bottom - margin);
+    scrollY = -baseSpeed * Math.min(1, dist / margin);
+  }
+
+  if (scrollX !== 0 || scrollY !== 0) {
+    state.panX += scrollX;
+    state.panY += scrollY;
+    applyCanvasTransform();
+    updateDragLine(); // reposition the line after pan change
+    console.log("Auto‑scroll:", scrollX.toFixed(2), scrollY.toFixed(2));
+  }
+}
+function onConnectionDragUp(e) {
+  document.removeEventListener("mousemove", onConnectionDragMove);
+  document.removeEventListener("mouseup", onConnectionDragUp);
+  if (!state.isDraggingConnection) return;
+  state.isDraggingConnection = false;
+  DOM.dragLinePath.style.display = "none";
+  const coords = getCanvasCoords(e);
+  const targetNodeEl = document.elementFromPoint(
+    coords.screenX,
+    coords.screenY,
+  );
+  if (targetNodeEl) {
+    const nodeEl = targetNodeEl.closest(".canvas-node");
+    if (nodeEl) {
+      const targetId = nodeEl.dataset.nodeId;
+      const src = state.dragConnectionSource;
+      const proj = currentProject();
+      if (
+        targetId &&
+        src.nodeId !== targetId &&
+        proj.nodes.has(targetId) &&
+        proj.nodes.has(src.nodeId)
+      ) {
+        pushUndo();
+        const srcNode = proj.nodes.get(src.nodeId);
+        if (
+          srcNode.type === "choice" &&
+          src.optionIndex != null &&
+          src.optionIndex >= 0
+        ) {
+          if (srcNode.options[src.optionIndex])
+            srcNode.options[src.optionIndex].next = targetId;
+        } else if (srcNode.type === "decision") {
+          if (src.optionIndex === 0) srcNode.trueNext = targetId;
+          else if (src.optionIndex === 1) srcNode.falseNext = targetId;
+        } else if (srcNode.type !== "end") {
+          srcNode.next = targetId;
+        }
+        renderAll();
+        updateEditorPanel();
+        showToast("Connection created", "success");
+      }
+    }
+  }
+  state.dragConnectionSource = null;
+}
+
+function updateDragLine() {
+  if (!state.isDraggingConnection) {
+    DOM.dragLinePath.style.display = "none";
+    return;
+  }
+  DOM.dragLinePath.style.display = "";
+  const src = state.dragConnectionSource;
+  const proj = currentProject();
+  const srcNode = proj.nodes.get(src.nodeId);
+  if (!srcNode) {
+    DOM.dragLinePath.style.display = "none";
+    return;
+  }
+  const srcPos = getNodePortPosition(srcNode, src.optionIndex ?? -1);
+  const mouse = state.dragConnectionMouse;
+  const dx = Math.abs(mouse.x - srcPos.x) * 0.5;
+  DOM.dragLinePath.setAttribute(
+    "d",
+    `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + clamp(dx, 40, 200)} ${srcPos.y}, ${mouse.x - clamp(dx, 40, 200)} ${mouse.y}, ${mouse.x} ${mouse.y}`,
+  );
+}
+
+// ---- CANVAS MOUSE (RIGHT‑CLICK PAN + LEFT‑CLICK MARQUEE) ----
+function onCanvasMouseDown(e) {
+  if (e.button === 2) {
+    e.preventDefault();
+    state.isPanning = true;
+    state.panStart = { x: e.clientX, y: e.clientY };
+    state.panStartOffset = { x: state.panX, y: state.panY };
+    DOM.canvasContainer.classList.add("panning");
+    document.addEventListener("mousemove", onCanvasMouseMove);
+    document.addEventListener("mouseup", onCanvasMouseUp);
+    return;
+  }
+
+  // Deselect any connection when clicking empty space
+  if (e.button === 0 && state.selectedConnection) {
+    clearConnectionSelection();
+    renderAll();
+  }
+
+  if (
+    e.button === 0 &&
+    !e.target.closest(".canvas-node") &&
+    !e.target.closest(".node-port") &&
+    !e.target.closest(".node-option-port") &&
+    !e.target.closest(".minimap") &&
+    !e.target.closest(".connection-path") // don't start marquee if clicking a connection
+  ) {
+    e.preventDefault();
+    const coords = getCanvasCoords(e);
+    state.marquee = {
+      startX: coords.x,
+      startY: coords.y,
+      currentX: coords.x,
+      currentY: coords.y,
+    };
+    const marqueeEl = document.createElement("div");
+    marqueeEl.className = "marquee-box";
+    marqueeEl.id = "marqueeBox";
+    DOM.nodesLayer.appendChild(marqueeEl);
+    document.addEventListener("mousemove", onMarqueeMouseMove);
+    document.addEventListener("mouseup", onMarqueeMouseUp);
+    currentProject().selectedNodeId = null;
+    state.selectedNodeIds.clear();
+    renderNodes();
+    updateEditorPanel();
+  }
+}
+
+function onCanvasMouseMove(e) {
+  if (state.isPanning) {
+    state.panX = state.panStartOffset.x + (e.clientX - state.panStart.x);
+    state.panY = state.panStartOffset.y + (e.clientY - state.panStart.y);
+    applyCanvasTransform();
+  }
+}
+
+function onCanvasMouseUp(e) {
+  document.removeEventListener("mousemove", onCanvasMouseMove);
+  document.removeEventListener("mouseup", onCanvasMouseUp);
+  state.isPanning = false;
+  DOM.canvasContainer.classList.remove("panning");
+}
+
+function onMarqueeMouseMove(e) {
+  if (!state.marquee) return;
+  const coords = getCanvasCoords(e);
+  state.marquee.currentX = coords.x;
+  state.marquee.currentY = coords.y;
+  updateMarqueeBox();
+}
+
+function onMarqueeMouseUp(e) {
+  document.removeEventListener("mousemove", onMarqueeMouseMove);
+  document.removeEventListener("mouseup", onMarqueeMouseUp);
+  if (!state.marquee) return;
+  const { startX, startY, currentX, currentY } = state.marquee;
+  const minX = Math.min(startX, currentX),
+    maxX = Math.max(startX, currentX);
+  const minY = Math.min(startY, currentY),
+    maxY = Math.max(startY, currentY);
+  const proj = currentProject();
+  state.selectedNodeIds.clear();
+  proj.nodes.forEach((node) => {
+    const rect = getNodeRect(node.id);
+    if (
+      node.x + rect.width >= minX &&
+      node.x <= maxX &&
+      node.y + rect.height >= minY &&
+      node.y <= maxY
+    ) {
+      state.selectedNodeIds.add(node.id);
+    }
+  });
+  const box = document.getElementById("marqueeBox");
+  if (box) box.remove();
+  state.marquee = null;
+  renderNodes();
+  if (state.selectedNodeIds.size === 1) {
+    proj.selectedNodeId = state.selectedNodeIds.values().next().value;
+    updateEditorPanel();
+  } else {
+    proj.selectedNodeId = null;
+    updateEditorPanel();
+  }
+}
+
+function updateMarqueeBox() {
+  if (!state.marquee) return;
+  const box = document.getElementById("marqueeBox");
+  if (!box) return;
+  const { startX, startY, currentX, currentY } = state.marquee;
+  const left = Math.min(startX, currentX),
+    top = Math.min(startY, currentY);
+  const width = Math.abs(currentX - startX),
+    height = Math.abs(currentY - startY);
+  box.style.left = left + "px";
+  box.style.top = top + "px";
+  box.style.width = width + "px";
+  box.style.height = height + "px";
+}
+
+function onCanvasWheel(e) {
+  e.preventDefault();
+  zoomAtPoint(e.deltaY < 0 ? 1.08 : 1 / 1.08, e.clientX, e.clientY);
+}
+
+
 // File: j:\Canvas\js\connections.js
 // ---- SVG CONNECTIONS ----
 
@@ -4166,6 +5931,3038 @@ function escapeXml(s) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
+}
+
+
+// File: j:\Canvas\style.css
+/* ==========================================
+   CANVAS. — Visual Checklist Builder
+   Professional UI/UX Stylesheet
+   ========================================== */
+:root {
+  --bg-deep: #0a0a0f;
+  --bg-surface: #111118;
+  --bg-surface-2: #16161f;
+  --bg-glass: rgba(22, 22, 35, 0.75);
+  --bg-glass-hover: rgba(28, 28, 45, 0.85);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(219, 0, 17, 0.35);
+  --text-primary: #e8e8f0;
+  --text-secondary: #a0a0b8;
+  --text-muted: #6b6b80;
+  --accent: #db0011;
+  --accent-glow: rgba(219, 0, 17, 0.4);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.3);
+  --node-choice: #8b5cf6;
+  --node-action: #3b82f6;
+  --node-input: #f59e0b;
+  --node-number: #ec4899;
+  --node-end: #ef4444;
+  --node-decision: #f97316;
+  --node-copybox: #0ea5e9;
+  --node-link: #14b8a6;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+  --transition-fast: 0.15s ease;
+  --transition-smooth: 0.25s ease;
+  --font-mono:
+    "SF Mono", "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ---- Animated Background ---- */
+.bg-orbs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.25;
+  animation: orbFloat 20s infinite ease-in-out;
+}
+.orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(219, 0, 17, 0.45), transparent 70%);
+  top: -15%;
+  left: -10%;
+  animation-delay: 0s;
+}
+.orb-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(180, 0, 10, 0.4), transparent 70%);
+  bottom: -15%;
+  right: -8%;
+  animation-delay: -7s;
+}
+.orb-3 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(219, 0, 17, 0.3), transparent 70%);
+  top: 50%;
+  left: 40%;
+  animation-delay: -14s;
+}
+.orb-4 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(150, 0, 10, 0.25), transparent 70%);
+  top: 30%;
+  right: 20%;
+  animation-delay: -3s;
+}
+@keyframes orbFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(40px, -30px) scale(1.05);
+  }
+  50% {
+    transform: translate(-20px, 25px) scale(0.95);
+  }
+  75% {
+    transform: translate(-35px, -15px) scale(1.02);
+  }
+}
+
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  opacity: 0.5;
+}
+
+.app-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ---- Header ---- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 100;
+  flex-shrink: 0;
+  gap: 16px;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+.logo-wordmark {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(219, 0, 17, 0.18);
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-medium);
+  margin: 0 8px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.zoom-level {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  outline: none;
+  position: relative;
+  line-height: 1.2;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+.btn-primary:hover {
+  background: #c0000f;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-glow);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+.btn-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 2px 8px var(--danger-glow);
+}
+.btn-icon {
+  padding: 6px 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  min-width: 32px;
+  justify-content: center;
+}
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.72rem;
+}
+.btn-full {
+  width: 100%;
+  justify-content: center;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+}
+#btnZoom100 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  margin: 0 2px;
+}
+
+/* ---- Main Content ---- */
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  overflow-y: auto;
+}
+.sidebar-header {
+  padding: 16px 16px 8px;
+}
+.sidebar-header h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+.sidebar-subtitle {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+.node-palette {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.palette-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+}
+.palette-node:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-medium);
+  transform: translateX(2px);
+}
+.palette-node:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+.palette-node-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.palette-node-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+}
+.palette-node-desc {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  display: block;
+}
+.sidebar-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ---- Canvas ---- */
+.canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  cursor: default;
+}
+.canvas-container:active {
+  cursor: default;
+}
+.canvas-container.panning {
+  cursor: grabbing;
+}
+.canvas-workspace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 9999999px;
+  height: 9999999px;
+  transform-origin: 0 0;
+  transition: none;
+}
+.canvas-workspace.animating {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.connections-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.connections-svg path {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.nodes-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+.drag-line-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ---- Canvas Nodes ---- */
+.canvas-node {
+  position: absolute;
+  min-width: 170px;
+  max-width: 240px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  cursor: grab;
+  pointer-events: all;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  z-index: 3;
+  box-shadow: var(--shadow-sm);
+}
+.canvas-node:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-md);
+}
+.canvas-node.selected {
+  z-index: 5;
+  border-color: transparent !important;
+}
+.canvas-node.node-choice.selected {
+  border-color: var(--node-choice) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(139, 92, 246, 0.35),
+    0 0 0 4px rgba(139, 92, 246, 0.12) !important;
+}
+.canvas-node.node-message.selected {
+  border-color: var(--node-action) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(59, 130, 246, 0.35),
+    0 0 0 4px rgba(59, 130, 246, 0.12) !important;
+}
+.canvas-node.node-input.selected {
+  border-color: var(--node-input) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(245, 158, 11, 0.35),
+    0 0 0 4px rgba(245, 158, 11, 0.12) !important;
+}
+.canvas-node.node-number.selected {
+  border-color: var(--node-number) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(236, 72, 153, 0.35),
+    0 0 0 4px rgba(236, 72, 153, 0.12) !important;
+}
+.canvas-node.node-end.selected {
+  border-color: var(--node-end) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(239, 68, 68, 0.35),
+    0 0 0 4px rgba(239, 68, 68, 0.12) !important;
+}
+.canvas-node.node-decision.selected {
+  border-color: var(--node-decision) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(249, 115, 22, 0.35),
+    0 0 0 4px rgba(249, 115, 22, 0.12) !important;
+}
+.canvas-node.node-copybox.selected {
+  border-color: var(--node-copybox) !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(14, 165, 233, 0.35),
+    0 0 0 4px rgba(14, 165, 233, 0.12) !important;
+}
+.canvas-node.dragging {
+  cursor: grabbing;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 25px rgba(219, 0, 17, 0.25);
+  z-index: 6;
+  opacity: 0.95;
+  transition: none;
+}
+.canvas-node.node-choice {
+  border-left: 3px solid var(--node-choice);
+}
+.canvas-node.node-message {
+  border-left: 3px solid var(--node-action);
+}
+.canvas-node.node-input {
+  border-left: 3px solid var(--node-input);
+}
+.canvas-node.node-number {
+  border-left: 3px solid var(--node-number);
+}
+.canvas-node.node-end {
+  border-left: 3px solid var(--node-end);
+}
+.canvas-node.node-decision {
+  border-left: 3px solid var(--node-decision);
+}
+.canvas-node.node-copybox {
+  border-left: 3px solid var(--node-copybox);
+}
+.canvas-node.node-link {
+  border-left: 3px solid var(--node-link);
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.node-type-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.node-choice .node-type-badge {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+}
+.node-message .node-type-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+.node-input .node-type-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.node-number .node-type-badge {
+  background: rgba(236, 72, 153, 0.2);
+  color: #f9a8d4;
+}
+.node-end .node-type-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+.node-decision .node-type-badge {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+}
+.node-copybox .node-type-badge {
+  background: rgba(14, 165, 233, 0.2);
+  color: #7dd3fc;
+}
+
+.node-id-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-left: auto;
+}
+.node-text-preview {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.node-options-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.node-option-chip {
+  font-size: 0.6rem;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+/* Node ports */
+.node-port {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg-surface-2);
+  border: 2px solid var(--border-medium);
+  cursor: crosshair;
+  transition: all var(--transition-fast);
+  z-index: 7;
+  pointer-events: all;
+}
+.node-port:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  transform: scale(1.25);
+}
+.node-port.port-in {
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.node-port.port-in:hover {
+  transform: translateY(-50%) scale(1.25);
+}
+.node-port.port-out {
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.node-port.port-out:hover {
+  transform: translateY(-50%) scale(1.25);
+}
+.node-option-port {
+  position: absolute;
+  right: -7px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--bg-surface-2);
+  border: 2px solid var(--border-medium);
+  cursor: crosshair;
+  pointer-events: all;
+  transition: all var(--transition-fast);
+  z-index: 7;
+}
+.node-option-port:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  transform: scale(1.25);
+}
+.node-option-port-label {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.node-option-port:hover .node-option-port-label {
+  opacity: 1;
+}
+.decision-port-label {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Message variants */
+.canvas-node.variant-info {
+  border-left-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.06);
+}
+.canvas-node.variant-success {
+  border-left-color: #10b981;
+  background: rgba(16, 185, 129, 0.06);
+}
+.canvas-node.variant-warning {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.06);
+}
+.canvas-node.variant-error {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.06);
+}
+.canvas-node.variant-action {
+  border-left-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.06);
+}
+.variant-info .node-type-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+.variant-success .node-type-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+.variant-warning .node-type-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.variant-error .node-type-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+.variant-action .node-type-badge {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+}
+
+/* SVG connections */
+.connection-path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke var(--transition-fast);
+}
+
+/* ---- Editor Panel ---- */
+.editor-panel {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  transition:
+    transform var(--transition-smooth),
+    opacity var(--transition-smooth);
+  overflow-y: auto;
+}
+.editor-panel.collapsed {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.panel-header h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+.panel-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.panel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.form-input,
+.form-textarea {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  transition: all var(--transition-fast);
+  outline: none;
+  resize: vertical;
+}
+.form-textarea {
+  min-height: auto;
+}
+.form-select {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  transition: all var(--transition-fast);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0a0b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+.form-select option {
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+.panel-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  gap: 8px;
+}
+.option-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.option-row .form-input {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+.option-row input[data-opt-field="next"] {
+  flex: 0.45 !important;
+  min-width: 55px;
+}
+.btn-remove-option {
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+.btn-remove-option:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+.btn-add-option {
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-medium);
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  text-align: center;
+  width: 100%;
+  margin-top: 6px;
+}
+.btn-add-option:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(219, 0, 17, 0.06);
+}
+
+/* ---- Minimap ---- */
+.minimap {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 150px;
+  height: 110px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  z-index: 40;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.minimap:hover {
+  transform: scale(1.04);
+  box-shadow: var(--shadow-lg);
+}
+.minimap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.minimap-viewport {
+  position: absolute;
+  border: 1.5px solid var(--accent);
+  border-radius: 3px;
+  background: rgba(219, 0, 17, 0.08);
+  pointer-events: none;
+}
+
+/* ---- Modals ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.modal-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 50px rgba(0, 0, 0, 0.5);
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(25px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Runtime modal (Step) */
+.runtime-modal .modal-body {
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+.runtime-question {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.runtime-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.runtime-option-btn {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+.runtime-option-btn:hover {
+  background: rgba(219, 0, 17, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.runtime-input {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+.runtime-submit-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px var(--accent-glow);
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.runtime-submit-btn:hover {
+  background: #c0000f;
+  box-shadow: 0 4px 15px var(--accent-glow);
+}
+.runtime-end-message {
+  text-align: center;
+  padding: 30px;
+  color: var(--success);
+}
+.progress-dots {
+  display: none;
+}
+
+/* Copy box runtime */
+.runtime-copy-block {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin: 8px 0;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-secondary);
+  font-family: inherit;
+}
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-top: 6px;
+}
+.btn-copy:hover {
+  background: rgba(219, 0, 17, 0.12);
+  border-color: var(--accent);
+}
+.btn-copy.copied {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+/* Import modal */
+.import-modal {
+  max-width: 500px;
+}
+.import-dropzone {
+  border: 2px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
+}
+.import-dropzone:hover {
+  border-color: var(--accent);
+  background: rgba(219, 0, 17, 0.03);
+}
+.import-dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(219, 0, 17, 0.08);
+  box-shadow: 0 0 20px rgba(219, 0, 17, 0.15);
+}
+.import-textarea {
+  width: 100%;
+  min-height: auto;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  resize: vertical;
+  outline: none;
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  pointer-events: all;
+  animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast.success {
+  border-left: 3px solid var(--success);
+}
+.toast.error {
+  border-left: 3px solid var(--danger);
+}
+.toast.info {
+  border-left: 3px solid var(--accent);
+}
+.toast.removing {
+  animation: toastOut 0.3s ease-in forwards;
+}
+@keyframes toastIn {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes toastOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+/* Scrollbar (global) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Tab Bar */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 10px;
+  gap: 2px;
+  z-index: 98;
+  flex-shrink: 0;
+  overflow-x: auto;
+  height: 34px;
+}
+.tabs-container {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  overflow-x: auto;
+  height: 100%;
+}
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  border-radius: 0;
+}
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+}
+.tab-btn.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+  background: rgba(219, 0, 17, 0.06);
+}
+.tab-close {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.tab-close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+.tab-add-btn {
+  margin-left: 4px;
+  font-size: 1.1rem;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+/* Menu Bar */
+.menu-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 12px;
+  z-index: 99;
+  flex-shrink: 0;
+  height: 30px;
+  gap: 0;
+}
+.menu-item {
+  position: relative;
+  padding: 0 10px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+.menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 170px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  display: none;
+  z-index: 200;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.menu-item.open .menu-dropdown {
+  display: block;
+}
+.menu-action {
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.menu-action:hover {
+  background: rgba(219, 0, 17, 0.12);
+  color: #fff;
+}
+.menu-separator {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+.menu-label {
+  padding: 4px 12px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.recent-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+.recent-list .menu-action {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+.hidden {
+  display: none !important;
+}
+
+/* Editable project name */
+.project-name {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.15s;
+  outline: none;
+  cursor: text;
+  margin-left: 8px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.project-name:hover {
+  border-bottom-color: var(--border-medium);
+}
+.project-name:focus {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: var(--accent);
+  max-width: 300px;
+}
+
+/* Marquee selection box */
+.marquee-box {
+  position: absolute;
+  border: 2px dashed #db0011;
+  background: rgba(219, 0, 17, 0.12);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Runtime message box (Step modal) */
+.runtime-message-box {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+  margin-bottom: 8px;
+}
+.runtime-message-box .runtime-question {
+  margin: 0;
+  font-size: 1rem;
+}
+.runtime-message-box.variant-info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: #3b82f6;
+}
+.runtime-message-box.variant-success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+}
+.runtime-message-box.variant-warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: #f59e0b;
+}
+.runtime-message-box.variant-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+}
+.runtime-message-box.variant-action {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: #8b5cf6;
+}
+
+/* Runtime modal close button */
+.runtime-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  font-size: 1.4rem;
+  width: 32px;
+  height: 32px;
+}
+
+/* Runtime modal variant backgrounds (Step modal) */
+.runtime-modal.variant-info {
+  background: rgba(59, 130, 246, 0.08);
+  border-left: 4px solid #3b82f6;
+}
+.runtime-modal.variant-success {
+  background: rgba(16, 185, 129, 0.08);
+  border-left: 4px solid #10b981;
+}
+.runtime-modal.variant-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 4px solid #f59e0b;
+}
+.runtime-modal.variant-error {
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 4px solid #ef4444;
+}
+.runtime-modal.variant-action {
+  background: rgba(139, 92, 246, 0.08);
+  border-left: 4px solid #8b5cf6;
+}
+
+/* Variant pills on canvas nodes */
+.variant-pill {
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.03em;
+}
+.variant-pill.variant-info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+.variant-pill.variant-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+.variant-pill.variant-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.variant-pill.variant-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+.variant-pill.variant-action {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+}
+
+/* ---- Full‑screen Runtime Panel (Linear / Chat) ---- */
+.runtime-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-deep);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  font-family: "Inter", sans-serif;
+}
+.runtime-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+}
+.runtime-header-spacer {
+  width: 32px;
+}
+.runtime-panel-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  flex: 1;
+}
+.runtime-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 0;
+  /* hidden scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.runtime-panel-body::-webkit-scrollbar {
+  display: none;
+}
+
+.runtime-panel-footer {
+  background: var(--bg-glass);
+  border-top: 1px solid var(--border-subtle);
+  padding: 16px 24px;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+.runtime-panel-footer:empty {
+  display: none;
+}
+
+/* Linear steps */
+.linear-step {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.linear-step .runtime-question {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+.linear-step .runtime-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.linear-step .runtime-option-btn {
+  flex: 1 1 auto;
+  min-width: 100px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.linear-step .runtime-option-btn:hover {
+  background: rgba(219, 0, 17, 0.08);
+  border-color: var(--accent);
+}
+.linear-step .runtime-option-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.linear-step .runtime-option-btn.selected-option {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.linear-answer {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Chat bubbles */
+.chat-bubble {
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  line-height: 1.5;
+  word-break: break-word;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  animation: bubbleIn 0.2s ease-out;
+}
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.chat-bot {
+  align-self: flex-start;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+}
+.chat-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+}
+.chat-bubble.success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--success);
+  color: var(--success);
+}
+.chat-bubble.error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.chat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chat-option-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.chat-option-btn:hover {
+  background: rgba(219, 0, 17, 0.08);
+  border-color: var(--accent);
+}
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+.chat-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.chat-input:focus {
+  border-color: var(--accent);
+}
+.chat-send-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.chat-send-btn:hover {
+  background: #c0000f;
+}
+.chat-copy-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-family: inherit;
+}
+.chat-inline-copy {
+  margin-top: 6px;
+}
+
+/* Linear step variant backgrounds */
+.linear-step.variant-info {
+  background: rgba(59, 130, 246, 0.06);
+  border-left: 3px solid #3b82f6;
+}
+.linear-step.variant-success {
+  background: rgba(16, 185, 129, 0.06);
+  border-left: 3px solid #10b981;
+}
+.linear-step.variant-warning {
+  background: rgba(245, 158, 11, 0.06);
+  border-left: 3px solid #f59e0b;
+}
+.linear-step.variant-error {
+  background: rgba(239, 68, 68, 0.06);
+  border-left: 3px solid #ef4444;
+}
+.linear-step.variant-action {
+  background: rgba(139, 92, 246, 0.06);
+  border-left: 3px solid #8b5cf6;
+}
+
+/* Linear continue button */
+.linear-continue-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  transition: background 0.15s;
+}
+.linear-step.variant-info .linear-continue-btn {
+  background: #3b82f6;
+}
+.linear-step.variant-success .linear-continue-btn {
+  background: #10b981;
+}
+.linear-step.variant-warning .linear-continue-btn {
+  background: #f59e0b;
+  color: #000;
+}
+.linear-step.variant-error .linear-continue-btn {
+  background: #ef4444;
+}
+.linear-step.variant-action .linear-continue-btn {
+  background: #8b5cf6;
+}
+
+/* Chat bubble variant colors */
+.chat-bubble.info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+.chat-bubble.success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--success);
+  color: var(--success);
+}
+.chat-bubble.warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: #f59e0b;
+  color: #fcd34d;
+}
+.chat-bubble.error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.chat-bubble.action {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: #8b5cf6;
+  color: #c4b5fd;
+}
+
+/* Message variant button colours (Step modal) */
+.runtime-modal.variant-info .runtime-submit-btn {
+  background: #3b82f6;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
+}
+.runtime-modal.variant-success .runtime-submit-btn {
+  background: #10b981;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.4);
+}
+.runtime-modal.variant-warning .runtime-submit-btn {
+  background: #f59e0b;
+  color: #000;
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
+}
+.runtime-modal.variant-error .runtime-submit-btn {
+  background: #ef4444;
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.4);
+}
+.runtime-modal.variant-action .runtime-submit-btn {
+  background: #8b5cf6;
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4);
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+}
+.navbar-logo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.navbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  flex: 1;
+}
+
+.modal-content.runtime-modal {
+  border-radius: var(--radius-xl);
+}
+.runtime-panel-header.navbar {
+  border-radius: 0;
+}
+.runtime-submit-btn,
+.runtime-option-btn,
+.btn-copy {
+  border-radius: var(--radius-md);
+}
+
+/* ---- Link Node ---- */
+.canvas-node.node-link {
+  border-left: 2px solid #14b8a6;
+}
+.node-link .node-type-badge {
+  background: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+}
+.node-link.selected {
+  border-color: #14b8a6 !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(20, 184, 166, 0.35),
+    0 0 0 4px rgba(20, 184, 166, 0.12) !important;
+}
+.node-link-chip {
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.3);
+}
+
+.chat-bubble.link-bubble {
+  max-width: 90%;
+}
+
+.chat-link-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid #14b8a6;
+  background: transparent;
+  color: #5eead4;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  line-height: 1.4;
+  margin-bottom: 0;
+}
+.chat-link-btn:hover {
+  background: rgba(20, 184, 166, 0.08);
+  border-color: #5eead4;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
+  color: #ffffff;
+}
+
+.chat-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.node-port.port-out {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  right: -7px;
+}
+
+.runtime-link-btn,
+.chat-link-btn {
+  display: block;
+  width: 100%;
+  min-width: 200px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid #14b8a6;
+  background: transparent;
+  color: #5eead4;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: 0;
+}
+.runtime-link-btn:hover,
+.chat-link-btn:hover {
+  background: rgba(20, 184, 166, 0.08);
+  border-color: #5eead4;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
+  color: #ffffff;
+}
+
+/* ---- Set Variable Node ---- */
+.canvas-node.node-setvar {
+  border-left: 3px solid #a855f7;
+}
+.node-setvar .node-type-badge {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+.node-setvar.selected {
+  border-color: #a855f7 !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(168, 85, 247, 0.35),
+    0 0 0 4px rgba(168, 85, 247, 0.12) !important;
+}
+
+/* Mailto link builder modal */
+.mailto-modal {
+  max-width: 420px;
+}
+.mailto-modal .form-group {
+  margin-bottom: 12px;
+}
+.mailto-modal #mailtoUrl {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-medium);
+  cursor: text;
+  user-select: all;
+}
+
+
+// File: j:\Canvas\js\app.js
+// ---- INITIALISATION ----
+
+function init() {
+  const hasSaved = loadProjects();
+  if (!hasSaved) {
+    state.projects = [];
+    const proj = createEmptyProject("Quick Test");
+    state.projects.push(proj);
+    state.activeProjectIndex = 0;
+
+    const bx = 50000,
+      by = 50000,
+      dy = 160;
+
+    // 1. Welcome message (info variant)
+    const n1 = createNode("message", bx, by, "welcome");
+    n1.text = "👋 Welcome! This flow quickly tests every node type.";
+    n1.variant = "info";
+    n1.next = "ask_name";
+    proj.nodes.set("welcome", n1);
+
+    // 2. Input – user name
+    const n2 = createNode("input", bx, by + dy, "ask_name");
+    n2.text = "What's your name?";
+    n2.variable = "name";
+    n2.next = "ask_age";
+    proj.nodes.set("ask_name", n2);
+
+    // 3. Number – user age
+    const n3 = createNode("number", bx, by + dy * 2, "ask_age");
+    n3.text = "Enter your age:";
+    n3.variable = "age";
+    n3.next = "dec_numeric";
+    proj.nodes.set("ask_age", n3);
+
+    // 4. Decision – numeric (age >= 18)
+    const n4 = createNode("decision", bx, by + dy * 3, "dec_numeric");
+    n4.text = "Are you 18 or older?";
+    n4.variable = "age";
+    n4.operator = ">=";
+    n4.value = "18";
+    n4.trueNext = "msg_adult";
+    n4.falseNext = "msg_minor";
+    proj.nodes.set("dec_numeric", n4);
+
+    // 5a. Message – success (adult)
+    const n5a = createNode("message", bx + 300, by + dy * 3, "msg_adult");
+    n5a.text = "You're an adult, {name}! ✅";
+    n5a.variant = "success";
+    n5a.next = "set_silent";
+    proj.nodes.set("msg_adult", n5a);
+
+    // 5b. Message – warning (minor)
+    const n5b = createNode("message", bx - 300, by + dy * 3, "msg_minor");
+    n5b.text = "You're under 18, {name}. ⚠️";
+    n5b.variant = "warning";
+    n5b.next = "set_silent";
+    proj.nodes.set("msg_minor", n5b);
+
+    // 6. SetVar – silent (boolean)
+    const n6 = createNode("setvar", bx, by + dy * 4, "set_silent");
+    n6.text = "Silently set isTested = true";
+    n6.variable = "isTested";
+    n6.value = "true";
+    n6.varType = "boolean";
+    n6.showInRuntime = false;
+    n6.next = "set_visible";
+    proj.nodes.set("set_silent", n6);
+
+    // 7. SetVar – visible (number)
+    const n7 = createNode("setvar", bx, by + dy * 5, "set_visible");
+    n7.text = "Visibly set score = 100";
+    n7.variable = "score";
+    n7.value = "100";
+    n7.varType = "number";
+    n7.showInRuntime = true;
+    n7.next = "dec_bool";
+    proj.nodes.set("set_visible", n7);
+
+    // 8. Decision – boolean (isTested is true)
+    const n8 = createNode("decision", bx, by + dy * 6, "dec_bool");
+    n8.text = "Is isTested true?";
+    n8.variable = "isTested";
+    n8.operator = "is true";
+    n8.value = "";
+    n8.trueNext = "msg_bool_true";
+    n8.falseNext = "msg_bool_false";
+    proj.nodes.set("dec_bool", n8);
+
+    // 9a. Message – boolean true (success)
+    const n9a = createNode("message", bx + 300, by + dy * 6, "msg_bool_true");
+    n9a.text = "Boolean isTested is true! ✅";
+    n9a.variant = "success";
+    n9a.next = "copybox_cmd";
+    proj.nodes.set("msg_bool_true", n9a);
+
+    // 9b. Message – boolean false (error)
+    const n9b = createNode("message", bx - 300, by + dy * 6, "msg_bool_false");
+    n9b.text = "Boolean isTested is false? That's odd. ❌";
+    n9b.variant = "error";
+    n9b.next = "copybox_cmd";
+    proj.nodes.set("msg_bool_false", n9b);
+
+    // 10. Copy Box
+    const n10 = createNode("copybox", bx, by + dy * 7, "copybox_cmd");
+    n10.text = "Copy this command:";
+    n10.copyContent = "echo 'Canvas is awesome!'";
+    n10.next = "msg_action";
+    proj.nodes.set("copybox_cmd", n10);
+
+    // 11. Message – action variant
+    const n11 = createNode("message", bx, by + dy * 8, "msg_action");
+    n11.text = "Action required: Click Continue.";
+    n11.variant = "action";
+    n11.next = "link_node";
+    proj.nodes.set("msg_action", n11);
+
+    // 12. Link node
+    const n12 = createNode("link", bx, by + dy * 9, "link_node");
+    n12.text = "Useful links:";
+    n12.links = [
+      { label: "Canvas GitHub", url: "https://github.com" },
+      { label: "MDN Web Docs", url: "https://developer.mozilla.org" },
+    ];
+    n12.next = "final_end";
+    proj.nodes.set("link_node", n12);
+
+    // 13. End
+    const n13 = createNode("end", bx, by + dy * 10, "final_end");
+    n13.text = "Test complete! Thanks, {name}. Your score is {score}.";
+    proj.nodes.set("final_end", n13);
+
+    proj.startNodeId = "welcome";
+    saveProjects();
+  }
+  if (state.projects.length === 0) {
+    state.projects.push(createEmptyProject("Untitled"));
+    state.activeProjectIndex = 0;
+  }
+
+  renderAll();
+  updateEditorPanel();
+  updateZoomDisplay();
+  fitView();
+  renderTabs();
+  updateProjectNameDisplay();
+  initMenuBar();
+
+  DOM.canvasContainer.addEventListener("contextmenu", (e) =>
+    e.preventDefault(),
+  );
+  DOM.canvasContainer.addEventListener("mousedown", onCanvasMouseDown);
+  DOM.canvasContainer.addEventListener("wheel", onCanvasWheel, {
+    passive: false,
+  });
+  DOM.canvasContainer.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  });
+  DOM.canvasContainer.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData("text/plain");
+    if (type) {
+      const coords = getCanvasCoords(e);
+      addNode(type, Math.round(coords.x - 90), Math.round(coords.y - 25));
+    }
+  });
+  document.querySelectorAll(".palette-node").forEach((p) => {
+    p.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData(
+        "text/plain",
+        e.target.closest(".palette-node").dataset.type,
+      );
+    });
+  });
+
+  document.getElementById("btnAddTab").addEventListener("click", addNewTab);
+  document.getElementById("btnUndo").addEventListener("click", undo);
+  document.getElementById("btnRedo").addEventListener("click", redo);
+  document.getElementById("btnRunFlow").addEventListener("click", startRuntime);
+  document
+    .getElementById("btnRunLinear")
+    .addEventListener("click", startLinearRuntime);
+  document
+    .getElementById("btnRunChat")
+    .addEventListener("click", startChatRuntime);
+  document
+    .getElementById("btnSave")
+    .addEventListener("click", saveWithNameCheck);
+  document
+    .getElementById("btnOpen")
+    .addEventListener("click", () => DOM.importFileInput.click());
+  document.getElementById("btnZoomIn").addEventListener("click", () => {
+    const r = DOM.canvasContainer.getBoundingClientRect();
+    zoomAtPoint(1.2, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("btnZoomOut").addEventListener("click", () => {
+    const r = DOM.canvasContainer.getBoundingClientRect();
+    zoomAtPoint(1 / 1.2, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  document.getElementById("btnFitView").addEventListener("click", fitView);
+  document.getElementById("btnClearCanvas").addEventListener("click", () => {
+    if (confirm("Clear canvas?")) {
+      const proj = currentProject();
+      pushUndo();
+      proj.nodes.clear();
+      proj.startNodeId = null;
+      proj.selectedNodeId = null;
+      renderAll();
+      updateEditorPanel();
+      fitView();
+    }
+  });
+  document.getElementById("btnClosePanel").addEventListener("click", () => {
+    currentProject().selectedNodeId = null;
+    renderNodes();
+    updateEditorPanel();
+  });
+  document.getElementById("btnDeleteNode").addEventListener("click", () => {
+    if (currentProject().selectedNodeId)
+      deleteNode(currentProject().selectedNodeId);
+  });
+  document.getElementById("btnDuplicateNode").addEventListener("click", () => {
+    if (currentProject().selectedNodeId)
+      duplicateNode(currentProject().selectedNodeId);
+  });
+  document
+    .getElementById("btnCloseRuntime")
+    .addEventListener("click", stopRuntime);
+  document
+    .getElementById("btnClosePanelRuntime")
+    .addEventListener("click", stopRuntime);
+  DOM.runtimeModal.addEventListener("click", (e) => {
+    if (e.target === DOM.runtimeModal) stopRuntime();
+  });
+  document
+    .getElementById("btnCloseImport")
+    .addEventListener("click", closeImportModal);
+  DOM.importModal.addEventListener("click", (e) => {
+    if (e.target === DOM.importModal) closeImportModal();
+  });
+  document
+    .getElementById("btnImportConfirm")
+    .addEventListener("click", handleImportConfirm);
+  DOM.importDropzone.addEventListener("click", () =>
+    DOM.importFileInput.click(),
+  );
+  DOM.importFileInput.setAttribute("accept", ".canvas,.html");
+  DOM.importFileInput.addEventListener("change", (e) => {
+    if (e.target.files[0]) handleFileUpload(e.target.files[0]);
+  });
+  DOM.importDropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    DOM.importDropzone.classList.add("dragover");
+  });
+  DOM.importDropzone.addEventListener("dragleave", () =>
+    DOM.importDropzone.classList.remove("dragover"),
+  );
+  DOM.importDropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    DOM.importDropzone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
+  });
+  DOM.minimapCanvas.addEventListener("click", (e) => {
+    const proj = currentProject();
+    if (!proj.nodes.size) return;
+
+    const rect = DOM.minimapCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    // Calculate the bounding box of all nodes (same as renderMinimap)
+    let mnX = Infinity,
+      mnY = Infinity,
+      mxX = -Infinity,
+      mxY = -Infinity;
+    proj.nodes.forEach((n) => {
+      const r = getNodeRect(n.id);
+      mnX = Math.min(mnX, n.x);
+      mnY = Math.min(mnY, n.y);
+      mxX = Math.max(mxX, n.x + r.width);
+      mxY = Math.max(mxY, n.y + r.height);
+    });
+    const pad = 60;
+    const ww = mxX - mnX + pad * 2;
+    const wh = mxY - mnY + pad * 2;
+    const w = DOM.minimapCanvas.width;
+    const h = DOM.minimapCanvas.height;
+    const s = Math.min(w / ww, h / wh);
+    const ox = (w - ww * s) / 2;
+    const oy = (h - wh * s) / 2;
+
+    // Convert minimap pixel to world coordinates
+    const worldX = (mx - ox) / s + mnX - pad;
+    const worldY = (my - oy) / s + mnY - pad;
+
+    // Center the view on that point
+    const containerRect = DOM.canvasContainer.getBoundingClientRect();
+    state.panX = containerRect.width / 2 - worldX * state.zoom;
+    state.panY = containerRect.height / 2 - worldY * state.zoom;
+    applyCanvasTransform();
+  });
+  document.addEventListener("keydown", onKeyDown);
+  const projectNameEl = document.getElementById("projectName");
+  if (projectNameEl) {
+    projectNameEl.addEventListener("blur", () => {
+      const proj = currentProject();
+      const newName = projectNameEl.textContent.trim() || "Untitled";
+      if (proj.name !== newName) {
+        proj.name = newName;
+        renderTabs();
+        markUnsaved();
+      }
+    });
+    projectNameEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        projectNameEl.blur();
+      }
+    });
+  }
+  window.addEventListener(
+    "resize",
+    debounce(() => renderAll(), 200),
+  );
+  document.getElementById("btnZoom100").addEventListener("click", () => {
+    const containerRect = DOM.canvasContainer.getBoundingClientRect();
+    const centerScreenX = containerRect.width / 2,
+      centerScreenY = containerRect.height / 2;
+    const worldX = (centerScreenX - state.panX) / state.zoom;
+    const worldY = (centerScreenY - state.panY) / state.zoom;
+    state.zoom = 1;
+    state.panX = centerScreenX - worldX * state.zoom;
+    state.panY = centerScreenY - worldY * state.zoom;
+    applyCanvasTransform();
+    showToast("Zoom 100%", "info");
+  });
+  // Mailto builder
+  document
+    .getElementById("btnCloseMailto")
+    .addEventListener("click", closeMailtoBuilder);
+  document.getElementById("mailtoModal").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("mailtoModal"))
+      closeMailtoBuilder();
+  });
+  document
+    .getElementById("mailtoTo")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoCC")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoBCC")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoSubject")
+    .addEventListener("input", generateMailtoUrl);
+  document
+    .getElementById("mailtoBody")
+    .addEventListener("input", generateMailtoUrl);
+  document.getElementById("btnCopyMailto").addEventListener("click", () => {
+    const url = document.getElementById("mailtoUrl").value;
+    if (url) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          showToast("Mailto URL copied!", "success");
+        })
+        .catch(() => {
+          const ta = document.createElement("textarea");
+          ta.value = url;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          showToast("Mailto URL copied!", "success");
+        });
+    }
+  });
+}
+
+function renderTabs() {
+  const container = document.getElementById("tabsContainer");
+  if (!container) return;
+  container.innerHTML = "";
+  state.projects.forEach((proj, idx) => {
+    const tab = document.createElement("div");
+    tab.className =
+      "tab-btn" + (idx === state.activeProjectIndex ? " active" : "");
+    tab.innerHTML = `<span class="tab-name">${escapeHtml(proj.name)}</span>${state.projects.length > 1 ? `<span class="tab-close" data-close-index="${idx}">×</span>` : ""}`;
+    tab.addEventListener("click", (e) => {
+      if (e.target.classList.contains("tab-close")) {
+        e.stopPropagation();
+        closeTab(parseInt(e.target.dataset.closeIndex));
+        return;
+      }
+      switchToProject(idx);
+    });
+    container.appendChild(tab);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
+
+// File: j:\Canvas\js\canvas.js
+// ---- CANVAS / ZOOM / PAN / MINIMAP / MOUSE HANDLERS ----
+
+function updateZoomDisplay() {
+  DOM.zoomLevel.textContent = Math.round(state.zoom * 100) + "%";
+}
+
+function applyCanvasTransform(animate = false) {
+  if (animate) {
+    DOM.canvasWorkspace.classList.add("animating");
+    setTimeout(() => DOM.canvasWorkspace.classList.remove("animating"), 400);
+  } else {
+    DOM.canvasWorkspace.classList.remove("animating");
+  }
+  DOM.canvasWorkspace.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+  updateZoomDisplay();
+  renderMinimap();
+}
+
+function zoomAtPoint(f, cx, cy) {
+  const r = DOM.canvasContainer.getBoundingClientRect();
+  const mx = cx - r.left,
+    my = cy - r.top;
+  const old = state.zoom;
+  state.zoom = clamp(state.zoom * f, 0.2, 3);
+  state.panX = mx - (mx - state.panX) * (state.zoom / old);
+  state.panY = my - (my - state.panY) * (state.zoom / old);
+  applyCanvasTransform();
+}
+
+function fitView() {
+  const proj = currentProject();
+  if (!proj.nodes.size) {
+    state.zoom = 1;
+    state.panX = 0;
+    state.panY = 0;
+    applyCanvasTransform(true);
+    return;
+  }
+  let mnX = Infinity,
+    mnY = Infinity,
+    mxX = -Infinity,
+    mxY = -Infinity;
+  proj.nodes.forEach((n) => {
+    const r = getNodeRect(n.id);
+    mnX = Math.min(mnX, n.x);
+    mnY = Math.min(mnY, n.y);
+    mxX = Math.max(mxX, n.x + r.width);
+    mxY = Math.max(mxY, n.y + r.height);
+  });
+  const rect = DOM.canvasContainer.getBoundingClientRect();
+  state.zoom = clamp(
+    Math.min(rect.width / (mxX - mnX + 80), rect.height / (mxY - mnY + 80)),
+    0.2,
+    2,
+  );
+  state.panX = rect.width / 2 - (mnX + (mxX - mnX) / 2) * state.zoom;
+  state.panY = rect.height / 2 - (mnY + (mxY - mnY) / 2) * state.zoom;
+  applyCanvasTransform(true);
+}
+
+function renderMinimap() {
+  const proj = currentProject();
+  const ctx = DOM.minimapCanvas.getContext("2d");
+  const w = DOM.minimapCanvas.width,
+    h = DOM.minimapCanvas.height;
+  ctx.clearRect(0, 0, w, h);
+  if (!proj.nodes.size) {
+    DOM.minimapViewport.style.display = "none";
+    return;
+  }
+
+  let mnX = Infinity,
+    mnY = Infinity,
+    mxX = -Infinity,
+    mxY = -Infinity;
+  proj.nodes.forEach((n) => {
+    const r = getNodeRect(n.id);
+    mnX = Math.min(mnX, n.x);
+    mnY = Math.min(mnY, n.y);
+    mxX = Math.max(mxX, n.x + r.width);
+    mxY = Math.max(mxY, n.y + r.height);
+  });
+  const pad = 60,
+    ww = mxX - mnX + pad * 2,
+    wh = mxY - mnY + pad * 2;
+  const s = Math.min(w / ww, h / wh);
+  const ox = (w - ww * s) / 2,
+    oy = (h - wh * s) / 2;
+
+  proj.nodes.forEach((n) => {
+    const r = getNodeRect(n.id);
+    ctx.fillStyle =
+      n.id === proj.selectedNodeId
+        ? "rgba(219,0,17,0.7)"
+        : "rgba(200,200,220,0.5)";
+    ctx.fillRect(
+      ox + (n.x - mnX + pad) * s,
+      oy + (n.y - mnY + pad) * s,
+      r.width * s,
+      r.height * s,
+    );
+  });
+
+  const vp = DOM.canvasContainer.getBoundingClientRect();
+  DOM.minimapViewport.style.display = "block";
+  DOM.minimapViewport.style.left =
+    clamp(ox + (-state.panX / state.zoom - mnX + pad) * s, 0, w - 1) + "px";
+  DOM.minimapViewport.style.top =
+    clamp(oy + (-state.panY / state.zoom - mnY + pad) * s, 0, h - 1) + "px";
+  DOM.minimapViewport.style.width =
+    clamp((vp.width / state.zoom) * s, 4, w) + "px";
+  DOM.minimapViewport.style.height =
+    clamp((vp.height / state.zoom) * s, 4, h) + "px";
+}
+
+function getCanvasCoords(e) {
+  const r = DOM.canvasContainer.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left - state.panX) / state.zoom,
+    y: (e.clientY - r.top - state.panY) / state.zoom,
+    screenX: e.clientX,
+    screenY: e.clientY,
+  };
+}
+
+// ---------- MOUSE HANDLERS ----------
+function onNodeMouseDown(e) {
+  if (e.button !== 0) return;
+  if (e.target.closest(".node-port,.node-option-port")) return;
+  const nodeEl = e.target.closest(".canvas-node");
+  if (!nodeEl) return;
+  const id = nodeEl.dataset.nodeId;
+  const proj = currentProject();
+  if (!proj.nodes.has(id)) return;
+  e.stopPropagation();
+  e.preventDefault();
+  const ctrl = e.ctrlKey || e.metaKey;
+
+  if (state.selectedNodeIds.has(id) && state.selectedNodeIds.size > 1) {
+    state.isDraggingNode = true;
+    state.dragNodeId = id;
+    state.multiDragOffsets = [];
+    state.selectedNodeIds.forEach((nid) => {
+      const node = proj.nodes.get(nid);
+      if (node)
+        state.multiDragOffsets.push({
+          id: nid,
+          startX: node.x,
+          startY: node.y,
+        });
+    });
+    const coords = getCanvasCoords(e);
+    const refNode = proj.nodes.get(id);
+    state.dragNodeOffset = { x: coords.x - refNode.x, y: coords.y - refNode.y };
+    nodeEl.classList.add("dragging");
+    document.addEventListener("mousemove", onNodeMouseMove);
+    document.addEventListener("mouseup", onNodeMouseUp);
+    return;
+  }
+
+  if (ctrl) {
+    if (state.selectedNodeIds.has(id)) state.selectedNodeIds.delete(id);
+    else state.selectedNodeIds.add(id);
+    proj.selectedNodeId = state.selectedNodeIds.size === 1 ? id : null;
+    renderNodes();
+    updateEditorPanel();
+    return;
+  }
+
+  state.selectedNodeIds.clear();
+  state.selectedNodeIds.add(id);
+  proj.selectedNodeId = id;
+  renderNodes();
+  updateEditorPanel();
+  state.isDraggingNode = true;
+  state.dragNodeId = id;
+  state.multiDragOffsets = null;
+  const node = proj.nodes.get(id);
+  state.dragNodeStartPos = { x: node.x, y: node.y };
+  const coords = getCanvasCoords(e);
+  state.dragNodeOffset = { x: coords.x - node.x, y: coords.y - node.y };
+  nodeEl.classList.add("dragging");
+  document.addEventListener("mousemove", onNodeMouseMove);
+  document.addEventListener("mouseup", onNodeMouseUp);
+}
+function onNodeMouseMove(e) {
+  if (!state.isDraggingNode) return;
+  const proj = currentProject();
+  const coords = getCanvasCoords(e);
+
+  // ----- Auto‑scroll near canvas edges -----
+  const margin = 60;
+  const baseSpeed = 8;
+  const canvasRect = DOM.canvasContainer.getBoundingClientRect();
+
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+
+  let scrollX = 0,
+    scrollY = 0;
+
+  if (mouseX < canvasRect.left + margin) {
+    const dist = canvasRect.left + margin - mouseX;
+    scrollX = baseSpeed * Math.min(1, dist / margin);
+  } else if (mouseX > canvasRect.right - margin) {
+    const dist = mouseX - (canvasRect.right - margin);
+    scrollX = -baseSpeed * Math.min(1, dist / margin);
+  }
+
+  if (mouseY < canvasRect.top + margin) {
+    const dist = canvasRect.top + margin - mouseY;
+    scrollY = baseSpeed * Math.min(1, dist / margin);
+  } else if (mouseY > canvasRect.bottom - margin) {
+    const dist = mouseY - (canvasRect.bottom - margin);
+    scrollY = -baseSpeed * Math.min(1, dist / margin);
+  }
+
+  if (scrollX !== 0 || scrollY !== 0) {
+    state.panX += scrollX;
+    state.panY += scrollY;
+    applyCanvasTransform();
+    // Recalculate coordinates after pan change
+    const newCoords = getCanvasCoords(e);
+    // Update the node position based on the new pan-adjusted coordinates
+    if (state.multiDragOffsets && state.multiDragOffsets.length > 1) {
+      const refStart = state.multiDragOffsets.find(
+        (entry) => entry.id === state.dragNodeId,
+      );
+      if (refStart) {
+        const newX = Math.round(newCoords.x - state.dragNodeOffset.x),
+          newY = Math.round(newCoords.y - state.dragNodeOffset.y);
+        const dx = newX - refStart.startX,
+          dy = newY - refStart.startY;
+        state.multiDragOffsets.forEach((entry) => {
+          const node = proj.nodes.get(entry.id);
+          if (node) {
+            node.x = entry.startX + dx;
+            node.y = entry.startY + dy;
+            const el = DOM.nodesLayer.querySelector(
+              `[data-node-id="${entry.id}"]`,
+            );
+            if (el) {
+              el.style.left = node.x + "px";
+              el.style.top = node.y + "px";
+              positionOptionPorts(el, node);
+            }
+          }
+        });
+      }
+    } else {
+      const node = proj.nodes.get(state.dragNodeId);
+      if (node) {
+        node.x = Math.round(newCoords.x - state.dragNodeOffset.x);
+        node.y = Math.round(newCoords.y - state.dragNodeOffset.y);
+        const el = DOM.nodesLayer.querySelector(
+          `[data-node-id="${state.dragNodeId}"]`,
+        );
+        if (el) {
+          el.style.left = node.x + "px";
+          el.style.top = node.y + "px";
+          positionOptionPorts(el, node);
+        }
+      }
+    }
+    renderConnections();
+    renderMinimap();
+    return; // Don't fall through to the old position update
+  }
+
+  // Original logic when not scrolling
+  if (state.multiDragOffsets && state.multiDragOffsets.length > 1) {
+    const refStart = state.multiDragOffsets.find(
+      (entry) => entry.id === state.dragNodeId,
+    );
+    if (!refStart) return;
+    const newX = Math.round(coords.x - state.dragNodeOffset.x),
+      newY = Math.round(coords.y - state.dragNodeOffset.y);
+    const dx = newX - refStart.startX,
+      dy = newY - refStart.startY;
+    state.multiDragOffsets.forEach((entry) => {
+      const node = proj.nodes.get(entry.id);
+      if (node) {
+        node.x = entry.startX + dx;
+        node.y = entry.startY + dy;
+        const el = DOM.nodesLayer.querySelector(`[data-node-id="${entry.id}"]`);
+        if (el) {
+          el.style.left = node.x + "px";
+          el.style.top = node.y + "px";
+          positionOptionPorts(el, node);
+        }
+      }
+    });
+    renderConnections();
+    renderMinimap();
+    return;
+  }
+
+  const node = proj.nodes.get(state.dragNodeId);
+  if (!node) return;
+  node.x = Math.round(coords.x - state.dragNodeOffset.x);
+  node.y = Math.round(coords.y - state.dragNodeOffset.y);
+  const el = DOM.nodesLayer.querySelector(
+    `[data-node-id="${state.dragNodeId}"]`,
+  );
+  if (el) {
+    el.style.left = node.x + "px";
+    el.style.top = node.y + "px";
+    positionOptionPorts(el, node);
+  }
+  renderConnections();
+  renderMinimap();
+}
+function onNodeMouseUp(e) {
+  document.removeEventListener("mousemove", onNodeMouseMove);
+  document.removeEventListener("mouseup", onNodeMouseUp);
+  if (state.isDraggingNode) {
+    const proj = currentProject();
+    if (state.multiDragOffsets && state.multiDragOffsets.length > 1) {
+      let moved = false;
+      state.multiDragOffsets.forEach((entry) => {
+        const node = proj.nodes.get(entry.id);
+        if (node && (node.x !== entry.startX || node.y !== entry.startY))
+          moved = true;
+      });
+      if (moved) pushUndo();
+    } else {
+      const node = proj.nodes.get(state.dragNodeId);
+      if (
+        node &&
+        (node.x !== state.dragNodeStartPos.x ||
+          node.y !== state.dragNodeStartPos.y)
+      )
+        pushUndo();
+    }
+    const draggedIds = state.multiDragOffsets
+      ? state.multiDragOffsets.map((e) => e.id)
+      : [state.dragNodeId];
+    draggedIds.forEach((nid) => {
+      const el = DOM.nodesLayer.querySelector(`[data-node-id="${nid}"]`);
+      if (el) el.classList.remove("dragging");
+    });
+    state.isDraggingNode = false;
+    state.dragNodeId = null;
+    state.multiDragOffsets = null;
+    renderAll();
+  }
+}
+function onPortMouseDown(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  const port = e.target.closest(".node-port,.node-option-port");
+  if (!port) return;
+  const nodeId = port.dataset.nodeId,
+    portType = port.dataset.portType;
+  if (portType !== "out") return;
+  const optIdx =
+    port.dataset.optionIndex !== undefined
+      ? parseInt(port.dataset.optionIndex)
+      : -1;
+  state.isDraggingConnection = true;
+  state.dragConnectionSource = {
+    nodeId,
+    optionIndex: optIdx >= 0 ? optIdx : null,
+  };
+  const coords = getCanvasCoords(e);
+  state.dragConnectionMouse = { x: coords.x, y: coords.y };
+  updateDragLine();
+  document.addEventListener("mousemove", onConnectionDragMove);
+  document.addEventListener("mouseup", onConnectionDragUp);
+  console.log("Connection drag started", state.isDraggingConnection);
+}
+function onConnectionDragMove(e) {
+  if (!state.isDraggingConnection) return;
+
+  const coords = getCanvasCoords(e);
+  state.dragConnectionMouse = { x: coords.x, y: coords.y };
+  updateDragLine();
+
+  const margin = 60;
+  const baseSpeed = 12;
+  const canvasRect = DOM.canvasContainer.getBoundingClientRect();
+
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+
+  let scrollX = 0,
+    scrollY = 0;
+
+  if (mouseX < canvasRect.left + margin) {
+    const dist = canvasRect.left + margin - mouseX;
+    scrollX = baseSpeed * Math.min(1, dist / margin);
+  } else if (mouseX > canvasRect.right - margin) {
+    const dist = mouseX - (canvasRect.right - margin);
+    scrollX = -baseSpeed * Math.min(1, dist / margin);
+  }
+
+  if (mouseY < canvasRect.top + margin) {
+    const dist = canvasRect.top + margin - mouseY;
+    scrollY = baseSpeed * Math.min(1, dist / margin);
+  } else if (mouseY > canvasRect.bottom - margin) {
+    const dist = mouseY - (canvasRect.bottom - margin);
+    scrollY = -baseSpeed * Math.min(1, dist / margin);
+  }
+
+  if (scrollX !== 0 || scrollY !== 0) {
+    state.panX += scrollX;
+    state.panY += scrollY;
+    applyCanvasTransform();
+    updateDragLine(); // reposition the line after pan change
+    console.log("Auto‑scroll:", scrollX.toFixed(2), scrollY.toFixed(2));
+  }
+}
+function onConnectionDragUp(e) {
+  document.removeEventListener("mousemove", onConnectionDragMove);
+  document.removeEventListener("mouseup", onConnectionDragUp);
+  if (!state.isDraggingConnection) return;
+  state.isDraggingConnection = false;
+  DOM.dragLinePath.style.display = "none";
+  const coords = getCanvasCoords(e);
+  const targetNodeEl = document.elementFromPoint(
+    coords.screenX,
+    coords.screenY,
+  );
+  if (targetNodeEl) {
+    const nodeEl = targetNodeEl.closest(".canvas-node");
+    if (nodeEl) {
+      const targetId = nodeEl.dataset.nodeId;
+      const src = state.dragConnectionSource;
+      const proj = currentProject();
+      if (
+        targetId &&
+        src.nodeId !== targetId &&
+        proj.nodes.has(targetId) &&
+        proj.nodes.has(src.nodeId)
+      ) {
+        pushUndo();
+        const srcNode = proj.nodes.get(src.nodeId);
+        if (
+          srcNode.type === "choice" &&
+          src.optionIndex != null &&
+          src.optionIndex >= 0
+        ) {
+          if (srcNode.options[src.optionIndex])
+            srcNode.options[src.optionIndex].next = targetId;
+        } else if (srcNode.type === "decision") {
+          if (src.optionIndex === 0) srcNode.trueNext = targetId;
+          else if (src.optionIndex === 1) srcNode.falseNext = targetId;
+        } else if (srcNode.type !== "end") {
+          srcNode.next = targetId;
+        }
+        renderAll();
+        updateEditorPanel();
+        showToast("Connection created", "success");
+      }
+    }
+  }
+  state.dragConnectionSource = null;
+}
+
+function updateDragLine() {
+  if (!state.isDraggingConnection) {
+    DOM.dragLinePath.style.display = "none";
+    return;
+  }
+  DOM.dragLinePath.style.display = "";
+  const src = state.dragConnectionSource;
+  const proj = currentProject();
+  const srcNode = proj.nodes.get(src.nodeId);
+  if (!srcNode) {
+    DOM.dragLinePath.style.display = "none";
+    return;
+  }
+  const srcPos = getNodePortPosition(srcNode, src.optionIndex ?? -1);
+  const mouse = state.dragConnectionMouse;
+  const dx = Math.abs(mouse.x - srcPos.x) * 0.5;
+  DOM.dragLinePath.setAttribute(
+    "d",
+    `M ${srcPos.x} ${srcPos.y} C ${srcPos.x + clamp(dx, 40, 200)} ${srcPos.y}, ${mouse.x - clamp(dx, 40, 200)} ${mouse.y}, ${mouse.x} ${mouse.y}`,
+  );
+}
+
+// ---- CANVAS MOUSE (RIGHT‑CLICK PAN + LEFT‑CLICK MARQUEE) ----
+function onCanvasMouseDown(e) {
+  if (e.button === 2) {
+    e.preventDefault();
+    state.isPanning = true;
+    state.panStart = { x: e.clientX, y: e.clientY };
+    state.panStartOffset = { x: state.panX, y: state.panY };
+    DOM.canvasContainer.classList.add("panning");
+    document.addEventListener("mousemove", onCanvasMouseMove);
+    document.addEventListener("mouseup", onCanvasMouseUp);
+    return;
+  }
+
+  // Deselect any connection when clicking empty space
+  if (e.button === 0 && state.selectedConnection) {
+    clearConnectionSelection();
+    renderAll();
+  }
+
+  if (
+    e.button === 0 &&
+    !e.target.closest(".canvas-node") &&
+    !e.target.closest(".node-port") &&
+    !e.target.closest(".node-option-port") &&
+    !e.target.closest(".minimap") &&
+    !e.target.closest(".connection-path") // don't start marquee if clicking a connection
+  ) {
+    e.preventDefault();
+    const coords = getCanvasCoords(e);
+    state.marquee = {
+      startX: coords.x,
+      startY: coords.y,
+      currentX: coords.x,
+      currentY: coords.y,
+    };
+    const marqueeEl = document.createElement("div");
+    marqueeEl.className = "marquee-box";
+    marqueeEl.id = "marqueeBox";
+    DOM.nodesLayer.appendChild(marqueeEl);
+    document.addEventListener("mousemove", onMarqueeMouseMove);
+    document.addEventListener("mouseup", onMarqueeMouseUp);
+    currentProject().selectedNodeId = null;
+    state.selectedNodeIds.clear();
+    renderNodes();
+    updateEditorPanel();
+  }
+}
+
+function onCanvasMouseMove(e) {
+  if (state.isPanning) {
+    state.panX = state.panStartOffset.x + (e.clientX - state.panStart.x);
+    state.panY = state.panStartOffset.y + (e.clientY - state.panStart.y);
+    applyCanvasTransform();
+  }
+}
+
+function onCanvasMouseUp(e) {
+  document.removeEventListener("mousemove", onCanvasMouseMove);
+  document.removeEventListener("mouseup", onCanvasMouseUp);
+  state.isPanning = false;
+  DOM.canvasContainer.classList.remove("panning");
+}
+
+function onMarqueeMouseMove(e) {
+  if (!state.marquee) return;
+  const coords = getCanvasCoords(e);
+  state.marquee.currentX = coords.x;
+  state.marquee.currentY = coords.y;
+  updateMarqueeBox();
+}
+
+function onMarqueeMouseUp(e) {
+  document.removeEventListener("mousemove", onMarqueeMouseMove);
+  document.removeEventListener("mouseup", onMarqueeMouseUp);
+  if (!state.marquee) return;
+  const { startX, startY, currentX, currentY } = state.marquee;
+  const minX = Math.min(startX, currentX),
+    maxX = Math.max(startX, currentX);
+  const minY = Math.min(startY, currentY),
+    maxY = Math.max(startY, currentY);
+  const proj = currentProject();
+  state.selectedNodeIds.clear();
+  proj.nodes.forEach((node) => {
+    const rect = getNodeRect(node.id);
+    if (
+      node.x + rect.width >= minX &&
+      node.x <= maxX &&
+      node.y + rect.height >= minY &&
+      node.y <= maxY
+    ) {
+      state.selectedNodeIds.add(node.id);
+    }
+  });
+  const box = document.getElementById("marqueeBox");
+  if (box) box.remove();
+  state.marquee = null;
+  renderNodes();
+  if (state.selectedNodeIds.size === 1) {
+    proj.selectedNodeId = state.selectedNodeIds.values().next().value;
+    updateEditorPanel();
+  } else {
+    proj.selectedNodeId = null;
+    updateEditorPanel();
+  }
+}
+
+function updateMarqueeBox() {
+  if (!state.marquee) return;
+  const box = document.getElementById("marqueeBox");
+  if (!box) return;
+  const { startX, startY, currentX, currentY } = state.marquee;
+  const left = Math.min(startX, currentX),
+    top = Math.min(startY, currentY);
+  const width = Math.abs(currentX - startX),
+    height = Math.abs(currentY - startY);
+  box.style.left = left + "px";
+  box.style.top = top + "px";
+  box.style.width = width + "px";
+  box.style.height = height + "px";
+}
+
+function onCanvasWheel(e) {
+  e.preventDefault();
+  zoomAtPoint(e.deltaY < 0 ? 1.08 : 1 / 1.08, e.clientX, e.clientY);
 }
 
 
