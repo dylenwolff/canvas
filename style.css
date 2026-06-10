@@ -477,7 +477,6 @@ body {
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: var(--shadow-md);
 }
-/* Selection glow per node type */
 .canvas-node.selected {
   z-index: 5;
   border-color: transparent !important;
@@ -766,21 +765,7 @@ body {
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
-  stroke: rgba(219, 0, 17, 0.5);
   transition: stroke var(--transition-fast);
-}
-.connection-path:hover {
-  stroke: rgba(219, 0, 17, 0.85);
-  stroke-width: 2.5;
-}
-.connection-path.connection-true {
-  stroke: rgba(16, 185, 129, 0.5);
-}
-.connection-path.connection-false {
-  stroke: rgba(239, 68, 68, 0.5);
-}
-.connection-arrow {
-  fill: rgba(219, 0, 17, 0.65);
 }
 
 /* ---- Editor Panel ---- */
@@ -1110,7 +1095,7 @@ body {
 }
 .progress-dots {
   display: none;
-} /* hidden by design */
+}
 
 /* Copy box runtime */
 .runtime-copy-block {
@@ -1244,7 +1229,7 @@ body {
   }
 }
 
-/* Scrollbar */
+/* Scrollbar (global) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -1589,7 +1574,15 @@ body {
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
+  border-radius: 0;
+  /* hidden scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
+.runtime-panel-body::-webkit-scrollbar {
+  display: none;
+}
+
 .runtime-panel-footer {
   background: var(--bg-glass);
   border-top: 1px solid var(--border-subtle);
@@ -1615,13 +1608,12 @@ body {
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 12px; /* controls spacing between question and everything else */
+  gap: 12px;
 }
-
 .linear-step .runtime-question {
   font-size: 1.05rem;
   font-weight: 600;
-  margin-bottom: 0; /* gap is now handled by the parent’s gap */
+  margin-bottom: 0;
   white-space: pre-wrap;
 }
 .linear-step .runtime-options {
@@ -1817,14 +1809,14 @@ body {
 .linear-step.variant-action .linear-continue-btn {
   background: #8b5cf6;
 }
-/* Chat bubble variant colors – add missing ones */
+
+/* Chat bubble variant colors */
 .chat-bubble.info {
   background: rgba(59, 130, 246, 0.12);
   border-color: #3b82f6;
   color: #93c5fd;
 }
 .chat-bubble.success {
-  /* already exists – keep it */
   background: rgba(16, 185, 129, 0.12);
   border-color: var(--success);
   color: var(--success);
@@ -1835,7 +1827,6 @@ body {
   color: #fcd34d;
 }
 .chat-bubble.error {
-  /* already exists – keep it */
   background: rgba(239, 68, 68, 0.12);
   border-color: var(--danger);
   color: var(--danger);
@@ -1845,7 +1836,8 @@ body {
   border-color: #8b5cf6;
   color: #c4b5fd;
 }
-/* ----- Message variant button colours (Step modal) ----- */
+
+/* Message variant button colours (Step modal) */
 .runtime-modal.variant-info .runtime-submit-btn {
   background: #3b82f6;
   box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
@@ -1867,6 +1859,8 @@ body {
   background: #8b5cf6;
   box-shadow: 0 2px 12px rgba(139, 92, 246, 0.4);
 }
+
+/* Navbar */
 .navbar {
   display: flex;
   align-items: center;
@@ -1881,7 +1875,6 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
-  /* remove any margin-left: auto */
 }
 .navbar-title {
   font-size: 1.25rem;
@@ -1892,28 +1885,20 @@ body {
 }
 
 .modal-content.runtime-modal {
-  border-radius: var(--radius-xl); /* already there */
+  border-radius: var(--radius-xl);
 }
 .runtime-panel-header.navbar {
-  border-radius: 0; /* keep it square at the top */
-  /* but you can add a subtle bottom border rounding effect if desired */
-}
-.runtime-panel-body {
-  border-radius: 0; /* consistent with header */
+  border-radius: 0;
 }
 .runtime-submit-btn,
 .runtime-option-btn,
 .btn-copy {
-  border-radius: var(--radius-md); /* already applied */
-}
-.runtime-panel-body,
-.runtime-panel-footer {
-  overflow: hidden; /* already has overflow-y:auto on body, just add this for safety */
+  border-radius: var(--radius-md);
 }
 
 /* ---- Link Node ---- */
 .canvas-node.node-link {
-  border-left: 2px solid #14b8a6; /* thinner, but still identifiable */
+  border-left: 2px solid #14b8a6;
 }
 .node-link .node-type-badge {
   background: rgba(20, 184, 166, 0.2);
@@ -1930,16 +1915,15 @@ body {
   color: #5eead4;
   border-color: rgba(20, 184, 166, 0.3);
 }
-/* Wider bubble for link nodes – allows buttons to expand */
+
 .chat-bubble.link-bubble {
   max-width: 90%;
 }
 
-/* Link buttons – kept at your preferred size, no height increase */
 .chat-link-btn {
   display: block;
   width: 100%;
-  padding: 10px 14px; /* original comfortable vertical padding */
+  padding: 10px 14px;
   border-radius: var(--radius-md);
   border: 1px solid #14b8a6;
   background: transparent;
@@ -1960,7 +1944,6 @@ body {
   color: #ffffff;
 }
 
-/* Container for the link buttons inside the bubble */
 .chat-links {
   display: flex;
   flex-direction: column;
@@ -1972,12 +1955,12 @@ body {
   transform: translateY(-50%) !important;
   right: -7px;
 }
-/* Runtime link buttons – centered text, minimum width */
+
 .runtime-link-btn,
 .chat-link-btn {
   display: block;
   width: 100%;
-  min-width: 200px; /* ensures buttons aren’t too narrow */
+  min-width: 200px;
   padding: 10px 14px;
   border-radius: var(--radius-md);
   border: 1px solid #14b8a6;
@@ -1988,7 +1971,7 @@ body {
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
-  text-align: center; /* horizontal centering */
+  text-align: center;
   line-height: 1.4;
   margin-bottom: 0;
 }
@@ -1999,6 +1982,7 @@ body {
   box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
   color: #ffffff;
 }
+
 /* ---- Set Variable Node ---- */
 .canvas-node.node-setvar {
   border-left: 3px solid #a855f7;
@@ -2014,6 +1998,7 @@ body {
     0 0 20px rgba(168, 85, 247, 0.35),
     0 0 0 4px rgba(168, 85, 247, 0.12) !important;
 }
+
 /* Mailto link builder modal */
 .mailto-modal {
   max-width: 420px;

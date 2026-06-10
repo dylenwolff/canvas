@@ -491,12 +491,20 @@ function onCanvasMouseDown(e) {
     document.addEventListener("mouseup", onCanvasMouseUp);
     return;
   }
+
+  // Deselect any connection when clicking empty space
+  if (e.button === 0 && state.selectedConnection) {
+    clearConnectionSelection();
+    renderAll();
+  }
+
   if (
     e.button === 0 &&
     !e.target.closest(".canvas-node") &&
     !e.target.closest(".node-port") &&
     !e.target.closest(".node-option-port") &&
-    !e.target.closest(".minimap")
+    !e.target.closest(".minimap") &&
+    !e.target.closest(".connection-path") // don't start marquee if clicking a connection
   ) {
     e.preventDefault();
     const coords = getCanvasCoords(e);

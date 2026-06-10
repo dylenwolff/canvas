@@ -154,10 +154,32 @@ function onKeyDown(e) {
   } else if (ctrl && e.key === "d" && proj.selectedNodeId) {
     e.preventDefault();
     duplicateNode(proj.selectedNodeId);
-  } else if (e.key === "Delete" || e.key === "Backspace") {
+  }
+  if (e.key === "Delete" || e.key === "Backspace") {
+    // If a connection is selected, delete it first
+    if (state.selectedConnection) {
+      e.preventDefault();
+      deleteConnection(
+        state.selectedConnection.sourceNodeId,
+        state.selectedConnection.optionIndex,
+      );
+      return;
+    }
+    // Otherwise, delete the selected node
     if (proj.selectedNodeId && document.activeElement === document.body) {
       e.preventDefault();
       deleteNode(proj.selectedNodeId);
+    }
+  } else if (e.key === "Escape") {
+    if (state.runtimeActive) stopRuntime();
+    else if (DOM.importModal.style.display === "flex") closeImportModal();
+    else if (state.selectedConnection) {
+      clearConnectionSelection();
+      renderAll();
+    } else if (proj.selectedNodeId) {
+      proj.selectedNodeId = null;
+      renderNodes();
+      updateEditorPanel();
     }
   } else if (e.key === "Escape") {
     if (state.runtimeActive) stopRuntime();
@@ -309,4 +331,21 @@ function generateMailtoUrl() {
 
   if (params.length) mailto += "?" + params.join("&");
   document.getElementById("mailtoUrl").value = mailto;
+}
+function deleteConnection(sourceId, optionIndex) {
+  const proj = currentProject();
+  const node = proj.nodes.get(sourceId);
+  if (!node) return;
+  pushUndo();
+  if (node.type === "choice" && node.options) {
+    node.options[optionIndex].next = "";
+  } else if (node.type === "decision") {
+    if (optionIndex === 0) node.trueNext = "";
+    else if (optionIndex === 1) node.falseNext = "";
+  } else {
+    node.next = "";
+  }
+  clearConnectionSelection();
+  renderAll();
+  showToast("Connection deleted", "info");
 }

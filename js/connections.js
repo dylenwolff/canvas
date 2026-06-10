@@ -26,6 +26,22 @@ function getNodeInputPosition(node) {
   return { x: node.x, y: node.y + r.height / 2 };
 }
 
+// Map node types to their accent colours
+function getSourceColor(node) {
+  const colors = {
+    choice: "#8b5cf6", // purple
+    decision: "#f97316", // orange – overridden per branch
+    message: "#3b82f6", // blue
+    copybox: "#0ea5e9", // sky
+    link: "#14b8a6", // teal
+    setvar: "#a855f7", // violet
+    input: "#f59e0b", // amber
+    number: "#ec4899", // pink
+    end: "#6b7280", // gray
+  };
+  return colors[node.type] || "#db0011"; // fallback red
+}
+
 function createConnectionPath(from, to, cls) {
   const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
   const dx = Math.abs(to.x - from.x) * 0.5;
@@ -38,31 +54,37 @@ function createConnectionPath(from, to, cls) {
   p.setAttribute("marker-end", "url(#arrowhead)");
   return p;
 }
-
 function renderConnections() {
   const proj = currentProject();
   const svg = DOM.connectionsSvg;
   svg.innerHTML = "";
 
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  const marker = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "marker",
-  );
-  marker.setAttribute("id", "arrowhead");
-  marker.setAttribute("markerWidth", "10");
-  marker.setAttribute("markerHeight", "8");
-  marker.setAttribute("refX", "9");
-  marker.setAttribute("refY", "4");
-  marker.setAttribute("orient", "auto");
-  const poly = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "polygon",
-  );
-  poly.setAttribute("points", "0 0, 10 4, 0 8");
-  poly.setAttribute("fill", "#DB0011");
-  marker.appendChild(poly);
-  defs.appendChild(marker);
+  const markerColors = new Set();
+
+  function getMarker(color) {
+    const id = "arrow-" + color.replace("#", "");
+    markerColors.add(color);
+    let m = svg.querySelector("#" + id);
+    if (m) return "url(#" + id + ")";
+    m = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+    m.setAttribute("id", id);
+    m.setAttribute("markerWidth", "10");
+    m.setAttribute("markerHeight", "8");
+    m.setAttribute("refX", "9");
+    m.setAttribute("refY", "4");
+    m.setAttribute("orient", "auto");
+    const poly = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "polygon",
+    );
+    poly.setAttribute("points", "0 0, 10 4, 0 8");
+    poly.setAttribute("fill", color);
+    m.appendChild(poly);
+    defs.appendChild(m);
+    return "url(#" + id + ")";
+  }
+
   svg.appendChild(defs);
 
   const drawn = new Set();
@@ -71,13 +93,23 @@ function renderConnections() {
       src.options.forEach((o, i) => {
         if (o.next && proj.nodes.has(o.next) && !drawn.has(`${src.id}:${i}`)) {
           drawn.add(`${src.id}:${i}`);
-          svg.appendChild(
-            createConnectionPath(
-              getNodePortPosition(src, i),
-              getNodeInputPosition(proj.nodes.get(o.next)),
-              `connection-choice-${i % 5}`,
-            ),
+          const path = createConnectionPath(
+            getNodePortPosition(src, i),
+            getNodeInputPosition(proj.nodes.get(o.next)),
+            "connection-choice",
           );
+          const color = getSourceColor(src);
+          path.setAttribute("stroke", color);
+          path.setAttribute("marker-end", getMarker(color));
+          path.setAttribute("opacity", "0.7");
+          // Store data for selection
+          path.dataset.sourceId = src.id;
+          path.dataset.optionIndex = i;
+          path.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectConnection(src.id, i);
+          });
+          svg.appendChild(path);
         }
       });
     } else if (src.type === "decision") {
@@ -87,13 +119,21 @@ function renderConnections() {
         !drawn.has(`${src.id}:t`)
       ) {
         drawn.add(`${src.id}:t`);
-        svg.appendChild(
-          createConnectionPath(
-            getNodePortPosition(src, 0),
-            getNodeInputPosition(proj.nodes.get(src.trueNext)),
-            "connection-true",
-          ),
+        const path = createConnectionPath(
+          getNodePortPosition(src, 0),
+          getNodeInputPosition(proj.nodes.get(src.trueNext)),
+          "connection-true",
         );
+        path.setAttribute("stroke", "#10b981");
+        path.setAttribute("marker-end", getMarker("#10b981"));
+        path.setAttribute("opacity", "0.7");
+        path.dataset.sourceId = src.id;
+        path.dataset.optionIndex = 0;
+        path.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectConnection(src.id, 0);
+        });
+        svg.appendChild(path);
       }
       if (
         src.falseNext &&
@@ -101,13 +141,21 @@ function renderConnections() {
         !drawn.has(`${src.id}:f`)
       ) {
         drawn.add(`${src.id}:f`);
-        svg.appendChild(
-          createConnectionPath(
-            getNodePortPosition(src, 1),
-            getNodeInputPosition(proj.nodes.get(src.falseNext)),
-            "connection-false",
-          ),
+        const path = createConnectionPath(
+          getNodePortPosition(src, 1),
+          getNodeInputPosition(proj.nodes.get(src.falseNext)),
+          "connection-false",
         );
+        path.setAttribute("stroke", "#ef4444");
+        path.setAttribute("marker-end", getMarker("#ef4444"));
+        path.setAttribute("opacity", "0.7");
+        path.dataset.sourceId = src.id;
+        path.dataset.optionIndex = 1;
+        path.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectConnection(src.id, 1);
+        });
+        svg.appendChild(path);
       }
     } else if (
       src.type !== "end" &&
@@ -116,17 +164,26 @@ function renderConnections() {
       !drawn.has(`${src.id}:-1`)
     ) {
       drawn.add(`${src.id}:-1`);
-      svg.appendChild(
-        createConnectionPath(
-          getNodePortPosition(src, -1),
-          getNodeInputPosition(proj.nodes.get(src.next)),
-          "connection-default",
-        ),
+      const path = createConnectionPath(
+        getNodePortPosition(src, -1),
+        getNodeInputPosition(proj.nodes.get(src.next)),
+        "connection-default",
       );
+      const color = getSourceColor(src);
+      path.setAttribute("stroke", color);
+      path.setAttribute("marker-end", getMarker(color));
+      path.setAttribute("opacity", "0.7");
+      path.dataset.sourceId = src.id;
+      path.dataset.optionIndex = -1;
+      path.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectConnection(src.id, -1);
+      });
+      svg.appendChild(path);
     }
   });
 
-  // Start node indicator
+  // Start node indicator (unchanged)
   if (proj.startNodeId && proj.nodes.has(proj.startNodeId)) {
     const sn = proj.nodes.get(proj.startNodeId);
     const r = getNodeRect(proj.startNodeId);
@@ -151,4 +208,30 @@ function renderConnections() {
     l.setAttribute("stroke-dasharray", "5,4");
     svg.appendChild(l);
   }
+}
+
+// New helper – select a connection and visually highlight it
+function selectConnection(sourceId, optionIndex) {
+  state.selectedConnection = {
+    sourceNodeId: sourceId,
+    optionIndex: optionIndex,
+  };
+  // Remove previous highlights
+  document
+    .querySelectorAll(".connection-path.selected")
+    .forEach((p) => p.classList.remove("selected"));
+  // Highlight the newly selected one
+  const selector = `[data-source-id="${sourceId}"][data-option-index="${optionIndex}"]`;
+  const path = document.querySelector(selector);
+  if (path) {
+    path.classList.add("selected");
+    path.setAttribute("opacity", "1");
+  }
+}
+function clearConnectionSelection() {
+  state.selectedConnection = null;
+  document.querySelectorAll(".connection-path.selected").forEach((p) => {
+    p.classList.remove("selected");
+    p.setAttribute("opacity", "0.7");
+  });
 }
