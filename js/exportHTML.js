@@ -32,17 +32,126 @@ function exportToHTML() {
     * { box-sizing: border-box; margin:0; padding:0; }
     body { font-family: "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background: var(--bg-deep); color: var(--text-primary); height: 100vh; overflow: hidden; }
     .hidden { display:none !important; }
-
     .mode-overlay { position: fixed; inset:0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index:300; display:flex; align-items:center; justify-content:center; }
-    .mode-dialog { background: var(--bg-surface); border:1px solid var(--border-medium); border-radius: var(--radius-xl); padding: 24px 32px; text-align: center; box-shadow: var(--shadow-lg); }
-    .mode-dialog h2 { margin-bottom: 20px; font-size: 1.2rem; font-weight:600; }
-        .mode-header { display:flex; flex-direction:column; align-items:center; gap:4px; margin-bottom:12px; }
-    .mode-logo { font-size:1.4rem; font-weight:700; color:var(--text-primary); letter-spacing:-0.02em; }
-    .mode-project-name { font-size:0.85rem; font-weight:500; color:var(--text-secondary); opacity:0.7; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .mode-subtitle { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:18px; }
-    .mode-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .mode-btn { padding: 10px 24px; border-radius: var(--radius-md); background: var(--accent); color:#fff; border:none; font-size: 0.9rem; font-weight:600; cursor:pointer; }
-    .mode-btn:hover { background: #c0000f; }
+    .mode-dialog {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-xl);
+      padding: 32px 40px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      min-width: 420px;
+    }
+    .mode-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .mode-logo {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .mode-logo h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
+      display: inline;
+    }
+    .mode-project-name {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin: 0;
+    }
+    .mode-subtitle {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .mode-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .mode-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid;
+      background: transparent;
+      cursor: pointer;
+      width: 340px;
+      transition: all var(--transition-fast);
+      text-align: left;
+    }
+    .mode-btn-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      flex-shrink: 0;
+    }
+    .mode-btn-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      min-width: 50px;
+    }
+    .mode-btn-desc {
+      font-size: 0.7rem;
+      font-weight: 400;
+      opacity: 0.6;
+      margin-left: auto;
+    }
+    .mode-btn-step {
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+    .mode-btn-step:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #f87171;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.2);
+    }
+    .mode-btn-linear {
+      border-color: #10b981;
+      color: #6ee7b7;
+    }
+    .mode-btn-linear:hover {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: #34d399;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.2);
+    }
+    .mode-btn-chat {
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+    .mode-btn-chat:hover {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: #60a5fa;
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.2);
+    }
+    .mode-credit {
+      margin-top: 4px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      opacity: 0.5;
+      letter-spacing: 0.03em;
+    }
 
     .runtime-panel { position: absolute; inset:0; background: var(--bg-deep); z-index:150; display:flex; flex-direction:column; font-family: "Inter", sans-serif; }
     .runtime-panel-header { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; background:var(--bg-glass); border-bottom:1px solid var(--border-subtle); backdrop-filter:blur(12px); }
@@ -196,15 +305,44 @@ function exportToHTML() {
     .runtime-modal.variant-warning { background:rgba(245,158,11,0.08); border-left:4px solid #f59e0b; }
     .runtime-modal.variant-error { background:rgba(239,68,68,0.08); border-left:4px solid #ef4444; }
     .runtime-modal.variant-action { background:rgba(139,92,246,0.08); border-left:4px solid #8b5cf6; }
-
     .navbar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       padding: 10px 20px;
       background: var(--bg-glass);
       border-bottom: 1px solid var(--border-subtle);
       backdrop-filter: blur(12px);
+    }
+    .navbar-left {
+      width: 140px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+    .navbar-right {
+      width: 140px;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .navbar-center {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .navbar-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .navbar-logo {
+      font-size: 0.65rem;
+      opacity: 0.6;
+      color: var(--text-primary);
     }
     .modal-navbar {
       flex-shrink: 0;
@@ -213,19 +351,7 @@ function exportToHTML() {
     .modal-navbar .runtime-close-btn {
       position: static;
     }
-    .navbar-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      text-align: center;
-      flex: 1;
-    }
-    .navbar-logo {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.02em;
-    }
+   
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -897,7 +1023,6 @@ function exportToHTML() {
 <style>${css}</style>
 </head>
 <body>
-
 <div class="mode-overlay" id="modeOverlay">
 <div class="mode-dialog">
   <div class="mode-header">
@@ -906,29 +1031,60 @@ function exportToHTML() {
   </div>
   <div class="mode-subtitle">Choose a runtime mode</div>
   <div class="mode-buttons">
-      <button class="mode-btn" data-mode="step">Step</button>
-      <button class="mode-btn" data-mode="linear">Linear</button>
-      <button class="mode-btn" data-mode="chat">Chat</button>
-    </div>
+    <button class="mode-btn mode-btn-step" data-mode="step">
+      <span class="mode-btn-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </span>
+      <span class="mode-btn-label">Step</span>
+      <span class="mode-btn-desc">One question at a time</span>
+    </button>
+    <button class="mode-btn mode-btn-linear" data-mode="linear">
+      <span class="mode-btn-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="4" cy="18" r="1.5"/></svg>
+      </span>
+      <span class="mode-btn-label">Linear</span>
+      <span class="mode-btn-desc">Full list with history</span>
+    </button>
+    <button class="mode-btn mode-btn-chat" data-mode="chat">
+      <span class="mode-btn-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </span>
+      <span class="mode-btn-label">Chat</span>
+      <span class="mode-btn-desc">Conversation style</span>
+    </button>
   </div>
+  <div class="mode-credit">Created by <span class="mode-logo" style="font-size:0.65rem;">Canvas<font style="color:#db0011;font-size:0.85rem;line-height:0;">.</font></span></div>
+</div>
 </div>
 
 <div class="modal-overlay hidden" id="stepModal">
   <div class="modal-content runtime-modal">
-    <div class="navbar modal-navbar">
-      <span class="navbar-logo">Canvas<font style="color:#db0011;font-size:1.4rem;line-height:0;">.</font></span>
-      <span class="navbar-title">${escapeHtml(proj.name || "Untitled")}</span>
-      <button class="runtime-close-btn" id="closeStepBtn">×</button>
-    </div>
+<div class="navbar modal-navbar">
+  <div class="navbar-left">
+    <span class="navbar-logo">Created by Canvas<font style="color:#db0011;font-size:1rem;line-height:0;">.</font></span>
+  </div>
+  <div class="navbar-center">
+    <span class="navbar-title">${escapeHtml(proj.name || "Untitled")}</span>
+  </div>
+  <div class="navbar-right">
+    <button class="runtime-close-btn" id="closeStepBtn">×</button>
+  </div>
+</div>
     <div class="modal-body" id="stepBody"></div>
   </div>
 </div>
 
 <div class="runtime-panel hidden" id="runtimePanel">
 <div class="runtime-panel-header navbar">
-  <span class="navbar-logo">Canvas<font style="color:#db0011;font-size:1.4rem;line-height:0;">.</font></span>
-  <span class="navbar-title">${escapeHtml(proj.name || "Untitled")}</span>
-  <button class="runtime-close-btn" id="closePanelBtn">×</button>
+  <div class="navbar-left">
+    <span class="navbar-logo">Created by Canvas<font style="color:#db0011;font-size:1rem;line-height:0;">.</font></span>
+  </div>
+  <div class="navbar-center">
+    <span class="navbar-title">${escapeHtml(proj.name || "Untitled")}</span>
+  </div>
+  <div class="navbar-right">
+    <button class="runtime-close-btn" id="closePanelBtn">×</button>
+  </div>
 </div>
   <div class="runtime-panel-body" id="panelBody"></div>
   <div class="runtime-panel-footer" id="panelFooter"></div>
@@ -938,7 +1094,6 @@ function exportToHTML() {
 <script id="canvas-flow-data" type="text/xml">${escapedXml}</script>
 </body>
 </html>`;
-
   const safeName =
     (proj.name || "untitled").replace(/[^a-z0-9_\- ]/gi, "").trim() ||
     "untitled";
