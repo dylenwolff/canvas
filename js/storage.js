@@ -29,14 +29,17 @@ function addCurrentToRecent() {
 const STORAGE_KEY = "canvas_projects";
 
 function saveProjects() {
-  const data = state.projects.map((proj) => ({
-    name: proj.name,
-    nodesData: Array.from(proj.nodes.entries()).reduce((acc, [id, node]) => {
-      acc[id] = node;
-      return acc;
-    }, {}),
-    startNodeId: proj.startNodeId,
-  }));
+  const data = {
+    activeProjectIndex: state.activeProjectIndex,
+    projects: state.projects.map((proj) => ({
+      name: proj.name,
+      nodesData: Array.from(proj.nodes.entries()).reduce((acc, [id, node]) => {
+        acc[id] = node;
+        return acc;
+      }, {}),
+      startNodeId: proj.startNodeId,
+    })),
+  };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (e) {
@@ -51,15 +54,32 @@ function loadProjects() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
-    const data = JSON.parse(raw);
-    state.projects = data.map((d) => {
+    const saved = JSON.parse(raw);
+
+    // Support old format (plain array) – treat index as 0
+    let projectsData, activeIndex;
+    if (Array.isArray(saved)) {
+      projectsData = saved;
+      activeIndex = 0;
+    } else {
+      projectsData = saved.projects || [];
+      activeIndex =
+        typeof saved.activeProjectIndex === "number"
+          ? saved.activeProjectIndex
+          : 0;
+    }
+
+    state.projects = projectsData.map((d) => {
       const proj = createEmptyProject(d.name || "Untitled");
       proj.nodes = new Map(Object.entries(d.nodesData || {}));
       proj.startNodeId = d.startNodeId || null;
       return proj;
     });
+
     if (state.projects.length === 0) return false;
-    state.activeProjectIndex = 0;
+
+    // Clamp index to valid range
+    state.activeProjectIndex = Math.min(activeIndex, state.projects.length - 1);
     return true;
   } catch (e) {
     return false;

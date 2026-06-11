@@ -26,6 +26,7 @@ function switchToProject(index) {
     return;
   addCurrentToRecent();
   state.activeProjectIndex = index;
+  markUnsaved();
   renderAll();
   updateEditorPanel();
   renderTabs();
@@ -52,6 +53,7 @@ function closeTab(index) {
   state.projects.splice(index, 1);
   if (state.activeProjectIndex >= state.projects.length)
     state.activeProjectIndex = state.projects.length - 1;
+  markUnsaved();
   renderAll();
   updateEditorPanel();
   renderTabs();
