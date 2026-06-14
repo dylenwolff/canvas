@@ -315,8 +315,7 @@ function updateEditorPanel() {
       <option value="end" ${node.type === "end" ? "selected" : ""}>End</option>
     </select></div>
     <div class="form-group">
-      <label class="form-label">Text</label>
-      <textarea class="form-textarea" id="editNodeText" rows="4">${escapeHtml(node.text || "")}</textarea>
+<label class="form-label">Text <button class="btn btn-icon btn-popout-text" type="button" data-popout-target="editNodeText" title="Open in full editor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button></label>      <textarea class="form-textarea" id="editNodeText" rows="4">${escapeHtml(node.text || "")}</textarea>
     </div>
     <div class="form-group"><label class="form-label">ID</label><input class="form-input" value="${escapeHtml(node.id)}" readonly style="opacity:0.6;font-family:var(--font-mono);font-size:0.7rem;"></div>`;
 
@@ -366,7 +365,7 @@ function updateEditorPanel() {
 
   // Copybox
   if (node.type === "copybox") {
-    html += `<div class="form-group"><label class="form-label">Copy Content</label><textarea class="form-textarea" id="editCopyContent" rows="4">${escapeHtml(node.copyContent || "")}</textarea></div>`;
+    html += `<div class="form-group"><label class="form-label">Copy Content <button class="btn btn-icon btn-popout-text" type="button" data-popout-target="editCopyContent" title="Open in full editor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button></label><textarea class="form-textarea" id="editCopyContent" rows="4">${escapeHtml(node.copyContent || "")}</textarea></div>`;
   }
 
   // Link
@@ -415,7 +414,7 @@ function updateEditorPanel() {
     html += `<div class="form-group"><label class="form-label">CC</label><input class="form-input" id="editEmailCC" value="${escapeHtml(node.cc || "")}" placeholder=""></div>`;
     html += `<div class="form-group"><label class="form-label">BCC</label><input class="form-input" id="editEmailBCC" value="${escapeHtml(node.bcc || "")}" placeholder=""></div>`;
     html += `<div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="editEmailSubject" value="${escapeHtml(node.subject || "")}" placeholder="Hello"></div>`;
-    html += `<div class="form-group"><label class="form-label">Body</label><textarea class="form-textarea" id="editEmailBody" rows="4">${escapeHtml(node.body || "")}</textarea></div>`;
+    html += `<div class="form-group"><label class="form-label">Body <button class="btn btn-icon btn-popout-text" type="button" data-popout-target="editEmailBody" title="Open in full editor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button></label><textarea class="form-textarea" id="editEmailBody" rows="4">${escapeHtml(node.body || "")}</textarea></div>`;
     html += `<div class="form-group"><label class="form-label">Button Label</label><input class="form-input" id="editEmailButtonLabel" value="${escapeHtml(node.buttonLabel || "Send Email")}" placeholder="Send Email"></div>`;
     html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editEmailNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>`;
   }
@@ -423,7 +422,7 @@ function updateEditorPanel() {
   // Download
   if (node.type === "download") {
     html += `<div class="form-group"><label class="form-label">File Name</label><input class="form-input" id="editDownloadFilename" value="${escapeHtml(node.filename || "download.txt")}" placeholder="filename.txt"></div>`;
-    html += `<div class="form-group"><label class="form-label">File Content</label><textarea class="form-textarea" id="editDownloadContent" rows="4">${escapeHtml(node.content || "")}</textarea></div>`;
+    html += `<div class="form-group"><label class="form-label">File Content <button class="btn btn-icon btn-popout-text" type="button" data-popout-target="editDownloadContent" title="Open in full editor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button></label><textarea class="form-textarea" id="editDownloadContent" rows="4">${escapeHtml(node.content || "")}</textarea></div>`;
     html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editDownloadNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>`;
   }
 
@@ -1061,5 +1060,60 @@ function updateEditorPanel() {
     }
   });
 
-  restorePanelFocus(focusInfo);
+  restorePanelFocus(focusInfo); // Popout button bindings
+  document.querySelectorAll(".btn-popout-text").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openTextPopout(btn.dataset.popoutTarget);
+    });
+  });
 }
+// ---- TEXT POPOUT EDITOR ----
+let popoutSourceId = null;
+
+function openTextPopout(sourceTextareaId) {
+  const source = document.getElementById(sourceTextareaId);
+  if (!source) return;
+  popoutSourceId = sourceTextareaId;
+  const modal = document.getElementById("textPopoutModal");
+  const textarea = document.getElementById("popoutTextarea");
+  textarea.value = source.value;
+  modal.style.display = "flex";
+  textarea.focus();
+}
+
+function applyPopout() {
+  if (!popoutSourceId) return;
+  const source = document.getElementById(popoutSourceId);
+  const modalTextarea = document.getElementById("popoutTextarea");
+  if (source && modalTextarea) {
+    source.value = modalTextarea.value;
+    // Trigger input event to fire the debounced save
+    source.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  closePopout();
+}
+
+function closePopout() {
+  document.getElementById("textPopoutModal").style.display = "none";
+  popoutSourceId = null;
+}
+
+// Bind modal buttons (call once, e.g., at the end of init() in app.js or in editor.js when DOM is ready)
+document.addEventListener("DOMContentLoaded", () => {
+  const popoutModal = document.getElementById("textPopoutModal");
+  if (!popoutModal) return; // not on exported page
+
+  document
+    .getElementById("btnApplyPopout")
+    ?.addEventListener("click", applyPopout);
+  document
+    .getElementById("btnCancelPopout")
+    ?.addEventListener("click", closePopout);
+  document
+    .getElementById("btnCloseTextPopout")
+    ?.addEventListener("click", closePopout);
+  popoutModal.addEventListener("click", (e) => {
+    if (e.target === popoutModal) closePopout();
+  });
+});

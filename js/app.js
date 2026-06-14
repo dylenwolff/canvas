@@ -562,7 +562,22 @@ Proin non aliquet nulla, ut porttitor odio. Quisque congue dignissim tellus, ac 
           showToast("Mailto URL copied!", "success");
         });
     }
-  });
+  }); // Text popout modal bindings
+  const textPopoutModal = document.getElementById("textPopoutModal");
+  if (textPopoutModal) {
+    document
+      .getElementById("btnApplyPopout")
+      ?.addEventListener("click", applyPopout);
+    document
+      .getElementById("btnCancelPopout")
+      ?.addEventListener("click", closePopout);
+    document
+      .getElementById("btnCloseTextPopout")
+      ?.addEventListener("click", closePopout);
+    textPopoutModal.addEventListener("click", (e) => {
+      if (e.target === textPopoutModal) closePopout();
+    });
+  }
   document
     .getElementById("btnThemeToggle")
     .addEventListener("click", toggleTheme);

@@ -706,6 +706,44 @@
         </div>
       </div>
     </div>
+    <!-- Text Popout Editor Modal -->
+    <div class="modal-overlay" id="textPopoutModal" style="display: none">
+      <div class="modal-content text-popout-modal">
+        <div class="modal-header">
+          <h2>Edit Text</h2>
+          <button class="btn btn-ghost btn-icon" id="btnCloseTextPopout">
+            ×
+          </button>
+        </div>
+        <div class="modal-body" style="padding: 16px">
+          <textarea
+            class="form-textarea popout-textarea"
+            id="popoutTextarea"
+            rows="15"
+            style="
+              width: 100%;
+              min-height: 300px;
+              resize: vertical;
+              font-family: inherit;
+              font-size: 0.85rem;
+            "
+          ></textarea>
+        </div>
+        <div
+          class="modal-footer"
+          style="
+            display: flex;
+            gap: 8px;
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-subtle);
+          "
+        >
+          <button class="btn btn-primary" id="btnApplyPopout">Apply</button>
+          <button class="btn btn-ghost" id="btnCancelPopout">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <div class="runtime-panel" id="runtimePanel" style="display: none">
       <div class="runtime-panel-header navbar">
         <span class="navbar-logo"

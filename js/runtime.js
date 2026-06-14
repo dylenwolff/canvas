@@ -879,7 +879,7 @@ function renderChatStep() {
   }
   const displayText = substituteVariables(node.text);
   if (node.type === "end") {
-    addChatBubble("bot", "Flow Complete: " + displayText, "success");
+    addChatBubble("bot", displayText, "success");
     return;
   }
   if (node.type !== "link" && node.type !== "setvar" && node.type !== "email") {

@@ -2462,3 +2462,29 @@ html.light-mode .input-type-pill {
   background: rgba(245, 158, 11, 0.15);
   color: #b45309; /* darker amber for contrast */
 }
+/* Text popout button (in editor panel labels) */
+.btn-popout-text {
+  padding: 0;
+  margin-left: 6px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+}
+.btn-popout-text:hover {
+  opacity: 1;
+}
+
+/* Popout modal */
+.text-popout-modal {
+  max-width: 680px;
+  width: 90%;
+}
+.popout-textarea {
+  min-height: 300px;
+  font-family: inherit;
+}
