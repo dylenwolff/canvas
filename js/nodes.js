@@ -7,9 +7,9 @@ function createNode(type, x, y, id = null) {
       { text: "No", next: "" },
     ];
   else if (type === "decision") {
-    node.variable = "";
+    node.left = "";
     node.operator = "equals";
-    node.value = "";
+    node.right = "";
     node.trueNext = "";
     node.falseNext = "";
   } else if (type === "message") {
@@ -26,6 +26,7 @@ function createNode(type, x, y, id = null) {
     node.next = "";
   } else if (type === "setvar") {
     node.variable = "";
+    node.operation = "set";
     node.value = "";
     node.varType = "string";
     node.showInRuntime = true;
@@ -37,11 +38,21 @@ function createNode(type, x, y, id = null) {
     node.subject = "";
     node.body = "";
     node.buttonLabel = "Send Email";
-
     node.next = "";
-  } else if (type === "input" || type === "number") {
+  } else if (type === "download") {
+    node.filename = "download.txt";
+    node.content = "";
+    node.next = "";
+  } else if (type === "input") {
+    // The only input type – merges old input, number, and dropdown
     node.variable = "";
+    node.inputType = "text"; // "text" | "number" | "date" | "time" | "datetime-local" | "list"
+    node.placeholder = "";
+    node.required = false;
+    node.listOptions = []; // used only when inputType === "list"
     node.next = "";
+  } else if (type === "end") {
+    // nothing extra
   } else if (type !== "end") node.next = "";
   return node;
 }
@@ -56,9 +67,8 @@ function getDefaultText(t) {
       link: "Useful links:",
       setvar: "Set Variable",
       email: "Send an email",
-
-      input: "Enter text:",
-      number: "Enter number:",
+      download: "Download file:",
+      input: "Enter text:", // covers all input types
       end: "End of Flow",
     }[t] || "New Node"
   );
@@ -170,49 +180,9 @@ function redo() {
   showToast("Redo", "info");
 }
 
-// Undo/Redo
-function takeSnapshot() {
-  const proj = currentProject();
-  const d = {};
-  proj.nodes.forEach((n, id) => {
-    d[id] = JSON.parse(JSON.stringify(n));
-  });
-  return { nodesData: d, startNodeId: proj.startNodeId };
-}
-function restoreSnapshot(snap) {
-  const proj = currentProject();
-  proj.nodes.clear();
-  for (const [id, nd] of Object.entries(snap.nodesData))
-    proj.nodes.set(id, JSON.parse(JSON.stringify(nd)));
-  proj.startNodeId = snap.startNodeId;
-  proj.selectedNodeId = null;
-}
-function pushUndo() {
-  const proj = currentProject();
-  proj.undoStack.push(takeSnapshot());
-  if (proj.undoStack.length > state.maxUndo) proj.undoStack.shift();
-  proj.redoStack = [];
-}
-function undo() {
-  const proj = currentProject();
-  if (!proj.undoStack.length) return;
-  proj.redoStack.push(takeSnapshot());
-  restoreSnapshot(proj.undoStack.pop());
-  renderAll();
-  showToast("Undo", "info");
-}
-function redo() {
-  const proj = currentProject();
-  if (!proj.redoStack.length) return;
-  proj.undoStack.push(takeSnapshot());
-  restoreSnapshot(proj.redoStack.pop());
-  renderAll();
-  showToast("Redo", "info");
-}
 function deleteNodeWithoutUndo(id) {
   const proj = currentProject();
   if (!proj.nodes.has(id)) return;
-  // Clear references to this node from all other nodes
   proj.nodes.forEach((n) => {
     if (n.next === id) n.next = "";
     if (n.options)

@@ -20,14 +20,24 @@ function getExportJS(escapedXml) {
       var node = { id: id, type: type, text: text };
       if (type === "choice") {
         node.options = [];
-        q.querySelectorAll("option").forEach(function(o) { node.options.push({ text: o.textContent.trim(), next: o.getAttribute("next") || "" }); });
+        q.querySelectorAll("options > option").forEach(function(o) {
+          node.options.push({ text: o.textContent.trim(), next: o.getAttribute("next") || "" });
+        });
       } else if (type === "decision") {
         var d = q.querySelector("decision");
-        if (d) { node.variable = d.getAttribute("variable") || ""; node.operator = d.getAttribute("operator") || "equals"; node.value = d.getAttribute("value") || ""; node.trueNext = d.querySelector("true")?.getAttribute("next") || ""; node.falseNext = d.querySelector("false")?.getAttribute("next") || ""; }
+        if (d) {
+          node.left = d.getAttribute("left") || "";
+          node.operator = d.getAttribute("operator") || "equals";
+          node.right = d.getAttribute("right") || "";
+          node.trueNext = d.querySelector("true")?.getAttribute("next") || "";
+          node.falseNext = d.querySelector("false")?.getAttribute("next") || "";
+        }
       } else if (type === "message") {
-        node.variant = q.querySelector("variant")?.textContent.trim() || "info"; node.next = q.querySelector("next")?.textContent.trim() || "";
+        node.variant = q.querySelector("variant")?.textContent.trim() || "info";
+        node.next = q.querySelector("next")?.textContent.trim() || "";
       } else if (type === "copybox") {
-        node.copyContent = q.querySelector("copy_content")?.textContent.trim() || "Text to copy..."; node.next = q.querySelector("next")?.textContent.trim() || "";
+        node.copyContent = q.querySelector("copy_content")?.textContent.trim() || "Text to copy...";
+        node.next = q.querySelector("next")?.textContent.trim() || "";
       } else if (type === "link") {
         node.links = [];
         q.querySelectorAll("links > link").forEach(function(link) {
@@ -39,6 +49,7 @@ function getExportJS(escapedXml) {
         node.next = q.querySelector("next")?.textContent.trim() || "";
       } else if (type === "setvar") {
         node.variable = q.querySelector("variable")?.textContent.trim() || "";
+        node.operation = q.querySelector("operation")?.textContent.trim() || "set";
         node.value = q.querySelector("value")?.textContent.trim() || "";
         node.varType = q.querySelector("varType")?.textContent.trim() || "string";
         node.showInRuntime = q.querySelector("showInRuntime")?.textContent.trim() !== "false";
@@ -54,8 +65,23 @@ function getExportJS(escapedXml) {
           node.buttonLabel = e.getAttribute("buttonLabel") || "Send Email";
         }
         node.next = q.querySelector("next")?.textContent.trim() || "";
-      } else if (type === "input" || type === "number") {
-        node.variable = q.querySelector("variable")?.textContent.trim() || ""; node.next = q.querySelector("next")?.textContent.trim() || "";
+      } else if (type === "download") {
+        node.filename = q.querySelector("filename")?.textContent.trim() || "download.txt";
+        node.content = q.querySelector("content")?.textContent.trim() || "";
+        node.next = q.querySelector("next")?.textContent.trim() || "";
+      } else if (type === "input") {
+        node.variable = q.querySelector("variable")?.textContent.trim() || "";
+        node.inputType = q.querySelector("inputType")?.textContent.trim() || "text";
+        node.placeholder = q.querySelector("placeholder")?.textContent.trim() || "";
+        node.required = q.querySelector("required")?.textContent.trim() === "true";
+        node.listOptions = [];
+        q.querySelectorAll("listOptions > option").forEach(function(o) {
+          node.listOptions.push({
+            text: o.textContent.trim(),
+            value: o.getAttribute("value") || ""
+          });
+        });
+        node.next = q.querySelector("next")?.textContent.trim() || "";
       } else if (type !== "end") {
         node.next = q.querySelector("next")?.textContent.trim() || "";
       }
@@ -67,21 +93,56 @@ function getExportJS(escapedXml) {
     return text.replace(/\\{(\\w+)\\}/g, function(m, v) { return self.variables.hasOwnProperty(v) ? self.variables[v] : m; });
   };
   FlowRuntime.prototype.evaluateDecision = function(node) {
-    var varVal = this.variables[node.variable] !== undefined ? this.variables[node.variable] : "";
-    var exp = node.value, op = node.operator;
-    if (op === "is true") return !!varVal;
-    if (op === "is false") return !varVal;
-    var nv = Number(varVal), ne = Number(exp);
+    var left = this.substitute(node.left || "");
+    var right = this.substitute(node.right || "");
+    var op = node.operator;
+    if (op === "is true") return !!left;
+    if (op === "is false") return !left;
+    var nv = Number(left), ne = Number(right);
     if (!isNaN(nv) && !isNaN(ne) && ['==','!=','<','<=','>','>='].indexOf(op) !== -1) {
       if (op==='==') return nv===ne; if (op==='!=') return nv!==ne;
       if (op==='<') return nv<ne; if (op==='<=') return nv<=ne; if (op==='>') return nv>ne; if (op==='>=') return nv>=ne;
     }
-    var sv = String(varVal).toLowerCase(), se = exp.toLowerCase();
+    var sv = String(left).toLowerCase(), se = right.toLowerCase();
     if (op==='equals') return sv===se; if (op==='contains') return sv.indexOf(se) !== -1;
     if (op==='starts_with') return sv.indexOf(se) === 0; if (op==='ends_with') return sv.lastIndexOf(se) === sv.length - se.length;
     if (op==='==') return sv===se;
     if (op==='!=') return sv!==se;
     return false;
+  };
+  FlowRuntime.prototype.applySetVar = function(node) {
+    var varName = node.variable;
+    var operation = node.operation || "set";
+    var rawValue = this.substitute(node.value || "");
+    var currentVal = this.variables[varName] !== undefined ? this.variables[varName] : (node.varType === "number" ? 0 : "");
+    var result;
+    if (operation === "set") {
+      result = rawValue;
+      if (node.varType === "number") result = Number(rawValue);
+      else if (node.varType === "boolean") result = rawValue.toLowerCase() === "true" || rawValue === "1";
+    } else {
+      var numCurrent = Number(currentVal) || 0;
+      var numOperand = Number(rawValue) || 0;
+      switch (operation) {
+        case "add": result = numCurrent + numOperand; break;
+        case "subtract": result = numCurrent - numOperand; break;
+        case "multiply": result = numCurrent * numOperand; break;
+        case "divide": result = numOperand !== 0 ? numCurrent / numOperand : currentVal; break;
+        case "concatenate": result = String(currentVal) + String(rawValue); break;
+        default: result = currentVal;
+      }
+      if (node.varType === "number") result = Number(result);
+    }
+    if (varName) this.variables[varName] = result;
+    return result;
+  };
+  FlowRuntime.prototype.formatSetVarMessage = function(node, result) {
+    var varName = node.variable || "?";
+    var rawVal = this.substitute(node.value || "");
+    var op = node.operation || "set";
+    if (op === "set") return "Variable <strong>" + escapeHtml(varName) + "</strong> = <strong>" + escapeHtml(result) + "</strong>";
+    var symbol = { add: "+", subtract: "−", multiply: "×", divide: "÷", concatenate: "&" }[op] || op;
+    return "Variable <strong>" + escapeHtml(varName) + "</strong> " + symbol + " <strong>" + escapeHtml(rawVal) + "</strong> = <strong>" + escapeHtml(result) + "</strong>";
   };
   FlowRuntime.prototype.advance = function(targetId) { if (targetId && this.nodes.has(targetId)) { this.currentNodeId = targetId; return true; } return false; };
 
@@ -112,7 +173,7 @@ function getExportJS(escapedXml) {
     }
   }
 
-  function buildMailtoUrl(node, variables) {
+  function buildMailtoUrl(node) {
     var encode = function(s) {
       return encodeURIComponent(s).replace(/%7B/g, "{").replace(/%7D/g, "}");
     };
@@ -140,19 +201,14 @@ function getExportJS(escapedXml) {
       return;
     }
     if (node.type === 'end') {
-      body.innerHTML = '<div class="runtime-end-message"><p>Flow Complete</p><p>' + escapeHtml(runtime.substitute(node.text)) + '</p></div>';
+      body.innerHTML = '<div class="runtime-end-message"><p>' + escapeHtml(runtime.substitute(node.text)) + '</p></div>';
       return;
     }
     if (node.type === 'message' && modal) {
       modal.classList.add('variant-' + (node.variant || 'info'));
     }
     if (node.type === 'setvar' && !node.showInRuntime) {
-      var varName = node.variable;
-      var val = runtime.substitute(node.value);
-      var parsedVal = val;
-      if (node.varType === 'number') parsedVal = Number(val);
-      else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
-      if (varName) runtime.variables[varName] = parsedVal;
+      runtime.applySetVar(node);
       if (node.next && runtime.nodes.has(node.next)) {
         runtime.currentNodeId = node.next;
         buildStepUI();
@@ -173,21 +229,42 @@ function getExportJS(escapedXml) {
           else { alert(next ? 'Node "' + next + '" not found' : 'No target set'); }
         });
       });
-    } else if (node.type === 'input' || node.type === 'number') {
-      body.innerHTML = '<div class="runtime-question">' + displayText + '</div><input class="runtime-input" type="' + (node.type === 'number' ? 'number' : 'text') + '" id="runtimeInput" autofocus><button class="runtime-submit-btn" id="runtimeSubmit">Continue</button>';
-      var input = document.getElementById('runtimeInput');
-      var btn = document.getElementById('runtimeSubmit');
-      setTimeout(function() { input.focus(); }, 50);
-      var go = function() {
-        var val = input.value.trim();
-        if (!val && node.type === 'input') return;
-        if (node.variable) runtime.variables[node.variable] = (node.type === 'number' ? Number(val) : val);
-        var next = node.next;
-        if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; buildStepUI(); }
-        else { alert(next ? 'Node "' + next + '" not found' : 'No next node'); }
-      };
-      btn.addEventListener('click', go);
-      input.addEventListener('keydown', function(e) { if (e.key === 'Enter') go(); });
+    } else if (node.type === 'input') {
+      var inputType = node.inputType || 'text';
+      if (inputType === 'list') {
+        var buttonsHtml = (node.listOptions || []).map(function(o, i) {
+          return '<button class="runtime-option-btn" data-list-idx="' + i + '">' + escapeHtml(o.text) + '</button>';
+        }).join('');
+        body.innerHTML = '<div class="runtime-question">' + displayText + '</div><div class="runtime-options">' + buttonsHtml + '</div>';
+        body.querySelectorAll('.runtime-option-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var idx = parseInt(btn.dataset.listIdx);
+            var selected = node.listOptions[idx];
+            var val = selected.value || selected.text;
+            if (node.variable) runtime.variables[node.variable] = val;
+            var next = node.next;
+            if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; buildStepUI(); }
+            else { alert(next ? 'Node "' + next + '" not found' : 'No next node set'); }
+          });
+        });
+      } else {
+        var placeholder = escapeHtml(node.placeholder || '');
+        body.innerHTML = '<div class="runtime-question">' + displayText + '</div><input class="runtime-input" type="' + inputType + '" id="runtimeInput" autofocus placeholder="' + placeholder + '"><button class="runtime-submit-btn" id="runtimeSubmit">Continue</button>';
+        var input = document.getElementById('runtimeInput');
+        var btn = document.getElementById('runtimeSubmit');
+        setTimeout(function() { input.focus(); }, 50);
+        var go = function() {
+          var val = input.value.trim();
+          if (node.required && !val) { alert('This field is required'); return; }
+          if (!val && inputType !== 'number') return;
+          if (node.variable) runtime.variables[node.variable] = (inputType === 'number' ? Number(val) : val);
+          var next = node.next;
+          if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; buildStepUI(); }
+          else { alert(next ? 'Node "' + next + '" not found' : 'No next node'); }
+        };
+        btn.addEventListener('click', go);
+        input.addEventListener('keydown', function(e) { if (e.key === 'Enter') go(); });
+      }
     } else if (node.type === 'decision') {
       var result = runtime.evaluateDecision(node);
       var next = result ? node.trueNext : node.falseNext;
@@ -207,7 +284,7 @@ function getExportJS(escapedXml) {
         else alert(node.next ? 'Node "' + node.next + '" not found' : 'No next node');
       });
     } else if (node.type === 'link') {
-      var linksHtml = (node.links || []).map(function(l, i) {
+      var linksHtml = (node.links || []).map(function(l) {
         return '<button class="runtime-link-btn" data-link-url="' + escapeHtml(l.url) + '">' + escapeHtml(l.label) + '</button>';
       }).join('');
       body.innerHTML = '<div class="runtime-question">' + displayText + '</div>' +
@@ -226,14 +303,9 @@ function getExportJS(escapedXml) {
         });
       }
     } else if (node.type === 'setvar') {
-      var varName = node.variable;
-      var val = runtime.substitute(node.value);
-      var parsedVal = val;
-      if (node.varType === 'number') parsedVal = Number(val);
-      else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
-      if (varName) runtime.variables[varName] = parsedVal;
+      var result = runtime.applySetVar(node);
       body.innerHTML = '<div class="runtime-question">' + displayText + '</div>' +
-        '<div class="runtime-message-box variant-info"><p>Variable <strong>' + escapeHtml(varName) + '</strong> set to <strong>' + escapeHtml(parsedVal) + '</strong></p></div>' +
+        '<div class="runtime-message-box variant-info"><p>' + runtime.formatSetVarMessage(node, result) + '</p></div>' +
         (node.next ? '<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>' : '');
       if (node.next) {
         document.getElementById('runtimeContinue').addEventListener('click', function() {
@@ -249,6 +321,26 @@ function getExportJS(escapedXml) {
         (node.next ? '<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>' : '');
       document.getElementById('runtimeSendEmail').addEventListener('click', function() {
         window.open(mailto, '_blank');
+      });
+      if (node.next) {
+        document.getElementById('runtimeContinue').addEventListener('click', function() {
+          if (runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; buildStepUI(); }
+          else alert('Node "' + node.next + '" not found');
+        });
+      }
+    } else if (node.type === 'download') {
+      var content = runtime.substitute(node.content || '');
+      var filename = runtime.substitute(node.filename || 'download.txt');
+      body.innerHTML = '<div class="runtime-question">' + displayText + '</div>' +
+        '<button class="runtime-submit-btn" id="runtimeDownload">Download</button>' +
+        (node.next ? '<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>' : '');
+      document.getElementById('runtimeDownload').addEventListener('click', function() {
+        var blob = new Blob([content], { type: 'text/plain' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
       });
       if (node.next) {
         document.getElementById('runtimeContinue').addEventListener('click', function() {
@@ -273,12 +365,7 @@ function renderLinearStep() {
   footer.innerHTML = '';
   if (!node) { body.innerHTML += '<div class="runtime-end-message"><p>Node not found</p></div>'; return; }
   if (node.type === 'setvar' && !node.showInRuntime) {
-    var varName = node.variable;
-    var val = runtime.substitute(node.value);
-    var parsedVal = val;
-    if (node.varType === 'number') parsedVal = Number(val);
-    else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
-    if (varName) runtime.variables[varName] = parsedVal;
+    runtime.applySetVar(node);
     if (node.next && runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderLinearStep(); }
     return;
   }
@@ -307,19 +394,41 @@ function renderLinearStep() {
       optsDiv.appendChild(btn);
     });
     stepDiv.appendChild(optsDiv);
-  } else if (node.type === 'input' || node.type === 'number') {
-    var row = document.createElement('div'); row.className = 'chat-input-row';
-    var input = document.createElement('input'); input.className = 'chat-input'; input.type = node.type === 'number' ? 'number' : 'text'; input.placeholder = 'Enter your answer… (press Enter)';
-    var go = function() {
-      var val = input.value.trim(); if (!val && node.type === 'input') return;
-      if (node.variable) runtime.variables[node.variable] = (node.type === 'number' ? Number(val) : val);
-      input.disabled = true;
-      var next = node.next;
-      if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; renderLinearStep(); }
-      else alert(next ? 'Node "' + next + '" not found' : 'No next node');
-    };
-    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); go(); } });
-    row.appendChild(input); stepDiv.appendChild(row); input.focus();
+  } else if (node.type === 'input') {
+    var inputType = node.inputType || 'text';
+    if (inputType === 'list') {
+      var optsDiv = document.createElement('div'); optsDiv.className = 'runtime-options';
+      (node.listOptions || []).forEach(function(opt, idx) {
+        var btn = document.createElement('button'); btn.className = 'runtime-option-btn'; btn.textContent = opt.text;
+        btn.addEventListener('click', function() {
+          optsDiv.querySelectorAll('.runtime-option-btn').forEach(function(b) { b.disabled = true; b.classList.remove('selected-option'); });
+          btn.classList.add('selected-option');
+          var val = opt.value || opt.text;
+          if (node.variable) runtime.variables[node.variable] = val;
+          var next = node.next;
+          if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; renderLinearStep(); }
+          else alert(next ? 'Node "' + next + '" not found' : 'No next node set');
+        });
+        optsDiv.appendChild(btn);
+      });
+      stepDiv.appendChild(optsDiv);
+    } else {
+      var row = document.createElement('div'); row.className = 'chat-input-row';
+      var input = document.createElement('input'); input.className = 'chat-input'; input.type = inputType;
+      input.placeholder = node.placeholder || 'Enter your answer… (press Enter)';
+      var go = function() {
+        var val = input.value.trim();
+        if (node.required && !val) { alert('This field is required'); return; }
+        if (!val && inputType !== 'number') return;
+        if (node.variable) runtime.variables[node.variable] = (inputType === 'number' ? Number(val) : val);
+        input.disabled = true;
+        var next = node.next;
+        if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; renderLinearStep(); }
+        else alert(next ? 'Node "' + next + '" not found' : 'No next node');
+      };
+      input.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); var val = input.value.trim(); if (val || inputType === 'number') go(); } });
+      row.appendChild(input); stepDiv.appendChild(row); input.focus();
+    }
   } else if (node.type === 'decision') {
     var result = runtime.evaluateDecision(node); var next = result ? node.trueNext : node.falseNext;
     if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; renderLinearStep(); }
@@ -352,11 +461,9 @@ function renderLinearStep() {
       stepDiv.appendChild(cont);
     }
   } else if (node.type === 'setvar') {
-    var varName = node.variable; var val = runtime.substitute(node.value);
-    var parsedVal = val; if (node.varType === 'number') parsedVal = Number(val); else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
-    if (varName) runtime.variables[varName] = parsedVal;
+    var result = runtime.applySetVar(node);
     var infoDiv = document.createElement('div'); infoDiv.className = 'runtime-message-box variant-info';
-    infoDiv.innerHTML = '<p>Variable <strong>' + escapeHtml(varName) + '</strong> set to <strong>' + escapeHtml(parsedVal) + '</strong></p>';
+    infoDiv.innerHTML = '<p>' + runtime.formatSetVarMessage(node, result) + '</p>';
     stepDiv.appendChild(infoDiv);
     var continueBtn = document.createElement('button'); continueBtn.className = 'runtime-submit-btn linear-continue-btn'; continueBtn.textContent = 'Continue';
     continueBtn.addEventListener('click', function() { continueBtn.disabled = true; continueBtn.style.display = 'none'; if (node.next && runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderLinearStep(); } else alert(node.next ? 'Node "' + node.next + '" not found' : 'No next node'); });
@@ -365,38 +472,34 @@ function renderLinearStep() {
     var mailto = buildMailtoUrl(node);
     var btnLabel = node.buttonLabel || 'Send Email';
     var btnContainer = document.createElement('div');
-    btnContainer.style.display = 'flex';
-    btnContainer.style.flexDirection = 'column';
-    btnContainer.style.gap = '12px';
-    btnContainer.style.marginTop = '12px';
-
-    var sendBtn = document.createElement('button');
-    sendBtn.className = 'runtime-email-btn';
-    sendBtn.textContent = btnLabel;
-    sendBtn.addEventListener('click', function() {
-      window.open(mailto, '_blank');
-    });
+    btnContainer.style.display = 'flex'; btnContainer.style.flexDirection = 'column'; btnContainer.style.gap = '12px'; btnContainer.style.marginTop = '12px';
+    var sendBtn = document.createElement('button'); sendBtn.className = 'runtime-email-btn'; sendBtn.textContent = btnLabel;
+    sendBtn.addEventListener('click', function() { window.open(mailto, '_blank'); });
     btnContainer.appendChild(sendBtn);
-
     if (node.next) {
-      var contBtn = document.createElement('button');
-      contBtn.className = 'runtime-submit-btn linear-continue-btn';
-      contBtn.textContent = 'Continue';
-      contBtn.addEventListener('click', function() {
-        contBtn.disabled = true;
-        contBtn.style.display = 'none';
-        if (runtime.nodes.has(node.next)) {
-          runtime.currentNodeId = node.next;
-          renderLinearStep();
-        } else alert('Node "' + node.next + '" not found');
-      });
+      var contBtn = document.createElement('button'); contBtn.className = 'runtime-submit-btn linear-continue-btn'; contBtn.textContent = 'Continue';
+      contBtn.addEventListener('click', function() { contBtn.disabled = true; contBtn.style.display = 'none'; if (runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderLinearStep(); } else alert('Node "' + node.next + '" not found'); });
       btnContainer.appendChild(contBtn);
     }
-
     stepDiv.appendChild(btnContainer);
     body.appendChild(stepDiv);
     body.scrollTop = body.scrollHeight;
     return;
+  } else if (node.type === 'download') {
+    var content = runtime.substitute(node.content || '');
+    var filename = runtime.substitute(node.filename || 'download.txt');
+    var dlBtn = document.createElement('button'); dlBtn.className = 'runtime-submit-btn linear-continue-btn'; dlBtn.textContent = 'Download';
+    dlBtn.addEventListener('click', function() {
+      var blob = new Blob([content], { type: 'text/plain' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    stepDiv.appendChild(dlBtn);
+    if (node.next) {
+      var cont = document.createElement('button'); cont.className = 'runtime-submit-btn linear-continue-btn'; cont.textContent = 'Continue';
+      cont.addEventListener('click', function() { cont.disabled = true; cont.style.display = 'none'; if (runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderLinearStep(); } else alert('Node "' + node.next + '" not found'); });
+      stepDiv.appendChild(cont);
+    }
   } else {
     var continueBtn = document.createElement('button'); continueBtn.className = 'runtime-submit-btn linear-continue-btn'; continueBtn.textContent = 'Continue';
     continueBtn.addEventListener('click', function() { continueBtn.disabled = true; continueBtn.style.display = 'none'; if (node.next && runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderLinearStep(); } else alert(node.next ? 'Node "' + node.next + '" not found' : 'No next node'); });
@@ -421,16 +524,14 @@ function renderLinearStep() {
     footer.innerHTML = '';
     if (!node) { addChatBubble('bot', 'Node not found', 'error'); return; }
     var displayText = runtime.substitute(node.text);
-    if (node.type === 'end') { addChatBubble('bot', 'Flow Complete: ' + displayText, 'success'); return; }
-    if (node.type === 'setvar' && !node.showInRuntime) {
-      var varName = node.variable; var val = runtime.substitute(node.value);
-      var parsedVal = val; if (node.varType === 'number') parsedVal = Number(val); else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
-      if (varName) runtime.variables[varName] = parsedVal;
-      if (node.next && runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderChatStep(); }
-      return;
-    }
+    if (node.type === 'end') { addChatBubble('bot', displayText, 'success'); return; }
     if (node.type !== 'link' && node.type !== 'setvar' && node.type !== 'email') {
       addChatBubble('bot', displayText, (node.type === 'message' ? node.variant || 'info' : ''));
+    }
+    if (node.type === 'setvar' && !node.showInRuntime) {
+      runtime.applySetVar(node);
+      if (node.next && runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderChatStep(); }
+      return;
     }
     if (node.type === 'choice' && node.options) {
       var optsDiv = document.createElement('div'); optsDiv.className = 'chat-options';
@@ -445,19 +546,41 @@ function renderLinearStep() {
         optsDiv.appendChild(btn);
       });
       footer.appendChild(optsDiv);
-    } else if (node.type === 'input' || node.type === 'number') {
-      var row = document.createElement('div'); row.className = 'chat-input-row';
-      var input = document.createElement('input'); input.className = 'chat-input'; input.type = node.type === 'number' ? 'number' : 'text'; input.placeholder = 'Enter your answer… (press Enter)';
-      var go = function() {
-        var val = input.value.trim(); if (!val && node.type === 'input') return;
-        if (node.variable) runtime.variables[node.variable] = (node.type === 'number' ? Number(val) : val);
-        addChatBubble('user', val); input.disabled = true; footer.removeChild(row);
-        var next = node.next;
-        if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; renderChatStep(); }
-        else alert(next ? 'Node "' + next + '" not found' : 'No next node');
-      };
-      input.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); var val = input.value.trim(); if (val || node.type === 'number') go(); } });
-      row.appendChild(input); footer.appendChild(row); input.focus();
+    } else if (node.type === 'input') {
+      var inputType = node.inputType || 'text';
+      if (inputType === 'list') {
+        var optsDiv = document.createElement('div'); optsDiv.className = 'chat-options';
+        (node.listOptions || []).forEach(function(opt) {
+          var btn = document.createElement('button'); btn.className = 'chat-option-btn'; btn.textContent = opt.text;
+          btn.addEventListener('click', function() {
+            addChatBubble('user', opt.text);
+            var val = opt.value || opt.text;
+            if (node.variable) runtime.variables[node.variable] = val;
+            optsDiv.remove();
+            var next = node.next;
+            if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; renderChatStep(); }
+            else alert(next ? 'Node "' + next + '" not found' : 'No next node set');
+          });
+          optsDiv.appendChild(btn);
+        });
+        footer.appendChild(optsDiv);
+      } else {
+        var row = document.createElement('div'); row.className = 'chat-input-row';
+        var input = document.createElement('input'); input.className = 'chat-input'; input.type = inputType;
+        input.placeholder = node.placeholder || 'Enter your answer… (press Enter)';
+        var go = function() {
+          var val = input.value.trim();
+          if (node.required && !val) { alert('This field is required'); return; }
+          if (!val && inputType !== 'number') return;
+          if (node.variable) runtime.variables[node.variable] = (inputType === 'number' ? Number(val) : val);
+          addChatBubble('user', val); input.disabled = true; footer.removeChild(row);
+          var next = node.next;
+          if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; renderChatStep(); }
+          else alert(next ? 'Node "' + next + '" not found' : 'No next node');
+        };
+        input.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); var val = input.value.trim(); if (val || inputType === 'number') go(); } });
+        row.appendChild(input); footer.appendChild(row); input.focus();
+      }
     } else if (node.type === 'decision') {
       var result = runtime.evaluateDecision(node); var next = result ? node.trueNext : node.falseNext;
       if (next && runtime.nodes.has(next)) { runtime.currentNodeId = next; renderChatStep(); }
@@ -494,42 +617,46 @@ function renderLinearStep() {
       }
       body.scrollTop = body.scrollHeight;
     } else if (node.type === 'setvar') {
-      var varName = node.variable; var val = runtime.substitute(node.value);
-      var parsedVal = val; if (node.varType === 'number') parsedVal = Number(val); else if (node.varType === 'boolean') parsedVal = (val.toLowerCase() === 'true' || val === '1');
-      if (varName) runtime.variables[varName] = parsedVal;
+      var result = runtime.applySetVar(node);
       if (!node.showInRuntime) { if (node.next && runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderChatStep(); } return; }
       var bubble = document.createElement('div'); bubble.className = 'chat-bubble chat-bot';
-      bubble.textContent = displayText + '\\nVariable ' + escapeHtml(varName) + ' set to ' + escapeHtml(parsedVal);
+      bubble.innerHTML = '<p>' + runtime.formatSetVarMessage(node, result) + '</p>';
       body.appendChild(bubble);
       if (node.next) {
         var cont = document.createElement('button'); cont.className = 'runtime-submit-btn'; cont.textContent = 'Continue';
         cont.addEventListener('click', function() { if (runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderChatStep(); } else alert('Node "' + node.next + '" not found'); });
         footer.appendChild(cont);
       }
-  } else if (node.type === 'email') {
-    var mailto = buildMailtoUrl(node);
-    var btnLabel = node.buttonLabel || 'Send Email';
-    var bubble = document.createElement('div');
-    bubble.className = 'chat-bubble chat-bot';
-    bubble.innerHTML = '<div>' + displayText + '</div><button class="runtime-email-btn" style="margin-top:8px;" id="chatSendEmail">' + escapeHtml(btnLabel) + '</button>';
-    body.appendChild(bubble);
-    document.getElementById('chatSendEmail').addEventListener('click', function() {
-      window.open(mailto, '_blank');
-    });
-    if (node.next) {
-      var continueBtn = document.createElement('button');
-      continueBtn.className = 'runtime-submit-btn';
-      continueBtn.textContent = 'Continue';
-      continueBtn.addEventListener('click', function() {
-        if (runtime.nodes.has(node.next)) {
-          runtime.currentNodeId = node.next;
-          renderChatStep();
-        } else alert('Node "' + node.next + '" not found');
+    } else if (node.type === 'email') {
+      var mailto = buildMailtoUrl(node);
+      var btnLabel = node.buttonLabel || 'Send Email';
+      var bubble = document.createElement('div');
+      bubble.className = 'chat-bubble chat-bot';
+      bubble.innerHTML = '<div>' + displayText + '</div><button class="runtime-email-btn" style="margin-top:8px;" id="chatSendEmail">' + escapeHtml(btnLabel) + '</button>';
+      body.appendChild(bubble);
+      document.getElementById('chatSendEmail').addEventListener('click', function() { window.open(mailto, '_blank'); });
+      if (node.next) {
+        var continueBtn = document.createElement('button'); continueBtn.className = 'runtime-submit-btn'; continueBtn.textContent = 'Continue';
+        continueBtn.addEventListener('click', function() { if (runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderChatStep(); } else alert('Node "' + node.next + '" not found'); });
+        footer.appendChild(continueBtn);
+      }
+      body.scrollTop = body.scrollHeight;
+    } else if (node.type === 'download') {
+      var content = runtime.substitute(node.content || '');
+      var filename = runtime.substitute(node.filename || 'download.txt');
+      var dlBtn = document.createElement('button'); dlBtn.className = 'runtime-submit-btn'; dlBtn.textContent = 'Download';
+      dlBtn.addEventListener('click', function() {
+        var blob = new Blob([content], { type: 'text/plain' });
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+        URL.revokeObjectURL(a.href);
       });
-      footer.appendChild(continueBtn);
-    }
-    body.scrollTop = body.scrollHeight;
-} else {
+      footer.appendChild(dlBtn);
+      if (node.next) {
+        var cont = document.createElement('button'); cont.className = 'runtime-submit-btn'; cont.textContent = 'Continue';
+        cont.addEventListener('click', function() { if (runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderChatStep(); } else alert('Node "' + node.next + '" not found'); });
+        footer.appendChild(cont);
+      }
+    } else {
       var continueBtn = document.createElement('button'); continueBtn.className = 'runtime-submit-btn'; continueBtn.textContent = 'Continue';
       continueBtn.addEventListener('click', function() {
         if (node.next && runtime.nodes.has(node.next)) { runtime.currentNodeId = node.next; renderChatStep(); }

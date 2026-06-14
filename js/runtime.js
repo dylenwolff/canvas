@@ -1,7 +1,6 @@
 // ---- RUNTIME (MODAL, LINEAR, CHAT) ----
 
 function copyRichText(html) {
-  // Try to copy both HTML and plain text
   const plain = html.replace(/<[^>]*>/g, "");
   if (navigator.clipboard && typeof ClipboardItem === "function") {
     const blob = new Blob([html], { type: "text/html" });
@@ -9,14 +8,10 @@ function copyRichText(html) {
       "text/html": blob,
       "text/plain": new Blob([plain], { type: "text/plain" }),
     });
-    navigator.clipboard.write([item]).catch(() => {
-      // Fallback to plain text
-      fallbackCopy(plain);
-    });
+    navigator.clipboard.write([item]).catch(() => fallbackCopy(plain));
   } else {
     fallbackCopy(plain);
   }
-
   function fallbackCopy(text) {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -64,19 +59,17 @@ function substituteVariables(t) {
   return t.replace(/\{(\w+)\}/g, (m, v) => state.runtimeVariables[v] ?? m);
 }
 
+// ── Upgraded Decision (two blank fields) ──
 function evaluateDecision(node) {
-  const varVal =
-    state.runtimeVariables[node.variable] !== undefined
-      ? state.runtimeVariables[node.variable]
-      : "";
-  const exp = node.value,
-    op = node.operator;
+  const left = substituteVariables(node.left ?? "");
+  const right = substituteVariables(node.right ?? "");
+  const op = node.operator;
 
-  if (op === "is true") return !!varVal;
-  if (op === "is false") return !varVal;
+  if (op === "is true") return !!left;
+  if (op === "is false") return !left;
 
-  const nv = Number(varVal),
-    ne = Number(exp);
+  const nv = Number(left),
+    ne = Number(right);
   if (
     !isNaN(nv) &&
     !isNaN(ne) &&
@@ -90,20 +83,87 @@ function evaluateDecision(node) {
     if (op === ">=") return nv >= ne;
   }
 
-  const sv = String(varVal).toLowerCase(),
-    se = exp.toLowerCase();
+  const sv = String(left).toLowerCase(),
+    se = right.toLowerCase();
   if (op === "equals") return sv === se;
   if (op === "contains") return sv.indexOf(se) !== -1;
   if (op === "starts_with") return sv.indexOf(se) === 0;
   if (op === "ends_with") return sv.lastIndexOf(se) === sv.length - se.length;
-
   if (op === "==") return sv === se;
   if (op === "!=") return sv !== se;
 
   return false;
 }
 
-// Helper to build mailto URL from email node
+// ── Upgraded Set Variable ──
+function applySetVar(node) {
+  const varName = node.variable;
+  const operation = node.operation || "set";
+  const rawValue = substituteVariables(node.value ?? "");
+  const currentVal =
+    state.runtimeVariables[varName] !== undefined
+      ? state.runtimeVariables[varName]
+      : node.varType === "number"
+        ? 0
+        : "";
+
+  let result;
+  if (operation === "set") {
+    result = rawValue;
+    if (node.varType === "number") result = Number(rawValue);
+    else if (node.varType === "boolean")
+      result = rawValue.toLowerCase() === "true" || rawValue === "1";
+  } else {
+    const numCurrent = Number(currentVal) || 0;
+    const numOperand = Number(rawValue) || 0;
+    switch (operation) {
+      case "add":
+        result = numCurrent + numOperand;
+        break;
+      case "subtract":
+        result = numCurrent - numOperand;
+        break;
+      case "multiply":
+        result = numCurrent * numOperand;
+        break;
+      case "divide":
+        result = numOperand !== 0 ? numCurrent / numOperand : currentVal;
+        break;
+      case "concatenate":
+        result = String(currentVal) + String(rawValue);
+        break;
+      default:
+        result = currentVal;
+    }
+    if (node.varType === "number") result = Number(result);
+  }
+
+  if (varName) state.runtimeVariables[varName] = result;
+  return result;
+}
+
+// ── Format message for visible setvar ──
+function formatSetVarMessage(node, result) {
+  const varName = node.variable || "?";
+  const rawVal = substituteVariables(node.value ?? "");
+  const op = node.operation || "set";
+
+  if (op === "set") {
+    return `Variable <strong>${escapeHtml(varName)}</strong> = <strong>${escapeHtml(result)}</strong>`;
+  }
+
+  const symbol =
+    {
+      add: "+",
+      subtract: "−",
+      multiply: "×",
+      divide: "÷",
+      concatenate: "&",
+    }[op] || op;
+  return `Variable <strong>${escapeHtml(varName)}</strong> ${symbol} <strong>${escapeHtml(rawVal)}</strong> = <strong>${escapeHtml(result)}</strong>`;
+}
+
+// ── Mailto helper ──
 function buildMailtoUrl(node, variables) {
   const encode = (s) =>
     encodeURIComponent(s).replace(/%7B/g, "{").replace(/%7D/g, "}");
@@ -114,7 +174,6 @@ function buildMailtoUrl(node, variables) {
   if (node.bcc) params.push("bcc=" + encode(substituteVariables(node.bcc)));
   if (node.subject)
     params.push("subject=" + encode(substituteVariables(node.subject)));
-  // For email body, use the HTML content but strip tags for mailto
   const plainBody = (node.body || "").replace(/<[^>]*>/g, "");
   const substitutedBody = substituteVariables(plainBody);
   if (substitutedBody) params.push("body=" + encode(substitutedBody));
@@ -122,6 +181,9 @@ function buildMailtoUrl(node, variables) {
   return mailto;
 }
 
+// ═══════════════════════════════════════
+//  STEP MODE
+// ═══════════════════════════════════════
 function renderRuntimeStep() {
   const proj = currentProject();
   const node = proj.nodes.get(state.runtimeCurrentNodeId);
@@ -144,12 +206,31 @@ function renderRuntimeStep() {
   if (node.type === "message" && runtimeModalContent)
     runtimeModalContent.classList.add("variant-" + (node.variant || "info"));
   const displayText = substituteVariables(node.text);
+
   if (node.type === "end") {
-    DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Flow Complete</p><p>${escapeHtml(displayText)}</p></div>`;
+    DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>${escapeHtml(displayText)}</p></div>`;
     return;
   }
+
+  // ── Hidden SetVar ──
+  if (node.type === "setvar" && !node.showInRuntime) {
+    applySetVar(node);
+    if (node.next && proj.nodes.has(node.next)) {
+      state.runtimeCurrentNodeId = node.next;
+      state.runtimeHistory.push(node.next);
+      renderRuntimeStep();
+    }
+    return;
+  }
+
+  // ── Choice ──
   if (node.type === "choice" && node.options) {
-    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><div class="runtime-options">${node.options.map((o, i) => `<button class="runtime-option-btn" data-opt-idx="${i}">${escapeHtml(o.text)}</button>`).join("")}</div>`;
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><div class="runtime-options">${node.options
+      .map(
+        (o, i) =>
+          `<button class="runtime-option-btn" data-opt-idx="${i}">${escapeHtml(o.text)}</button>`,
+      )
+      .join("")}</div>`;
     DOM.runtimeBody.querySelectorAll(".runtime-option-btn").forEach((b) =>
       b.addEventListener("click", () => {
         const next = node.options[b.dataset.optIdx].next;
@@ -164,43 +245,95 @@ function renderRuntimeStep() {
           );
       }),
     );
-  } else if (node.type === "input" || node.type === "number") {
-    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><input class="runtime-input" type="${node.type === "number" ? "number" : "text"}" id="runtimeInput" autofocus><button class="runtime-submit-btn" id="runtimeSubmit">Continue</button>`;
-    const inp = document.getElementById("runtimeInput"),
-      btn = document.getElementById("runtimeSubmit");
-    setTimeout(() => inp.focus(), 50);
-    const go = () => {
-      const val = inp.value.trim();
-      if (!val && node.type === "input") return;
-      if (node.variable)
-        state.runtimeVariables[node.variable] =
-          node.type === "number" ? Number(val) : val;
-      if (node.next && proj.nodes.has(node.next)) {
-        state.runtimeCurrentNodeId = node.next;
-        state.runtimeHistory.push(node.next);
-        renderRuntimeStep();
-      } else
-        showToast(
-          node.next ? `Node "${node.next}" not found` : "No next node",
-          "error",
-        );
-    };
-    btn.addEventListener("click", go);
-    inp.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") go();
-    });
-  } else if (node.type === "decision") {
-    const result = evaluateDecision(node),
-      next = result ? node.trueNext : node.falseNext;
+  }
+
+  // ── Unified Input (text, number, date, time, datetime‑local, list) ──
+  else if (node.type === "input") {
+    const inputType = node.inputType || "text";
+
+    if (inputType === "list") {
+      // Button‑based list
+      const buttonsHtml = (node.listOptions || [])
+        .map(
+          (o, i) =>
+            `<button class="runtime-option-btn" data-list-idx="${i}">${escapeHtml(o.text)}</button>`,
+        )
+        .join("");
+      DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div>
+        <div class="runtime-options">${buttonsHtml}</div>`;
+      DOM.runtimeBody.querySelectorAll(".runtime-option-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = parseInt(btn.dataset.listIdx);
+          const selected = node.listOptions[idx];
+          const val = selected.value || selected.text;
+          if (node.variable) state.runtimeVariables[node.variable] = val;
+          const next = node.next;
+          if (next && proj.nodes.has(next)) {
+            state.runtimeCurrentNodeId = next;
+            state.runtimeHistory.push(next);
+            renderRuntimeStep();
+          } else {
+            showToast(
+              next ? `Node "${next}" not found` : "No next node set",
+              "error",
+            );
+          }
+        });
+      });
+    } else {
+      // Regular input
+      const placeholder = escapeHtml(node.placeholder || "");
+      DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div>
+        <input class="runtime-input" type="${inputType}" id="runtimeInput" autofocus placeholder="${placeholder}">
+        <button class="runtime-submit-btn" id="runtimeSubmit">Continue</button>`;
+      const inp = document.getElementById("runtimeInput"),
+        btn = document.getElementById("runtimeSubmit");
+      setTimeout(() => inp.focus(), 50);
+      const go = () => {
+        const val = inp.value.trim();
+        if (node.required && !val) {
+          showToast("This field is required", "error");
+          return;
+        }
+        if (!val && inputType !== "number") return;
+        if (node.variable)
+          state.runtimeVariables[node.variable] =
+            inputType === "number" ? Number(val) : val;
+        if (node.next && proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderRuntimeStep();
+        } else
+          showToast(
+            node.next ? `Node "${node.next}" not found` : "No next node",
+            "error",
+          );
+      };
+      btn.addEventListener("click", go);
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") go();
+      });
+    }
+  }
+
+  // ── Decision ──
+  else if (node.type === "decision") {
+    const result = evaluateDecision(node);
+    const next = result ? node.trueNext : node.falseNext;
     if (next && proj.nodes.has(next)) {
       state.runtimeCurrentNodeId = next;
       state.runtimeHistory.push(next);
       renderRuntimeStep();
     } else
       DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Decision: <strong>${result}</strong>, no next node</p></div>`;
-  } else if (node.type === "copybox") {
+  }
+
+  // ── Copy Box ──
+  else if (node.type === "copybox") {
     const content = substituteVariables(node.copyContent || "");
-    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><div class="runtime-copy-block">${content}</div><button class="btn-copy" id="btnCopyContent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="12" height="16" rx="2"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg> Copy</button><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><div class="runtime-copy-block">${content}</div>
+      <button class="btn-copy" id="btnCopyContent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="12" height="16" rx="2"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg> Copy</button>
+      <button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
     document
       .getElementById("btnCopyContent")
       .addEventListener("click", async () => {
@@ -224,25 +357,26 @@ function renderRuntimeStep() {
           "error",
         );
     });
-  } else if (node.type === "link") {
+  }
+
+  // ── Link ──
+  else if (node.type === "link") {
     const linksHtml = (node.links || [])
       .map(
         (l, i) =>
           `<button class="runtime-link-btn" data-link-url="${escapeHtml(l.url)}" data-link-idx="${i}">${escapeHtml(l.label)}</button>`,
       )
       .join("");
-    DOM.runtimeBody.innerHTML = `
-      <div class="runtime-question">${escapeHtml(displayText)}</div>
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div>
       ${linksHtml ? `<div class="runtime-links">${linksHtml}</div>` : ""}
-      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}
-    `;
-    DOM.runtimeBody.querySelectorAll(".runtime-link-btn").forEach((btn) => {
+      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}`;
+    DOM.runtimeBody.querySelectorAll(".runtime-link-btn").forEach((btn) =>
       btn.addEventListener("click", () => {
         const url = btn.dataset.linkUrl;
         if (url) window.open(url, "_blank", "noopener,noreferrer");
-      });
-    });
-    if (node.next) {
+      }),
+    );
+    if (node.next)
       document
         .getElementById("runtimeContinue")
         .addEventListener("click", () => {
@@ -252,62 +386,37 @@ function renderRuntimeStep() {
             renderRuntimeStep();
           } else showToast(`Node "${node.next}" not found`, "error");
         });
-    }
-  } else if (node.type === "setvar") {
-    const varName = node.variable;
-    const val = substituteVariables(node.value);
-    let parsedVal = val;
-    if (node.varType === "number") parsedVal = Number(val);
-    else if (node.varType === "boolean")
-      parsedVal = val.toLowerCase() === "true" || val === "1";
-    if (varName) state.runtimeVariables[varName] = parsedVal;
+  }
 
-    if (!node.showInRuntime) {
+  // ── Set Variable (visible) ──
+  else if (node.type === "setvar") {
+    const result = applySetVar(node);
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div>
+      <div class="runtime-message-box variant-info"><p>${formatSetVarMessage(node, result)}</p></div>
+      <button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
+    document.getElementById("runtimeContinue").addEventListener("click", () => {
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
         state.runtimeHistory.push(node.next);
         renderRuntimeStep();
-      } else {
-        DOM.runtimeBody.innerHTML = `<div class="runtime-end-message"><p>Flow Complete</p></div>`;
-      }
-    } else {
-      DOM.runtimeBody.innerHTML = `
-        <div class="runtime-question">${escapeHtml(displayText)}</div>
-        <div class="runtime-message-box variant-info">
-          <p>Variable <strong>${escapeHtml(varName)}</strong> set to <strong>${escapeHtml(parsedVal)}</strong></p>
-        </div>
-        <button class="runtime-submit-btn" id="runtimeContinue">Continue</button>
-      `;
-      document
-        .getElementById("runtimeContinue")
-        .addEventListener("click", () => {
-          if (node.next && proj.nodes.has(node.next)) {
-            state.runtimeCurrentNodeId = node.next;
-            state.runtimeHistory.push(node.next);
-            renderRuntimeStep();
-          } else
-            showToast(
-              node.next ? `Node "${node.next}" not found` : "No next node",
-              "error",
-            );
-        });
-    }
-  } else if (node.type === "email") {
+      } else
+        showToast(
+          node.next ? `Node "${node.next}" not found` : "No next node",
+          "error",
+        );
+    });
+  }
+
+  // ── Email ──
+  else if (node.type === "email") {
     const mailto = buildMailtoUrl(node, state.runtimeVariables);
-    DOM.runtimeBody.innerHTML =
-      `
-      <div class="runtime-question">${escapeHtml(displayText)}</div>
-      <button class="runtime-email-btn" id="runtimeSendEmail">` +
-      escapeHtml(node.buttonLabel || "Send Email") +
-      `</button>
-      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}
-    `;
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div>
+      <button class="runtime-email-btn" id="runtimeSendEmail">${escapeHtml(node.buttonLabel || "Send Email")}</button>
+      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}`;
     document
       .getElementById("runtimeSendEmail")
-      .addEventListener("click", () => {
-        window.open(mailto, "_blank");
-      });
-    if (node.next) {
+      .addEventListener("click", () => window.open(mailto, "_blank"));
+    if (node.next)
       document
         .getElementById("runtimeContinue")
         .addEventListener("click", () => {
@@ -317,9 +426,39 @@ function renderRuntimeStep() {
             renderRuntimeStep();
           } else showToast(`Node "${node.next}" not found`, "error");
         });
-    }
-  } else {
-    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div><button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
+  }
+
+  // ── Download TXT ──
+  else if (node.type === "download") {
+    const content = substituteVariables(node.content || "");
+    const filename = substituteVariables(node.filename || "download.txt");
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div>
+      <button class="runtime-submit-btn" id="runtimeDownload">Download</button>
+      ${node.next ? `<button class="runtime-submit-btn" id="runtimeContinue">Continue</button>` : ""}`;
+    document.getElementById("runtimeDownload").addEventListener("click", () => {
+      const blob = new Blob([content], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    if (node.next)
+      document
+        .getElementById("runtimeContinue")
+        .addEventListener("click", () => {
+          if (proj.nodes.has(node.next)) {
+            state.runtimeCurrentNodeId = node.next;
+            state.runtimeHistory.push(node.next);
+            renderRuntimeStep();
+          } else showToast(`Node "${node.next}" not found`, "error");
+        });
+  }
+
+  // ── Generic Continue ──
+  else {
+    DOM.runtimeBody.innerHTML = `<div class="runtime-question">${escapeHtml(displayText)}</div>
+      <button class="runtime-submit-btn" id="runtimeContinue">Continue</button>`;
     document.getElementById("runtimeContinue").addEventListener("click", () => {
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
@@ -334,7 +473,9 @@ function renderRuntimeStep() {
   }
 }
 
-// ---- LINEAR RUNTIME ----
+// ═══════════════════════════════════════
+//  LINEAR MODE
+// ═══════════════════════════════════════
 function startLinearRuntime() {
   const proj = currentProject();
   if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
@@ -370,14 +511,9 @@ function renderLinearStep() {
     return;
   }
 
+  // Hidden SetVar
   if (node.type === "setvar" && !node.showInRuntime) {
-    const varName = node.variable;
-    const val = substituteVariables(node.value);
-    let parsedVal = val;
-    if (node.varType === "number") parsedVal = Number(val);
-    else if (node.varType === "boolean")
-      parsedVal = val.toLowerCase() === "true" || val === "1";
-    if (varName) state.runtimeVariables[varName] = parsedVal;
+    applySetVar(node);
     if (node.next && proj.nodes.has(node.next)) {
       state.runtimeCurrentNodeId = node.next;
       state.runtimeHistory.push(node.next);
@@ -402,6 +538,7 @@ function renderLinearStep() {
     stepDiv.classList.add("variant-" + (node.variant || "info"));
   body.appendChild(stepDiv);
 
+  // Choice
   if (node.type === "choice" && node.options) {
     const optsDiv = document.createElement("div");
     optsDiv.className = "runtime-options";
@@ -415,11 +552,6 @@ function renderLinearStep() {
           b.classList.remove("selected-option");
         });
         btn.classList.add("selected-option");
-        state.runtimeStepLog.push({
-          nodeId: node.id,
-          text: displayText,
-          answer: opt.text,
-        });
         const next = opt.next;
         if (next && proj.nodes.has(next)) {
           state.runtimeCurrentNodeId = next;
@@ -434,49 +566,86 @@ function renderLinearStep() {
       optsDiv.appendChild(btn);
     });
     stepDiv.appendChild(optsDiv);
-  } else if (node.type === "input" || node.type === "number") {
-    const row = document.createElement("div");
-    row.className = "chat-input-row";
-    const input = document.createElement("input");
-    input.className = "chat-input";
-    input.type = node.type === "number" ? "number" : "text";
-    input.placeholder = "Enter your answer… (press Enter)";
-    const go = () => {
-      const val = input.value.trim();
-      if (!val && node.type === "input") return;
-      if (node.variable)
-        state.runtimeVariables[node.variable] =
-          node.type === "number" ? Number(val) : val;
-      state.runtimeStepLog.push({
-        nodeId: node.id,
-        text: displayText,
-        answer: val,
+  }
+
+  // Unified Input
+  else if (node.type === "input") {
+    const inputType = node.inputType || "text";
+
+    if (inputType === "list") {
+      const optsDiv = document.createElement("div");
+      optsDiv.className = "runtime-options";
+      (node.listOptions || []).forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "runtime-option-btn";
+        btn.textContent = opt.text;
+        btn.addEventListener("click", () => {
+          optsDiv.querySelectorAll(".runtime-option-btn").forEach((b) => {
+            b.disabled = true;
+            b.classList.remove("selected-option");
+          });
+          btn.classList.add("selected-option");
+          const val = opt.value || opt.text;
+          if (node.variable) state.runtimeVariables[node.variable] = val;
+          const next = node.next;
+          if (next && proj.nodes.has(next)) {
+            state.runtimeCurrentNodeId = next;
+            state.runtimeHistory.push(next);
+            renderLinearStep();
+          } else
+            showToast(
+              next ? `Node "${next}" not found` : "No next node set",
+              "error",
+            );
+        });
+        optsDiv.appendChild(btn);
       });
-      input.disabled = true;
-      const next = node.next;
-      if (next && proj.nodes.has(next)) {
-        state.runtimeCurrentNodeId = next;
-        state.runtimeHistory.push(next);
-        renderLinearStep();
-      } else
-        showToast(next ? `Node "${next}" not found` : "No next node", "error");
-    };
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        if (input.value.trim() || node.type === "number") go();
-      }
-    });
-    row.appendChild(input);
-    stepDiv.appendChild(row);
-    input.focus();
-  } else if (node.type === "decision") {
+      stepDiv.appendChild(optsDiv);
+    } else {
+      const row = document.createElement("div");
+      row.className = "chat-input-row";
+      const input = document.createElement("input");
+      input.className = "chat-input";
+      input.type = inputType;
+      input.placeholder =
+        node.placeholder || "Enter your answer… (press Enter)";
+      const go = () => {
+        const val = input.value.trim();
+        if (node.required && !val) {
+          showToast("This field is required", "error");
+          return;
+        }
+        if (!val && inputType !== "number") return;
+        if (node.variable)
+          state.runtimeVariables[node.variable] =
+            inputType === "number" ? Number(val) : val;
+        input.disabled = true;
+        if (node.next && proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderLinearStep();
+        } else
+          showToast(
+            node.next ? `Node "${node.next}" not found` : "No next node",
+            "error",
+          );
+      };
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const val = input.value.trim();
+          if (val || inputType === "number") go();
+        }
+      });
+      row.appendChild(input);
+      stepDiv.appendChild(row);
+      input.focus();
+    }
+  }
+
+  // Decision
+  else if (node.type === "decision") {
     const result = evaluateDecision(node);
-    state.runtimeStepLog.push({
-      nodeId: node.id,
-      text: displayText,
-      answer: result ? "True" : "False",
-    });
     const next = result ? node.trueNext : node.falseNext;
     if (next && proj.nodes.has(next)) {
       state.runtimeCurrentNodeId = next;
@@ -484,11 +653,14 @@ function renderLinearStep() {
       renderLinearStep();
     } else
       stepDiv.innerHTML += `<p>Decision: <strong>${result}</strong>, no next node.</p>`;
-  } else if (node.type === "copybox") {
+  }
+
+  // Copy Box
+  else if (node.type === "copybox") {
     const content = substituteVariables(node.copyContent || "");
     const copyDiv = document.createElement("div");
     copyDiv.className = "runtime-copy-block";
-    copyDiv.innerHTML = content; // render HTML
+    copyDiv.innerHTML = content;
     stepDiv.appendChild(copyDiv);
     const copyBtn = document.createElement("button");
     copyBtn.className = "btn-copy";
@@ -503,30 +675,27 @@ function renderLinearStep() {
       }, 2000);
     });
     stepDiv.appendChild(copyBtn);
-    const continueBtn = document.createElement("button");
-    continueBtn.className = "runtime-submit-btn linear-continue-btn";
-    continueBtn.textContent = "Continue";
-    continueBtn.addEventListener("click", () => {
-      state.runtimeStepLog.push({
-        nodeId: node.id,
-        text: displayText,
-        answer: null,
-      });
-      continueBtn.disabled = true;
-      continueBtn.style.display = "none";
-      const nextNodeId = node.next;
-      if (nextNodeId && proj.nodes.has(nextNodeId)) {
-        state.runtimeCurrentNodeId = nextNodeId;
-        state.runtimeHistory.push(nextNodeId);
+    const cont = document.createElement("button");
+    cont.className = "runtime-submit-btn linear-continue-btn";
+    cont.textContent = "Continue";
+    cont.addEventListener("click", () => {
+      cont.disabled = true;
+      cont.style.display = "none";
+      if (node.next && proj.nodes.has(node.next)) {
+        state.runtimeCurrentNodeId = node.next;
+        state.runtimeHistory.push(node.next);
         renderLinearStep();
       } else
         showToast(
-          nextNodeId ? `Node "${nextNodeId}" not found` : "No next node",
+          node.next ? `Node "${node.next}" not found` : "No next node",
           "error",
         );
     });
-    stepDiv.appendChild(continueBtn);
-  } else if (node.type === "link") {
+    stepDiv.appendChild(cont);
+  }
+
+  // Link
+  else if (node.type === "link") {
     const linksContainer = document.createElement("div");
     linksContainer.className = "runtime-links";
     (node.links || []).forEach((link) => {
@@ -554,24 +723,21 @@ function renderLinearStep() {
       });
       stepDiv.appendChild(cont);
     }
-  } else if (node.type === "setvar") {
-    const varName = node.variable;
-    const val = substituteVariables(node.value);
-    let parsedVal = val;
-    if (node.varType === "number") parsedVal = Number(val);
-    else if (node.varType === "boolean")
-      parsedVal = val.toLowerCase() === "true" || val === "1";
-    if (varName) state.runtimeVariables[varName] = parsedVal;
+  }
+
+  // Set Variable (visible)
+  else if (node.type === "setvar") {
+    const result = applySetVar(node);
     const infoDiv = document.createElement("div");
     infoDiv.className = "runtime-message-box variant-info";
-    infoDiv.innerHTML = `<p>Variable <strong>${escapeHtml(varName)}</strong> set to <strong>${escapeHtml(parsedVal)}</strong></p>`;
+    infoDiv.innerHTML = `<p>${formatSetVarMessage(node, result)}</p>`;
     stepDiv.appendChild(infoDiv);
-    const continueBtn = document.createElement("button");
-    continueBtn.className = "runtime-submit-btn linear-continue-btn";
-    continueBtn.textContent = "Continue";
-    continueBtn.addEventListener("click", () => {
-      continueBtn.disabled = true;
-      continueBtn.style.display = "none";
+    const cont = document.createElement("button");
+    cont.className = "runtime-submit-btn linear-continue-btn";
+    cont.textContent = "Continue";
+    cont.addEventListener("click", () => {
+      cont.disabled = true;
+      cont.style.display = "none";
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
         state.runtimeHistory.push(node.next);
@@ -582,23 +748,22 @@ function renderLinearStep() {
           "error",
         );
     });
-    stepDiv.appendChild(continueBtn);
-  } else if (node.type === "email") {
+    stepDiv.appendChild(cont);
+  }
+
+  // Email
+  else if (node.type === "email") {
     const mailto = buildMailtoUrl(node, state.runtimeVariables);
     const btnContainer = document.createElement("div");
     btnContainer.style.display = "flex";
     btnContainer.style.flexDirection = "column";
     btnContainer.style.gap = "12px";
     btnContainer.style.marginTop = "12px";
-
     const sendBtn = document.createElement("button");
     sendBtn.className = "runtime-email-btn";
     sendBtn.textContent = node.buttonLabel || "Send Email";
-    sendBtn.addEventListener("click", () => {
-      window.open(mailto, "_blank");
-    });
+    sendBtn.addEventListener("click", () => window.open(mailto, "_blank"));
     btnContainer.appendChild(sendBtn);
-
     if (node.next) {
       const contBtn = document.createElement("button");
       contBtn.className = "runtime-submit-btn linear-continue-btn";
@@ -614,23 +779,53 @@ function renderLinearStep() {
       });
       btnContainer.appendChild(contBtn);
     }
-
     stepDiv.appendChild(btnContainer);
     body.appendChild(stepDiv);
     body.scrollTop = body.scrollHeight;
     return;
-  } else {
-    const continueBtn = document.createElement("button");
-    continueBtn.className = "runtime-submit-btn linear-continue-btn";
-    continueBtn.textContent = "Continue";
-    continueBtn.addEventListener("click", () => {
-      state.runtimeStepLog.push({
-        nodeId: node.id,
-        text: displayText,
-        answer: null,
+  }
+
+  // Download TXT
+  else if (node.type === "download") {
+    const content = substituteVariables(node.content || "");
+    const filename = substituteVariables(node.filename || "download.txt");
+    const dlBtn = document.createElement("button");
+    dlBtn.className = "runtime-submit-btn linear-continue-btn";
+    dlBtn.textContent = "Download";
+    dlBtn.addEventListener("click", () => {
+      const blob = new Blob([content], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    stepDiv.appendChild(dlBtn);
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn linear-continue-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        cont.disabled = true;
+        cont.style.display = "none";
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderLinearStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
       });
-      continueBtn.disabled = true;
-      continueBtn.style.display = "none";
+      stepDiv.appendChild(cont);
+    }
+  }
+
+  // Generic Continue
+  else {
+    const cont = document.createElement("button");
+    cont.className = "runtime-submit-btn linear-continue-btn";
+    cont.textContent = "Continue";
+    cont.addEventListener("click", () => {
+      cont.disabled = true;
+      cont.style.display = "none";
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
         state.runtimeHistory.push(node.next);
@@ -641,12 +836,14 @@ function renderLinearStep() {
           "error",
         );
     });
-    stepDiv.appendChild(continueBtn);
+    stepDiv.appendChild(cont);
   }
   body.scrollTop = body.scrollHeight;
 }
 
-// ---- CHAT RUNTIME ----
+// ═══════════════════════════════════════
+//  CHAT MODE
+// ═══════════════════════════════════════
 function startChatRuntime() {
   const proj = currentProject();
   if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
@@ -693,6 +890,18 @@ function renderChatStep() {
     );
   }
 
+  // Hidden SetVar
+  if (node.type === "setvar" && !node.showInRuntime) {
+    applySetVar(node);
+    if (node.next && proj.nodes.has(node.next)) {
+      state.runtimeCurrentNodeId = node.next;
+      state.runtimeHistory.push(node.next);
+      renderChatStep();
+    }
+    return;
+  }
+
+  // Choice
   if (node.type === "choice" && node.options) {
     const optsDiv = document.createElement("div");
     optsDiv.className = "chat-options";
@@ -702,11 +911,6 @@ function renderChatStep() {
       btn.textContent = opt.text;
       btn.addEventListener("click", () => {
         addChatBubble("user", opt.text);
-        state.runtimeStepLog.push({
-          nodeId: node.id,
-          text: displayText,
-          answer: opt.text,
-        });
         optsDiv.remove();
         const next = opt.next;
         if (next && proj.nodes.has(next)) {
@@ -722,51 +926,85 @@ function renderChatStep() {
       optsDiv.appendChild(btn);
     });
     footer.appendChild(optsDiv);
-  } else if (node.type === "input" || node.type === "number") {
-    const row = document.createElement("div");
-    row.className = "chat-input-row";
-    const input = document.createElement("input");
-    input.className = "chat-input";
-    input.type = node.type === "number" ? "number" : "text";
-    input.placeholder = "Enter your answer… (press Enter)";
-    const go = () => {
-      const val = input.value.trim();
-      if (!val && node.type === "input") return;
-      if (node.variable)
-        state.runtimeVariables[node.variable] =
-          node.type === "number" ? Number(val) : val;
-      addChatBubble("user", val);
-      state.runtimeStepLog.push({
-        nodeId: node.id,
-        text: displayText,
-        answer: val,
+  }
+
+  // Unified Input
+  else if (node.type === "input") {
+    const inputType = node.inputType || "text";
+
+    if (inputType === "list") {
+      const optsDiv = document.createElement("div");
+      optsDiv.className = "chat-options";
+      (node.listOptions || []).forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.className = "chat-option-btn";
+        btn.textContent = opt.text;
+        btn.addEventListener("click", () => {
+          addChatBubble("user", opt.text);
+          const val = opt.value || opt.text;
+          if (node.variable) state.runtimeVariables[node.variable] = val;
+          optsDiv.remove();
+          const next = node.next;
+          if (next && proj.nodes.has(next)) {
+            state.runtimeCurrentNodeId = next;
+            state.runtimeHistory.push(next);
+            renderChatStep();
+          } else
+            showToast(
+              next ? `Node "${next}" not found` : "No next node set",
+              "error",
+            );
+        });
+        optsDiv.appendChild(btn);
       });
-      input.disabled = true;
-      footer.removeChild(row);
-      const next = node.next;
-      if (next && proj.nodes.has(next)) {
-        state.runtimeCurrentNodeId = next;
-        state.runtimeHistory.push(next);
-        renderChatStep();
-      } else
-        showToast(next ? `Node "${next}" not found` : "No next node", "error");
-    };
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        if (input.value.trim() || node.type === "number") go();
-      }
-    });
-    row.appendChild(input);
-    footer.appendChild(row);
-    input.focus();
-  } else if (node.type === "decision") {
+      footer.appendChild(optsDiv);
+    } else {
+      const row = document.createElement("div");
+      row.className = "chat-input-row";
+      const input = document.createElement("input");
+      input.className = "chat-input";
+      input.type = inputType;
+      input.placeholder =
+        node.placeholder || "Enter your answer… (press Enter)";
+      const go = () => {
+        const val = input.value.trim();
+        if (node.required && !val) {
+          showToast("This field is required", "error");
+          return;
+        }
+        if (!val && inputType !== "number") return;
+        if (node.variable)
+          state.runtimeVariables[node.variable] =
+            inputType === "number" ? Number(val) : val;
+        addChatBubble("user", val);
+        input.disabled = true;
+        footer.removeChild(row);
+        if (node.next && proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderChatStep();
+        } else
+          showToast(
+            node.next ? `Node "${node.next}" not found` : "No next node",
+            "error",
+          );
+      };
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const val = input.value.trim();
+          if (val || inputType === "number") go();
+        }
+      });
+      row.appendChild(input);
+      footer.appendChild(row);
+      input.focus();
+    }
+  }
+
+  // Decision
+  else if (node.type === "decision") {
     const result = evaluateDecision(node);
-    state.runtimeStepLog.push({
-      nodeId: node.id,
-      text: displayText,
-      answer: result ? "True" : "False",
-    });
     const next = result ? node.trueNext : node.falseNext;
     if (next && proj.nodes.has(next)) {
       state.runtimeCurrentNodeId = next;
@@ -774,7 +1012,10 @@ function renderChatStep() {
       renderChatStep();
     } else
       addChatBubble("bot", "Decision: " + result + ", no next node.", "error");
-  } else if (node.type === "copybox") {
+  }
+
+  // Copy Box
+  else if (node.type === "copybox") {
     const content = substituteVariables(node.copyContent || "");
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bot";
@@ -791,27 +1032,23 @@ function renderChatStep() {
         copyBtn.classList.remove("copied");
       }, 2000);
     });
-    const continueBtn = document.createElement("button");
-    continueBtn.className = "runtime-submit-btn";
-    continueBtn.textContent = "Continue";
-    continueBtn.addEventListener("click", () => {
-      state.runtimeStepLog.push({
-        nodeId: node.id,
-        text: displayText,
-        answer: null,
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderChatStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
       });
-      if (node.next && proj.nodes.has(node.next)) {
-        state.runtimeCurrentNodeId = node.next;
-        state.runtimeHistory.push(node.next);
-        renderChatStep();
-      } else
-        showToast(
-          node.next ? `Node "${node.next}" not found` : "No next node",
-          "error",
-        );
-    });
-    footer.appendChild(continueBtn);
-  } else if (node.type === "link") {
+      footer.appendChild(cont);
+    }
+  }
+
+  // Link
+  else if (node.type === "link") {
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bot link-bubble";
     const textDiv = document.createElement("div");
@@ -847,14 +1084,11 @@ function renderChatStep() {
       footer.appendChild(cont);
     }
     body.scrollTop = body.scrollHeight;
-  } else if (node.type === "setvar") {
-    const varName = node.variable;
-    const val = substituteVariables(node.value);
-    let parsedVal = val;
-    if (node.varType === "number") parsedVal = Number(val);
-    else if (node.varType === "boolean")
-      parsedVal = val.toLowerCase() === "true" || val === "1";
-    if (varName) state.runtimeVariables[varName] = parsedVal;
+  }
+
+  // Set Variable (visible)
+  else if (node.type === "setvar") {
+    const result = applySetVar(node);
     if (!node.showInRuntime) {
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
@@ -865,7 +1099,7 @@ function renderChatStep() {
     }
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bot";
-    bubble.textContent = `${displayText}\nVariable ${escapeHtml(varName)} set to ${escapeHtml(parsedVal)}`;
+    bubble.innerHTML = `<p>${formatSetVarMessage(node, result)}</p>`;
     body.appendChild(bubble);
     if (node.next) {
       const cont = document.createElement("button");
@@ -880,40 +1114,71 @@ function renderChatStep() {
       });
       footer.appendChild(cont);
     }
-  } else if (node.type === "email") {
+  }
+
+  // Email
+  else if (node.type === "email") {
     const mailto = buildMailtoUrl(node, state.runtimeVariables);
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble chat-bot";
-    bubble.innerHTML = `<div>${displayText}</div>
-      <button class="runtime-email-btn" style="margin-top:8px;" id="chatSendEmail">${escapeHtml(node.buttonLabel || "Send Email")}</button>`;
+    bubble.innerHTML = `<div>${displayText}</div><button class="runtime-email-btn" style="margin-top:8px;" id="chatSendEmail">${escapeHtml(node.buttonLabel || "Send Email")}</button>`;
     body.appendChild(bubble);
-    document.getElementById("chatSendEmail").addEventListener("click", () => {
-      window.open(mailto, "_blank");
-    });
+    document
+      .getElementById("chatSendEmail")
+      .addEventListener("click", () => window.open(mailto, "_blank"));
     if (node.next) {
-      const continueBtn = document.createElement("button");
-      continueBtn.className = "runtime-submit-btn";
-      continueBtn.textContent = "Continue";
-      continueBtn.addEventListener("click", () => {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
         if (proj.nodes.has(node.next)) {
           state.runtimeCurrentNodeId = node.next;
           state.runtimeHistory.push(node.next);
           renderChatStep();
         } else showToast(`Node "${node.next}" not found`, "error");
       });
-      footer.appendChild(continueBtn);
+      footer.appendChild(cont);
     }
     body.scrollTop = body.scrollHeight;
-  } else {
-    const continueBtn = document.createElement("button");
-    continueBtn.className = "runtime-submit-btn";
-    continueBtn.textContent = "Continue";
-    continueBtn.addEventListener("click", () => {
-      state.runtimeStepLog.push({
-        nodeId: node.id,
-        text: displayText,
-        answer: null,
+  }
+
+  // Download TXT
+  else if (node.type === "download") {
+    const content = substituteVariables(node.content || "");
+    const filename = substituteVariables(node.filename || "download.txt");
+    const dlBtn = document.createElement("button");
+    dlBtn.className = "runtime-submit-btn";
+    dlBtn.textContent = "Download";
+    dlBtn.addEventListener("click", () => {
+      const blob = new Blob([content], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    footer.appendChild(dlBtn);
+    if (node.next) {
+      const cont = document.createElement("button");
+      cont.className = "runtime-submit-btn";
+      cont.textContent = "Continue";
+      cont.addEventListener("click", () => {
+        if (proj.nodes.has(node.next)) {
+          state.runtimeCurrentNodeId = node.next;
+          state.runtimeHistory.push(node.next);
+          renderChatStep();
+        } else showToast(`Node "${node.next}" not found`, "error");
       });
+      footer.appendChild(cont);
+    }
+  }
+
+  // Generic Continue
+  else {
+    const cont = document.createElement("button");
+    cont.className = "runtime-submit-btn";
+    cont.textContent = "Continue";
+    cont.addEventListener("click", () => {
       if (node.next && proj.nodes.has(node.next)) {
         state.runtimeCurrentNodeId = node.next;
         state.runtimeHistory.push(node.next);
@@ -924,7 +1189,7 @@ function renderChatStep() {
           "error",
         );
     });
-    footer.appendChild(continueBtn);
+    footer.appendChild(cont);
   }
   body.scrollTop = body.scrollHeight;
 }

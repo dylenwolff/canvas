@@ -2,7 +2,6 @@
 
 function exportToXML() {
   const proj = currentProject();
-  // No validation for broken links – only require a start node
   if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
     showToast("Set a start node before saving", "error");
     return;
@@ -27,7 +26,7 @@ function exportToXML() {
       });
       out += `        </options>\n`;
     } else if (node.type === "decision") {
-      out += `        <decision variable="${escapeXml(node.variable || "")}" operator="${escapeXml(node.operator || "equals")}" value="${escapeXml(node.value || "")}">\n`;
+      out += `        <decision left="${escapeXml(node.left || "")}" operator="${escapeXml(node.operator || "equals")}" right="${escapeXml(node.right || "")}">\n`;
       out += `            <true next="${escapeXml(node.trueNext || "")}"/>\n`;
       out += `            <false next="${escapeXml(node.falseNext || "")}"/>\n`;
       out += `        </decision>\n`;
@@ -47,6 +46,7 @@ function exportToXML() {
       if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type === "setvar") {
       out += `        <variable>${escapeXml(node.variable || "")}</variable>\n`;
+      out += `        <operation>${escapeXml(node.operation || "set")}</operation>\n`;
       out += `        <value>${escapeXml(node.value || "")}</value>\n`;
       out += `        <varType>${escapeXml(node.varType || "string")}</varType>\n`;
       out += `        <showInRuntime>${node.showInRuntime !== false ? "true" : "false"}</showInRuntime>\n`;
@@ -54,9 +54,39 @@ function exportToXML() {
     } else if (node.type === "email") {
       out += `        <email to="${escapeXml(node.to || "")}" cc="${escapeXml(node.cc || "")}" bcc="${escapeXml(node.bcc || "")}" subject="${escapeXml(node.subject || "")}" body="${escapeXml(node.body || "")}" buttonLabel="${escapeXml(node.buttonLabel || "Send Email")}"/>\n`;
       if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
-    } else if (node.type === "input" || node.type === "number") {
+    } else if (node.type === "dropdown") {
+      out += `        <variable>${escapeXml(node.variable || "")}</variable>\n`;
+      out += `        <options>\n`;
+      node.options?.forEach(
+        (o) =>
+          (out += `            <option value="${escapeXml(o.value || "")}">${escapeXml(o.text)}</option>\n`),
+      );
+      out += `        </options>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "download") {
+      out += `        <filename>${escapeXml(node.filename || "download.txt")}</filename>\n`;
+      out += `        <content>${escapeXml(node.content || "")}</content>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "input") {
       if (node.variable)
         out += `        <variable>${escapeXml(node.variable)}</variable>\n`;
+      if (node.placeholder)
+        out += `        <placeholder>${escapeXml(node.placeholder)}</placeholder>\n`;
+      if (node.required) out += `        <required>true</required>\n`;
+      if (node.inputType && node.inputType !== "text")
+        out += `        <inputType>${escapeXml(node.inputType)}</inputType>\n`;
+      // Serialise list options when type is "list"
+      if (
+        node.inputType === "list" &&
+        node.listOptions &&
+        node.listOptions.length
+      ) {
+        out += `        <listOptions>\n`;
+        node.listOptions.forEach((opt) => {
+          out += `            <option value="${escapeXml(opt.value || "")}">${escapeXml(opt.text)}</option>\n`;
+        });
+        out += `        </listOptions>\n`;
+      }
       if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type !== "end" && node.next) {
       out += `        <next>${escapeXml(node.next)}</next>\n`;
@@ -75,7 +105,9 @@ function exportToXML() {
     } else if (
       node.type === "link" ||
       node.type === "setvar" ||
-      node.type === "email"
+      node.type === "email" ||
+      node.type === "dropdown" ||
+      node.type === "download"
     ) {
       if (node.next) children += serializeNode(node.next);
     } else if (node.type !== "end" && node.next) {
@@ -123,7 +155,7 @@ function exportToXMLString() {
       });
       out += `        </options>\n`;
     } else if (node.type === "decision") {
-      out += `        <decision variable="${escapeXml(node.variable || "")}" operator="${escapeXml(node.operator || "equals")}" value="${escapeXml(node.value || "")}">\n`;
+      out += `        <decision left="${escapeXml(node.left || "")}" operator="${escapeXml(node.operator || "equals")}" right="${escapeXml(node.right || "")}">\n`;
       out += `            <true next="${escapeXml(node.trueNext || "")}"/>\n`;
       out += `            <false next="${escapeXml(node.falseNext || "")}"/>\n`;
       out += `        </decision>\n`;
@@ -143,6 +175,7 @@ function exportToXMLString() {
       if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type === "setvar") {
       out += `        <variable>${escapeXml(node.variable || "")}</variable>\n`;
+      out += `        <operation>${escapeXml(node.operation || "set")}</operation>\n`;
       out += `        <value>${escapeXml(node.value || "")}</value>\n`;
       out += `        <varType>${escapeXml(node.varType || "string")}</varType>\n`;
       out += `        <showInRuntime>${node.showInRuntime !== false ? "true" : "false"}</showInRuntime>\n`;
@@ -150,9 +183,39 @@ function exportToXMLString() {
     } else if (node.type === "email") {
       out += `        <email to="${escapeXml(node.to || "")}" cc="${escapeXml(node.cc || "")}" bcc="${escapeXml(node.bcc || "")}" subject="${escapeXml(node.subject || "")}" body="${escapeXml(node.body || "")}" buttonLabel="${escapeXml(node.buttonLabel || "Send Email")}"/>\n`;
       if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
-    } else if (node.type === "input" || node.type === "number") {
+    } else if (node.type === "dropdown") {
+      out += `        <variable>${escapeXml(node.variable || "")}</variable>\n`;
+      out += `        <options>\n`;
+      node.options?.forEach(
+        (o) =>
+          (out += `            <option value="${escapeXml(o.value || "")}">${escapeXml(o.text)}</option>\n`),
+      );
+      out += `        </options>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "download") {
+      out += `        <filename>${escapeXml(node.filename || "download.txt")}</filename>\n`;
+      out += `        <content>${escapeXml(node.content || "")}</content>\n`;
+      if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
+    } else if (node.type === "input") {
       if (node.variable)
         out += `        <variable>${escapeXml(node.variable)}</variable>\n`;
+      if (node.placeholder)
+        out += `        <placeholder>${escapeXml(node.placeholder)}</placeholder>\n`;
+      if (node.required) out += `        <required>true</required>\n`;
+      if (node.inputType && node.inputType !== "text")
+        out += `        <inputType>${escapeXml(node.inputType)}</inputType>\n`;
+      // Serialise list options when type is "list"
+      if (
+        node.inputType === "list" &&
+        node.listOptions &&
+        node.listOptions.length
+      ) {
+        out += `        <listOptions>\n`;
+        node.listOptions.forEach((opt) => {
+          out += `            <option value="${escapeXml(opt.value || "")}">${escapeXml(opt.text)}</option>\n`;
+        });
+        out += `        </listOptions>\n`;
+      }
       if (node.next) out += `        <next>${escapeXml(node.next)}</next>\n`;
     } else if (node.type !== "end" && node.next) {
       out += `        <next>${escapeXml(node.next)}</next>\n`;
@@ -171,7 +234,9 @@ function exportToXMLString() {
     } else if (
       node.type === "link" ||
       node.type === "setvar" ||
-      node.type === "email"
+      node.type === "email" ||
+      node.type === "dropdown" ||
+      node.type === "download"
     ) {
       if (node.next) children += serializeNode(node.next);
     } else if (node.type !== "end" && node.next) {
@@ -220,9 +285,9 @@ function importFromXML(xmlStr) {
     } else if (type === "decision") {
       const d = q.querySelector("decision");
       if (d) {
-        node.variable = d.getAttribute("variable") || "";
+        node.left = d.getAttribute("left") || "";
         node.operator = d.getAttribute("operator") || "equals";
-        node.value = d.getAttribute("value") || "";
+        node.right = d.getAttribute("right") || "";
         node.trueNext = d.querySelector("true")?.getAttribute("next") || "";
         node.falseNext = d.querySelector("false")?.getAttribute("next") || "";
       }
@@ -236,15 +301,17 @@ function importFromXML(xmlStr) {
       node.next = q.querySelector("next")?.textContent.trim() || "";
     } else if (type === "link") {
       node.links = [];
-      q.querySelectorAll("links > link").forEach((link) => {
+      q.querySelectorAll("links > link").forEach((link) =>
         node.links.push({
           label: link.getAttribute("label") || "Link",
           url: link.getAttribute("url") || "",
-        });
-      });
+        }),
+      );
       node.next = q.querySelector("next")?.textContent.trim() || "";
     } else if (type === "setvar") {
       node.variable = q.querySelector("variable")?.textContent.trim() || "";
+      node.operation =
+        q.querySelector("operation")?.textContent.trim() || "set";
       node.value = q.querySelector("value")?.textContent.trim() || "";
       node.varType = q.querySelector("varType")?.textContent.trim() || "string";
       node.showInRuntime =
@@ -261,8 +328,31 @@ function importFromXML(xmlStr) {
         node.buttonLabel = e.getAttribute("buttonLabel") || "Send Email";
       }
       node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type === "dropdown") {
+      node.variable = q.querySelector("variable")?.textContent.trim() || "";
+      node.options = [];
+      q.querySelectorAll("options > option").forEach((o) =>
+        node.options.push({
+          text: o.textContent.trim(),
+          value: o.getAttribute("value") || "",
+        }),
+      );
+      node.next = q.querySelector("next")?.textContent.trim() || "";
+    } else if (type === "download") {
+      node.filename =
+        q.querySelector("filename")?.textContent.trim() || "download.txt";
+      node.content = q.querySelector("content")?.textContent.trim() || "";
+      node.next = q.querySelector("next")?.textContent.trim() || "";
     } else if (type === "input" || type === "number") {
       node.variable = q.querySelector("variable")?.textContent.trim() || "";
+      node.placeholder =
+        q.querySelector("placeholder")?.textContent.trim() || "";
+      node.required =
+        q.querySelector("required")?.textContent.trim() === "true";
+      if (type === "input") {
+        node.inputType =
+          q.querySelector("inputType")?.textContent.trim() || "text";
+      }
       node.next = q.querySelector("next")?.textContent.trim() || "";
     } else if (type !== "end") {
       node.next = q.querySelector("next")?.textContent.trim() || "";
@@ -282,16 +372,14 @@ function importFromXML(xmlStr) {
 
 function validateFlow(proj) {
   const errors = [];
-  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId)) {
+  if (!proj.startNodeId || !proj.nodes.has(proj.startNodeId))
     errors.push("No start node set.");
-  }
   proj.nodes.forEach((node) => {
     const checkNext = (targetId, label) => {
-      if (targetId && !proj.nodes.has(targetId)) {
+      if (targetId && !proj.nodes.has(targetId))
         errors.push(
           `Node "${node.id}" (${node.type}): ${label} "${targetId}" not found.`,
         );
-      }
     };
     if (node.type === "choice" && node.options) {
       node.options.forEach((opt, i) => checkNext(opt.next, `Option ${i + 1}`));
@@ -299,18 +387,21 @@ function validateFlow(proj) {
       checkNext(node.trueNext, "True next");
       checkNext(node.falseNext, "False next");
     } else if (
-      node.type === "link" ||
-      node.type === "setvar" ||
-      node.type === "input" ||
-      node.type === "number" ||
-      node.type === "message" ||
-      node.type === "copybox" ||
-      node.type === "email"
+      [
+        "link",
+        "setvar",
+        "input",
+        "number",
+        "message",
+        "copybox",
+        "email",
+        "dropdown",
+        "download",
+      ].includes(node.type)
     ) {
       checkNext(node.next, "Next");
     }
   });
-  // Optional: unreachable nodes
   if (proj.startNodeId && proj.nodes.has(proj.startNodeId)) {
     const visited = new Set();
     function visit(id) {
@@ -325,9 +416,8 @@ function validateFlow(proj) {
     }
     visit(proj.startNodeId);
     proj.nodes.forEach((node, id) => {
-      if (!visited.has(id) && node.type !== "end") {
+      if (!visited.has(id) && node.type !== "end")
         errors.push(`Unreachable node: "${id}" (${node.type}).`);
-      }
     });
   }
   return errors;

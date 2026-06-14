@@ -34,13 +34,15 @@ function getSourceColor(node) {
     message: "#3b82f6",
     copybox: "#0ea5e9",
     link: "#14b8a6",
-    setvar: "#c026d3", // was #a855f7
+    setvar: "#c026d3",
     input: "#f59e0b",
     number: "#ec4899",
-    email: "#6366f1", // new
+    email: "#6366f1",
+    dropdown: "#10b981",
+    download: "#f59e0b",
     end: "#6b7280",
   };
-  return colors[node.type] || "#db0011"; // fallback red
+  return colors[node.type] || "#db0011";
 }
 
 function createConnectionPath(from, to, cls) {

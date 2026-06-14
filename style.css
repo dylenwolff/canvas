@@ -109,10 +109,7 @@ html.light-mode .palette-node[data-type="input"] .palette-node-icon {
   color: var(--node-input) !important;
   background: rgba(245, 158, 11, 0.15) !important;
 }
-html.light-mode .palette-node[data-type="number"] .palette-node-icon {
-  color: var(--node-number) !important;
-  background: rgba(236, 72, 153, 0.15) !important;
-}
+
 html.light-mode .palette-node[data-type="end"] .palette-node-icon {
   color: var(--node-end) !important;
   background: rgba(239, 68, 68, 0.15) !important;
@@ -151,10 +148,7 @@ html.light-mode .node-input .node-type-badge {
   background: rgba(245, 158, 11, 0.15);
   color: var(--node-input);
 }
-html.light-mode .node-number .node-type-badge {
-  background: rgba(236, 72, 153, 0.15);
-  color: var(--node-number);
-}
+
 html.light-mode .node-end .node-type-badge {
   background: rgba(239, 68, 68, 0.15);
   color: var(--node-end);
@@ -767,13 +761,7 @@ body {
     0 0 20px rgba(245, 158, 11, 0.35),
     0 0 0 4px rgba(245, 158, 11, 0.12) !important;
 }
-.canvas-node.node-number.selected {
-  border-color: var(--node-number) !important;
-  box-shadow:
-    var(--shadow-lg),
-    0 0 20px rgba(236, 72, 153, 0.35),
-    0 0 0 4px rgba(236, 72, 153, 0.12) !important;
-}
+
 .canvas-node.node-end.selected {
   border-color: var(--node-end) !important;
   box-shadow:
@@ -837,9 +825,7 @@ body {
 .canvas-node.node-input {
   border-left: 3px solid var(--node-input);
 }
-.canvas-node.node-number {
-  border-left: 3px solid var(--node-number);
-}
+
 .canvas-node.node-end {
   border-left: 3px solid var(--node-end);
 }
@@ -887,10 +873,7 @@ body {
   background: rgba(245, 158, 11, 0.2);
   color: #fcd34d;
 }
-.node-number .node-type-badge {
-  background: rgba(236, 72, 153, 0.2);
-  color: #f9a8d4;
-}
+
 .node-end .node-type-badge {
   background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
@@ -2433,4 +2416,49 @@ body {
 /* Full width for email button in linear steps */
 .linear-step .runtime-email-btn {
   width: 100%;
+}
+
+/* ---- Download Node ---- */
+.canvas-node.node-download {
+  border-left: 3px solid #f59e0b;
+}
+.node-download .node-type-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.node-download.selected {
+  border-color: #f59e0b !important;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 20px rgba(245, 158, 11, 0.35),
+    0 0 0 4px rgba(245, 158, 11, 0.12) !important;
+}
+.palette-node[data-type="download"] .palette-node-icon {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.3);
+}
+html.light-mode .palette-node[data-type="download"] .palette-node-icon {
+  color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+html.light-mode .node-download .node-type-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+/* Input type pill (on canvas nodes) */
+.input-type-pill {
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.03em;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+/* Light‑mode override for the input‑type pill */
+html.light-mode .input-type-pill {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309; /* darker amber for contrast */
 }

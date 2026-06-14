@@ -104,6 +104,9 @@ function handleMenuAction(action) {
     case "mailto-link":
       openMailtoBuilder();
       break;
+    case "export-pdf":
+      exportToPDF();
+      break;
   }
 }
 

@@ -17,7 +17,6 @@ function savePanelFocus() {
     dir: focused.selectionDirection,
   };
 }
-
 function restorePanelFocus(info) {
   if (!info) return;
   const el = document.getElementById(info.id);
@@ -59,13 +58,14 @@ function createNodeElement(node) {
     variantPill.textContent = node.variant;
     header.appendChild(variantPill);
   }
-  if (node.type === "link") {
-    el.classList.add("node-link");
+  if (node.type === "link") el.classList.add("node-link");
+  if (node.type === "setvar") el.classList.add("node-setvar");
+  if (node.type === "input" && node.inputType) {
+    const inputTypePill = document.createElement("span");
+    inputTypePill.className = "input-type-pill";
+    inputTypePill.textContent = node.inputType;
+    header.appendChild(inputTypePill);
   }
-  if (node.type === "setvar") {
-    el.classList.add("node-setvar");
-  }
-
   const idLbl = document.createElement("span");
   idLbl.className = "node-id-label";
   idLbl.textContent =
@@ -73,7 +73,6 @@ function createNodeElement(node) {
   header.appendChild(idLbl);
   el.appendChild(header);
 
-  // Plain text preview
   const textPrev = document.createElement("div");
   textPrev.className = "node-text-preview";
   textPrev.textContent =
@@ -85,11 +84,7 @@ function createNodeElement(node) {
   if (node.type === "decision") {
     const cond = document.createElement("div");
     cond.className = "node-options-preview";
-    let condText = `${node.variable || "?"} ${node.operator}`;
-    if (node.operator !== "is true" && node.operator !== "is false") {
-      condText += ` ${node.value || "?"}`;
-    }
-    cond.innerHTML = `<span class="node-option-chip">${condText}</span>`;
+    cond.innerHTML = `<span class="node-option-chip">${escapeHtml(node.left || "?")} ${node.operator} ${escapeHtml(node.right || "?")}</span>`;
     el.appendChild(cond);
   }
   if (node.type === "choice" && node.options) {
@@ -117,9 +112,22 @@ function createNodeElement(node) {
   if (node.type === "setvar") {
     const setPrev = document.createElement("div");
     setPrev.className = "node-options-preview";
-    setPrev.innerHTML = `<span class="node-option-chip">${escapeHtml(node.variable || "?")} = ${escapeHtml(node.value || "?")} (${node.varType || "string"})</span>`;
+    const varName = node.variable || "?";
+    const val = node.value || "?";
+    const op = node.operation || "set";
+    const symbol =
+      {
+        set: "=",
+        add: "+",
+        subtract: "−",
+        multiply: "×",
+        divide: "÷",
+        concatenate: "&",
+      }[op] || "=";
+    setPrev.innerHTML = `<span class="node-option-chip">${escapeHtml(varName)} ${symbol} ${escapeHtml(val)} (${node.varType || "string"})</span>`;
     el.appendChild(setPrev);
   }
+  // REMOVED: dropdown canvas preview block
 
   const portIn = document.createElement("div");
   portIn.className = "node-port port-in";
@@ -229,7 +237,7 @@ function refreshNodePreview(nodeId) {
   if (node.type === "decision") {
     const cond = nodeEl.querySelector(".node-options-preview");
     if (cond)
-      cond.innerHTML = `<span class="node-option-chip">${node.variable || "?"} ${node.operator} ${node.value || "?"}</span>`;
+      cond.innerHTML = `<span class="node-option-chip">${escapeHtml(node.left || "?")} ${node.operator} ${escapeHtml(node.right || "?")}</span>`;
   }
   if (node.type === "choice" && node.options) {
     const ops = nodeEl.querySelector(".node-options-preview");
@@ -255,9 +263,27 @@ function refreshNodePreview(nodeId) {
       });
     }
   }
+  if (node.type === "setvar") {
+    const setPrev = nodeEl.querySelector(".node-options-preview");
+    if (setPrev) {
+      const varName = node.variable || "?";
+      const val = node.value || "?";
+      const op = node.operation || "set";
+      const symbol =
+        {
+          set: "=",
+          add: "+",
+          subtract: "−",
+          multiply: "×",
+          divide: "÷",
+          concatenate: "&",
+        }[op] || "=";
+      setPrev.innerHTML = `<span class="node-option-chip">${escapeHtml(varName)} ${symbol} ${escapeHtml(val)} (${node.varType || "string"})</span>`;
+    }
+  }
 }
 
-// ---------- EDITOR PANEL (plain textarea) ----------
+// ---------- EDITOR PANEL ----------
 function updateEditorPanel() {
   const focusInfo = savePanelFocus();
   const proj = currentProject();
@@ -284,8 +310,8 @@ function updateEditorPanel() {
       <option value="link" ${node.type === "link" ? "selected" : ""}>Link</option>
       <option value="setvar" ${node.type === "setvar" ? "selected" : ""}>Set Variable</option>
       <option value="email" ${node.type === "email" ? "selected" : ""}>Email</option>
+      <option value="download" ${node.type === "download" ? "selected" : ""}>Download TXT</option>
       <option value="input" ${node.type === "input" ? "selected" : ""}>Input</option>
-      <option value="number" ${node.type === "number" ? "selected" : ""}>Number</option>
       <option value="end" ${node.type === "end" ? "selected" : ""}>End</option>
     </select></div>
     <div class="form-group">
@@ -294,77 +320,115 @@ function updateEditorPanel() {
     </div>
     <div class="form-group"><label class="form-label">ID</label><input class="form-input" value="${escapeHtml(node.id)}" readonly style="opacity:0.6;font-family:var(--font-mono);font-size:0.7rem;"></div>`;
 
-  if (node.type === "input" || node.type === "number") {
+  // Input fields
+  if (node.type === "input") {
     html += `<div class="form-group"><label class="form-label">Variable Name</label><input class="form-input" id="editVariableName" value="${escapeHtml(node.variable || "")}" placeholder="e.g., userName"></div>`;
+
+    const inputTypes = [
+      { value: "text", label: "Text" },
+      { value: "number", label: "Number" },
+      { value: "date", label: "Date" },
+      { value: "time", label: "Time" },
+      { value: "datetime-local", label: "Datetime‑local" },
+      { value: "list", label: "List" },
+    ];
+    html += `<div class="form-group"><label class="form-label">Input Type</label><select class="form-select" id="editInputType">${inputTypes
+      .map(
+        (t) =>
+          `<option value="${t.value}" ${node.inputType === t.value ? "selected" : ""}>${t.label}</option>`,
+      )
+      .join("")}</select></div>`;
+
+    html += `<div class="form-group" id="inputPlaceholderGroup"><label class="form-label">Placeholder</label><input class="form-input" id="editPlaceholder" value="${escapeHtml(node.placeholder || "")}" placeholder="Hint text"></div>`;
+
+    html += `<div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="editRequired" ${node.required ? "checked" : ""}> Required</label></div>`;
+
+    html += `<div class="form-group" id="listOptionsGroup" style="${node.inputType === "list" ? "" : "display:none"}">
+    <label class="form-label">List Options</label>
+    <div id="listOptionsContainer">`;
+    node.listOptions?.forEach((o, i) => {
+      html += `<div class="option-row" data-list-opt-index="${i}" style="margin-bottom:6px;">
+      <input class="form-input" value="${escapeHtml(o.text)}" data-list-field="text" placeholder="Label">
+      <input class="form-input" value="${escapeHtml(o.value || "")}" data-list-field="value" placeholder="Value (optional)">
+      <button class="btn-remove-option" data-remove-list-opt="${i}">×</button>
+    </div>`;
+    });
+    html += `</div><button class="btn-add-option" id="btnAddListOption">+ Add Option</button></div>`;
+
+    html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editNodeNext" value="${escapeHtml(node.next || "")}" placeholder="Enter target node ID"></div>`;
   }
 
+  // Message variant
   if (node.type === "message") {
     const vars = ["info", "success", "warning", "error", "action"];
     html += `<div class="form-group"><label class="form-label">Variant</label><select class="form-select" id="editMessageVariant">${vars.map((v) => `<option value="${v}" ${node.variant === v ? "selected" : ""}>${v[0].toUpperCase() + v.slice(1)}</option>`).join("")}</select></div>`;
   }
 
+  // Copybox
   if (node.type === "copybox") {
-    html += `
-      <div class="form-group">
-        <label class="form-label">Copy Content</label>
-        <textarea class="form-textarea" id="editCopyContent" rows="4">${escapeHtml(node.copyContent || "")}</textarea>
-      </div>`;
+    html += `<div class="form-group"><label class="form-label">Copy Content</label><textarea class="form-textarea" id="editCopyContent" rows="4">${escapeHtml(node.copyContent || "")}</textarea></div>`;
   }
 
+  // Link
   if (node.type === "link") {
     html += `<div class="form-group"><label class="form-label">Links</label><div id="linksContainer">`;
     node.links?.forEach((link, i) => {
       html += `<div class="option-row" data-link-index="${i}" style="margin-bottom:6px;">
-    <input class="form-input" value="${escapeHtml(link.label)}" data-link-field="label" placeholder="Label">
-    <input class="form-input" value="${escapeHtml(link.url || "")}" data-link-field="url" placeholder="https://...">
-    <button class="btn-remove-option" data-remove-link="${i}">×</button>
-  </div>`;
+        <input class="form-input" value="${escapeHtml(link.label)}" data-link-field="label" placeholder="Label">
+        <input class="form-input" value="${escapeHtml(link.url || "")}" data-link-field="url" placeholder="https://...">
+        <button class="btn-remove-option" data-remove-link="${i}">×</button>
+      </div>`;
     });
     html += `</div><button class="btn-add-option" id="btnAddLink">+ Add Link</button></div>`;
     html += `<div class="form-group"><label class="form-label">Default Next (Continue)</label><input class="form-input" id="editLinkNext" value="${escapeHtml(node.next || "")}" placeholder="Enter target node ID"></div>`;
   }
 
+  // SetVar
   if (node.type === "setvar") {
-    html += `
-    <div class="form-group"><label class="form-label">Variable Name</label><input class="form-input" id="editVarName" value="${escapeHtml(node.variable || "")}" placeholder="myVar"></div>
-    <div class="form-group"><label class="form-label">Value</label><input class="form-input" id="editVarValue" value="${escapeHtml(node.value || "")}" placeholder="Value"></div>
-    <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="editVarType">
-      <option value="string" ${node.varType === "string" ? "selected" : ""}>String</option>
-      <option value="number" ${node.varType === "number" ? "selected" : ""}>Number</option>
-      <option value="boolean" ${node.varType === "boolean" ? "selected" : ""}>Boolean</option>
-    </select></div>
-    <div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-      <input type="checkbox" id="editShowInRuntime" ${node.showInRuntime !== false ? "checked" : ""}> Show in Runtime
-    </label></div>
-    <div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editSetNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>
-  `;
+    html += `<div class="form-group"><label class="form-label">Variable Name</label><input class="form-input" id="editVarName" value="${escapeHtml(node.variable || "")}" placeholder="myVar"></div>`;
+    html += `<div class="form-group"><label class="form-label">Operation</label><select class="form-select" id="editSetOperation">
+    <option value="set" ${node.operation === "set" ? "selected" : ""}>Set (=)</option>
+    <option value="add" ${node.operation === "add" ? "selected" : ""}>Add (+)</option>
+    <option value="subtract" ${node.operation === "subtract" ? "selected" : ""}>Subtract (−)</option>
+    <option value="multiply" ${node.operation === "multiply" ? "selected" : ""}>Multiply (×)</option>
+    <option value="divide" ${node.operation === "divide" ? "selected" : ""}>Divide (÷)</option>
+    <option value="concatenate" ${node.operation === "concatenate" ? "selected" : ""}>Concatenate</option>
+  </select></div>`;
+
+    html += `<div class="form-group" id="setValueGroup">
+    <label class="form-label" id="setValueLabel">${node.operation === "set" ? "Value" : "Operand"}</label>
+    <input class="form-input" id="editSetValue" value="${escapeHtml(node.value || "")}" placeholder="${node.operation === "set" ? "Value to assign" : "Operand"}">
+  </div>`;
+
+    html += `<div class="form-group"><label class="form-label">Type</label><select class="form-select" id="editVarType">
+    <option value="string" ${node.varType === "string" ? "selected" : ""}>String</option>
+    <option value="number" ${node.varType === "number" ? "selected" : ""}>Number</option>
+    <option value="boolean" ${node.varType === "boolean" ? "selected" : ""}>Boolean</option>
+  </select></div>`;
+    html += `<div class="form-group"><label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="editShowInRuntime" ${node.showInRuntime !== false ? "checked" : ""}> Show in Runtime</label></div>`;
+    html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editSetNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>`;
   }
+
+  // Email
   if (node.type === "email") {
-    html += `
-    <div class="form-group"><label class="form-label">To</label><input class="form-input" id="editEmailTo" value="${escapeHtml(node.to || "")}" placeholder="user@example.com"></div>
-    <div class="form-group"><label class="form-label">CC</label><input class="form-input" id="editEmailCC" value="${escapeHtml(node.cc || "")}" placeholder=""></div>
-    <div class="form-group"><label class="form-label">BCC</label><input class="form-input" id="editEmailBCC" value="${escapeHtml(node.bcc || "")}" placeholder=""></div>
-    <div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="editEmailSubject" value="${escapeHtml(node.subject || "")}" placeholder="Hello"></div>
-    <div class="form-group">
-      <label class="form-label">Body</label>
-      <textarea class="form-textarea" id="editEmailBody" rows="4">${escapeHtml(node.body || "")}</textarea>
-    </div>
-    <div class="form-group"><label class="form-label">Button Label</label><input class="form-input" id="editEmailButtonLabel" value="${escapeHtml(node.buttonLabel || "Send Email")}" placeholder="Send Email"></div>
-    <div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editEmailNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>
-  `;
+    html += `<div class="form-group"><label class="form-label">To</label><input class="form-input" id="editEmailTo" value="${escapeHtml(node.to || "")}" placeholder="user@example.com"></div>`;
+    html += `<div class="form-group"><label class="form-label">CC</label><input class="form-input" id="editEmailCC" value="${escapeHtml(node.cc || "")}" placeholder=""></div>`;
+    html += `<div class="form-group"><label class="form-label">BCC</label><input class="form-input" id="editEmailBCC" value="${escapeHtml(node.bcc || "")}" placeholder=""></div>`;
+    html += `<div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="editEmailSubject" value="${escapeHtml(node.subject || "")}" placeholder="Hello"></div>`;
+    html += `<div class="form-group"><label class="form-label">Body</label><textarea class="form-textarea" id="editEmailBody" rows="4">${escapeHtml(node.body || "")}</textarea></div>`;
+    html += `<div class="form-group"><label class="form-label">Button Label</label><input class="form-input" id="editEmailButtonLabel" value="${escapeHtml(node.buttonLabel || "Send Email")}" placeholder="Send Email"></div>`;
+    html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editEmailNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>`;
   }
+
+  // Download
+  if (node.type === "download") {
+    html += `<div class="form-group"><label class="form-label">File Name</label><input class="form-input" id="editDownloadFilename" value="${escapeHtml(node.filename || "download.txt")}" placeholder="filename.txt"></div>`;
+    html += `<div class="form-group"><label class="form-label">File Content</label><textarea class="form-textarea" id="editDownloadContent" rows="4">${escapeHtml(node.content || "")}</textarea></div>`;
+    html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editDownloadNext" value="${escapeHtml(node.next || "")}" placeholder="Target node ID"></div>`;
+  }
+
+  // Decision (upgraded)
   if (node.type === "decision") {
-    const varOpts = Array.from(proj.nodes.values())
-      .filter(
-        (n) =>
-          (n.type === "input" || n.type === "number" || n.type === "setvar") &&
-          n.variable,
-      )
-      .map(
-        (v) =>
-          `<option value="${escapeHtml(v.variable)}" ${node.variable === v.variable ? "selected" : ""}>${escapeHtml(v.variable)}</option>`,
-      )
-      .join("");
     const ops = [
       "equals",
       "contains",
@@ -379,28 +443,37 @@ function updateEditorPanel() {
       "is true",
       "is false",
     ];
-    html += `
-      <div class="form-group"><label class="form-label">Variable</label><select class="form-select" id="editDecisionVariable"><option value="">-- choose --</option>${varOpts}</select></div>
-      <div class="form-group"><label class="form-label">Operator</label><select class="form-select" id="editDecisionOperator">${ops.map((o) => `<option value="${o}" ${node.operator === o ? "selected" : ""}>${o}</option>`).join("")}</select></div>
-      <div class="form-group" id="editDecisionValueGroup" style="${node.operator === "is true" || node.operator === "is false" ? "display:none;" : ""}"><label class="form-label">Value</label><input class="form-input" id="editDecisionValue" value="${escapeHtml(node.value || "")}" placeholder="e.g., 10"></div>
-      <div class="form-group"><label class="form-label">True → Next ID</label><input class="form-input" id="editTrueNext" value="${escapeHtml(node.trueNext || "")}"></div>
-      <div class="form-group"><label class="form-label">False → Next ID</label><input class="form-input" id="editFalseNext" value="${escapeHtml(node.falseNext || "")}"></div>`;
+    html += `<div class="form-group"><label class="form-label">Left Value</label><input class="form-input" id="editDecisionLeft" value="${escapeHtml(node.left || "")}" placeholder="e.g., {age} or static text"></div>`;
+    html += `<div class="form-group"><label class="form-label">Operator</label><select class="form-select" id="editDecisionOperator">${ops.map((o) => `<option value="${o}" ${node.operator === o ? "selected" : ""}>${o}</option>`).join("")}</select></div>`;
+    html += `<div class="form-group"><label class="form-label">Right Value</label><input class="form-input" id="editDecisionRight" value="${escapeHtml(node.right || "")}" placeholder="e.g., 18 or {threshold}"></div>`;
+    html += `<div class="form-group"><label class="form-label">True → Next ID</label><input class="form-input" id="editTrueNext" value="${escapeHtml(node.trueNext || "")}"></div>`;
+    html += `<div class="form-group"><label class="form-label">False → Next ID</label><input class="form-input" id="editFalseNext" value="${escapeHtml(node.falseNext || "")}"></div>`;
   }
 
+  // Choice
   if (node.type === "choice") {
     html += `<div class="form-group"><label class="form-label">Options</label><div id="optionsContainer">`;
     node.options?.forEach((o, i) => {
-      html += `<div class="option-row" data-opt-index="${i}" style="margin-bottom:6px;"><input class="form-input" value="${escapeHtml(o.text)}" data-opt-field="text"><input class="form-input" value="${escapeHtml(o.next || "")}" data-opt-field="next" style="flex:0.8;"><button class="btn-remove-option" data-remove-opt="${i}">×</button></div>`;
+      html += `<div class="option-row" data-opt-index="${i}" style="margin-bottom:6px;">
+        <input class="form-input" value="${escapeHtml(o.text)}" data-opt-field="text">
+        <input class="form-input" value="${escapeHtml(o.next || "")}" data-opt-field="next" style="flex:0.8;">
+        <button class="btn-remove-option" data-remove-opt="${i}">×</button>
+      </div>`;
     });
     html += `</div><button class="btn-add-option" id="btnAddOption">+ Add Option</button></div>`;
   }
 
+  // Generic Next for types that don't have their own next field
   if (
-    node.type !== "choice" &&
-    node.type !== "decision" &&
-    node.type !== "end" &&
-    node.type !== "link" &&
-    node.type !== "setvar"
+    ![
+      "choice",
+      "decision",
+      "end",
+      "link",
+      "setvar",
+      "email",
+      "download",
+    ].includes(node.type)
   ) {
     html += `<div class="form-group"><label class="form-label">Next Node ID</label><input class="form-input" id="editNodeNext" value="${escapeHtml(node.next || "")}" placeholder="Enter target node ID"></div>`;
   }
@@ -409,203 +482,15 @@ function updateEditorPanel() {
 
   DOM.panelForm.innerHTML = html;
 
-  // ======= Email field bindings (must be after innerHTML) =======
-  const emailTo = document.getElementById("editEmailTo");
-  if (emailTo)
-    emailTo.addEventListener(
-      "input",
-      debounce(() => updateNodeProperty(id, "to", emailTo.value.trim()), 300),
-    );
-  const emailCC = document.getElementById("editEmailCC");
-  if (emailCC)
-    emailCC.addEventListener(
-      "input",
-      debounce(() => updateNodeProperty(id, "cc", emailCC.value.trim()), 300),
-    );
-  const emailBCC = document.getElementById("editEmailBCC");
-  if (emailBCC)
-    emailBCC.addEventListener(
-      "input",
-      debounce(() => updateNodeProperty(id, "bcc", emailBCC.value.trim()), 300),
-    );
-  const emailSubject = document.getElementById("editEmailSubject");
-  if (emailSubject)
-    emailSubject.addEventListener(
-      "input",
-      debounce(
-        () => updateNodeProperty(id, "subject", emailSubject.value.trim()),
-        300,
-      ),
-    );
-  const emailButtonLabel = document.getElementById("editEmailButtonLabel");
-  if (emailButtonLabel)
-    emailButtonLabel.addEventListener(
-      "input",
-      debounce(
-        () =>
-          updateNodeProperty(
-            id,
-            "buttonLabel",
-            emailButtonLabel.value.trim() || "Send Email",
-          ),
-        300,
-      ),
-    );
-  const emailNext = document.getElementById("editEmailNext");
-  if (emailNext)
-    emailNext.addEventListener(
-      "input",
-      debounce(
-        () => updateNodeProperty(id, "next", emailNext.value.trim()),
-        300,
-      ),
-    );
-
-  // ----- EVENT BINDINGS -----
-  document.getElementById("editNodeType").addEventListener("change", (e) => {
-    const newType = e.target.value;
-    if (newType !== node.type) {
-      pushUndo();
-      const existingNext = node.next || "";
-      if (newType === "choice") {
-        node.options = [
-          { text: "Yes", next: "" },
-          { text: "No", next: "" },
-        ];
-        delete node.next;
-        delete node.variable;
-        delete node.operator;
-        delete node.value;
-        delete node.trueNext;
-        delete node.falseNext;
-        delete node.variant;
-        delete node.copyContent;
-        delete node.links;
-        delete node.varType;
-        delete node.showInRuntime;
-      } else if (newType === "decision") {
-        node.variable = node.variable || "";
-        node.operator = node.operator || "equals";
-        node.value = node.value || "";
-        node.trueNext = node.trueNext || "";
-        node.falseNext = node.falseNext || "";
-        delete node.options;
-        delete node.next;
-        delete node.variant;
-        delete node.copyContent;
-        delete node.links;
-        delete node.varType;
-        delete node.showInRuntime;
-      } else if (newType === "message") {
-        node.variant = node.variant || "info";
-        node.next = existingNext || "";
-        delete node.options;
-        delete node.variable;
-        delete node.operator;
-        delete node.value;
-        delete node.trueNext;
-        delete node.falseNext;
-        delete node.copyContent;
-        delete node.links;
-        delete node.varType;
-        delete node.showInRuntime;
-      } else if (newType === "copybox") {
-        node.copyContent = node.copyContent || "Text to copy...";
-        node.next = existingNext || "";
-        delete node.options;
-        delete node.variable;
-        delete node.operator;
-        delete node.value;
-        delete node.trueNext;
-        delete node.falseNext;
-        delete node.variant;
-        delete node.links;
-        delete node.varType;
-        delete node.showInRuntime;
-      } else if (newType === "link") {
-        node.links = [
-          { label: "Example", url: "https://example.com" },
-          { label: "More Info", url: "https://en.wikipedia.org" },
-        ];
-        node.next = existingNext || "";
-        delete node.options;
-        delete node.variable;
-        delete node.operator;
-        delete node.value;
-        delete node.trueNext;
-        delete node.falseNext;
-        delete node.variant;
-        delete node.copyContent;
-        delete node.varType;
-        delete node.showInRuntime;
-      } else if (newType === "setvar") {
-        node.variable = node.variable || "";
-        node.value = node.value || "";
-        node.varType = node.varType || "string";
-        node.showInRuntime = node.showInRuntime !== false;
-        node.next = existingNext || "";
-        delete node.options;
-        delete node.variant;
-        delete node.copyContent;
-        delete node.trueNext;
-        delete node.falseNext;
-        delete node.links;
-      } else if (newType === "input" || newType === "number") {
-        node.variable = node.variable || "";
-        node.next = existingNext || "";
-        delete node.options;
-        delete node.operator;
-        delete node.value;
-        delete node.trueNext;
-        delete node.falseNext;
-        delete node.variant;
-        delete node.copyContent;
-        delete node.links;
-        delete node.varType;
-        delete node.showInRuntime;
-      } else if (newType === "end") {
-        delete node.options;
-        delete node.next;
-        delete node.variable;
-        delete node.operator;
-        delete node.value;
-        delete node.trueNext;
-        delete node.falseNext;
-        delete node.variant;
-        delete node.copyContent;
-        delete node.links;
-        delete node.varType;
-        delete node.showInRuntime;
-      } else {
-        node.next = existingNext || "";
-        delete node.options;
-        delete node.variable;
-        delete node.operator;
-        delete node.value;
-        delete node.trueNext;
-        delete node.falseNext;
-        delete node.variant;
-        delete node.copyContent;
-        delete node.links;
-        delete node.varType;
-        delete node.showInRuntime;
-      }
-      node.type = newType;
-      renderAll();
-      updateEditorPanel();
-    }
-  });
-
+  // ======= BINDINGS =======
   // Main text
   const textArea = document.getElementById("editNodeText");
-  if (textArea) {
+  if (textArea)
     textArea.addEventListener(
       "input",
       debounce(() => {
         const val = textArea.value;
-        const proj = currentProject();
-        const node = proj.nodes.get(id);
-        if (node && node.text !== val) {
+        if (node.text !== val) {
           pushUndo();
           node.text = val;
           refreshNodePreview(id);
@@ -613,58 +498,91 @@ function updateEditorPanel() {
         }
       }, 300),
     );
-  }
 
-  // Copy content (this is the old textarea fallback, but now we use WYSIWYG; keeping it won't hurt)
+  // Copy content
   const copyTextArea = document.getElementById("editCopyContent");
-  if (copyTextArea) {
+  if (copyTextArea)
     copyTextArea.addEventListener(
       "input",
       debounce(() => {
         const val = copyTextArea.value;
-        const proj = currentProject();
-        const node = proj.nodes.get(id);
-        if (node && node.copyContent !== val) {
+        if (node.copyContent !== val) {
           pushUndo();
           node.copyContent = val;
           markUnsaved();
         }
       }, 300),
     );
-  }
-  // Email body textarea
-  const emailBodyTextArea = document.getElementById("editEmailBody");
-  if (emailBodyTextArea) {
-    emailBodyTextArea.addEventListener(
+
+  // Email body
+  const emailBodyTA = document.getElementById("editEmailBody");
+  if (emailBodyTA)
+    emailBodyTA.addEventListener(
       "input",
       debounce(() => {
-        const val = emailBodyTextArea.value;
-        const proj = currentProject();
-        const node = proj.nodes.get(id);
-        if (node && node.body !== val) {
+        const val = emailBodyTA.value;
+        if (node.body !== val) {
           pushUndo();
           node.body = val;
           markUnsaved();
         }
       }, 300),
     );
-  }
-  // Variable name (input/number)
+
+  // Download content
+  const downloadContentTA = document.getElementById("editDownloadContent");
+  if (downloadContentTA)
+    downloadContentTA.addEventListener(
+      "input",
+      debounce(() => {
+        const val = downloadContentTA.value;
+        if (node.content !== val) {
+          pushUndo();
+          node.content = val;
+          markUnsaved();
+        }
+      }, 300),
+    );
+
+  // Variable name (input)
   const varNameInp = document.getElementById("editVariableName");
-  if (varNameInp) {
+  if (varNameInp)
     varNameInp.addEventListener(
       "input",
       debounce(() => {
         const val = varNameInp.value.trim();
-        const proj = currentProject();
-        const node = proj.nodes.get(id);
-        if (node && node.variable !== val) {
+        if (node.variable !== val) {
           pushUndo();
           node.variable = val;
           markUnsaved();
         }
       }, 300),
     );
+
+  // Placeholder
+  const plhInp = document.getElementById("editPlaceholder");
+  if (plhInp)
+    plhInp.addEventListener(
+      "input",
+      debounce(() => updateNodeProperty(id, "placeholder", plhInp.value), 300),
+    );
+
+  // Required checkbox
+  const reqChk = document.getElementById("editRequired");
+  if (reqChk)
+    reqChk.addEventListener("change", () =>
+      updateNodeProperty(id, "required", reqChk.checked),
+    );
+
+  // Input type
+  const listType = document.getElementById("editInputType");
+  const listGroup = document.getElementById("listOptionsGroup");
+  if (listType && listGroup) {
+    listType.addEventListener("change", () => {
+      const val = listType.value;
+      listGroup.style.display = val === "list" ? "" : "none";
+      updateNodeProperty(id, "inputType", val);
+    });
   }
 
   // Message variant
@@ -674,103 +592,246 @@ function updateEditorPanel() {
       updateNodeProperty(id, "variant", msgVar.value),
     );
 
+  // Email fields
+  document.getElementById("editEmailTo")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "to",
+          document.getElementById("editEmailTo").value.trim(),
+        ),
+      300,
+    ),
+  );
+  document.getElementById("editEmailCC")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "cc",
+          document.getElementById("editEmailCC").value.trim(),
+        ),
+      300,
+    ),
+  );
+  document.getElementById("editEmailBCC")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "bcc",
+          document.getElementById("editEmailBCC").value.trim(),
+        ),
+      300,
+    ),
+  );
+  document.getElementById("editEmailSubject")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "subject",
+          document.getElementById("editEmailSubject").value.trim(),
+        ),
+      300,
+    ),
+  );
+  document.getElementById("editEmailButtonLabel")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "buttonLabel",
+          document.getElementById("editEmailButtonLabel").value.trim() ||
+            "Send Email",
+        ),
+      300,
+    ),
+  );
+  document.getElementById("editEmailNext")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "next",
+          document.getElementById("editEmailNext").value.trim(),
+        ),
+      300,
+    ),
+  );
+
   // Decision fields
-  const decVar = document.getElementById("editDecisionVariable");
-  if (decVar)
-    decVar.addEventListener("change", () =>
-      updateNodeProperty(id, "variable", decVar.value),
+  document.getElementById("editDecisionLeft")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "left",
+          document.getElementById("editDecisionLeft").value,
+        ),
+      300,
+    ),
+  );
+  document
+    .getElementById("editDecisionOperator")
+    ?.addEventListener("change", () =>
+      updateNodeProperty(
+        id,
+        "operator",
+        document.getElementById("editDecisionOperator").value,
+      ),
     );
-  const decOp = document.getElementById("editDecisionOperator");
-  if (decOp)
-    decOp.addEventListener("change", () => {
-      updateNodeProperty(id, "operator", decOp.value);
-      const valGroup = document.getElementById("editDecisionValueGroup");
-      if (valGroup) {
-        if (decOp.value === "is true" || decOp.value === "is false") {
-          valGroup.style.display = "none";
+  document.getElementById("editDecisionRight")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "right",
+          document.getElementById("editDecisionRight").value,
+        ),
+      300,
+    ),
+  );
+  document.getElementById("editTrueNext")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "trueNext",
+          document.getElementById("editTrueNext").value.trim(),
+        ),
+      300,
+    ),
+  );
+  document.getElementById("editFalseNext")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "falseNext",
+          document.getElementById("editFalseNext").value.trim(),
+        ),
+      300,
+    ),
+  );
+
+  // SetVar bindings
+  document.getElementById("editVarName")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "variable",
+          document.getElementById("editVarName").value.trim(),
+        ),
+      300,
+    ),
+  );
+
+  const setOp = document.getElementById("editSetOperation");
+  if (setOp)
+    setOp.addEventListener("change", () => {
+      updateNodeProperty(id, "operation", setOp.value);
+      const label = document.getElementById("setValueLabel");
+      const input = document.getElementById("editSetValue");
+      if (label && input) {
+        if (setOp.value === "set") {
+          label.textContent = "Value";
+          input.placeholder = "Value to assign";
         } else {
-          valGroup.style.display = "";
+          label.textContent = "Operand";
+          input.placeholder = "Operand";
         }
       }
     });
-  const decVal = document.getElementById("editDecisionValue");
-  if (decVal)
-    decVal.addEventListener(
-      "input",
-      debounce(() => updateNodeProperty(id, "value", decVal.value), 300),
-    );
-  const trueN = document.getElementById("editTrueNext");
-  if (trueN)
-    trueN.addEventListener(
-      "input",
-      debounce(
-        () => updateNodeProperty(id, "trueNext", trueN.value.trim()),
-        300,
-      ),
-    );
-  const falseN = document.getElementById("editFalseNext");
-  if (falseN)
-    falseN.addEventListener(
-      "input",
-      debounce(
-        () => updateNodeProperty(id, "falseNext", falseN.value.trim()),
-        300,
-      ),
-    );
 
-  // Generic next (non-special nodes)
+  document.getElementById("editSetValue")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "value",
+          document.getElementById("editSetValue").value.trim(),
+        ),
+      300,
+    ),
+  );
+  document
+    .getElementById("editVarType")
+    ?.addEventListener("change", () =>
+      updateNodeProperty(
+        id,
+        "varType",
+        document.getElementById("editVarType").value,
+      ),
+    );
+  document
+    .getElementById("editShowInRuntime")
+    ?.addEventListener("change", () =>
+      updateNodeProperty(
+        id,
+        "showInRuntime",
+        document.getElementById("editShowInRuntime").checked,
+      ),
+    );
+  document.getElementById("editSetNext")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "next",
+          document.getElementById("editSetNext").value.trim(),
+        ),
+      300,
+    ),
+  );
+
+  // Download fields
+  document.getElementById("editDownloadFilename")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "filename",
+          document.getElementById("editDownloadFilename").value.trim(),
+        ),
+      300,
+    ),
+  );
+  document.getElementById("editDownloadNext")?.addEventListener(
+    "input",
+    debounce(
+      () =>
+        updateNodeProperty(
+          id,
+          "next",
+          document.getElementById("editDownloadNext").value.trim(),
+        ),
+      300,
+    ),
+  );
+
+  // Generic next
   const nextInp = document.getElementById("editNodeNext");
   if (nextInp)
     nextInp.addEventListener(
       "input",
       debounce(() => updateNodeProperty(id, "next", nextInp.value.trim()), 300),
-    );
-
-  // Link default next
-  const linkNextInp = document.getElementById("editLinkNext");
-  if (linkNextInp)
-    linkNextInp.addEventListener(
-      "input",
-      debounce(
-        () => updateNodeProperty(id, "next", linkNextInp.value.trim()),
-        300,
-      ),
-    );
-
-  // SetVar fields
-  const svVarName = document.getElementById("editVarName");
-  if (svVarName)
-    svVarName.addEventListener(
-      "input",
-      debounce(
-        () => updateNodeProperty(id, "variable", svVarName.value.trim()),
-        300,
-      ),
-    );
-  const svValue = document.getElementById("editVarValue");
-  if (svValue)
-    svValue.addEventListener(
-      "input",
-      debounce(
-        () => updateNodeProperty(id, "value", svValue.value.trim()),
-        300,
-      ),
-    );
-  const svType = document.getElementById("editVarType");
-  if (svType)
-    svType.addEventListener("change", () =>
-      updateNodeProperty(id, "varType", svType.value),
-    );
-  const svShow = document.getElementById("editShowInRuntime");
-  if (svShow)
-    svShow.addEventListener("change", () =>
-      updateNodeProperty(id, "showInRuntime", svShow.checked),
-    );
-  const svNext = document.getElementById("editSetNext");
-  if (svNext)
-    svNext.addEventListener(
-      "input",
-      debounce(() => updateNodeProperty(id, "next", svNext.value.trim()), 300),
     );
 
   // Start node checkbox
@@ -786,9 +847,8 @@ function updateEditorPanel() {
     updateEditorPanel();
   });
 
-  // Choice options events
-  const optsRows = document.querySelectorAll(".option-row[data-opt-index]");
-  optsRows.forEach((row) => {
+  // Choice options
+  document.querySelectorAll(".option-row[data-opt-index]").forEach((row) => {
     const idx = parseInt(row.dataset.optIndex);
     row.querySelector('[data-opt-field="text"]').addEventListener(
       "input",
@@ -818,27 +878,14 @@ function updateEditorPanel() {
       }
     });
   });
+  document.getElementById("btnAddOption")?.addEventListener("click", () => {
+    pushUndo();
+    node.options.push({ text: "New Option", next: "" });
+    renderAll();
+    updateEditorPanel();
+  });
 
-  const addOpt = document.getElementById("btnAddOption");
-  if (addOpt)
-    addOpt.addEventListener("click", () => {
-      pushUndo();
-      node.options.push({ text: "New Option", next: "" });
-      renderAll();
-      updateEditorPanel();
-    });
-
-  // Link events
-  const linkAddBtn = document.getElementById("btnAddLink");
-  if (linkAddBtn)
-    linkAddBtn.addEventListener("click", () => {
-      pushUndo();
-      node.links = node.links || [];
-      node.links.push({ label: "New Link", url: "https://" });
-      renderAll();
-      updateEditorPanel();
-    });
-
+  // Link options
   document.querySelectorAll("[data-link-index]").forEach((row) => {
     const idx = parseInt(row.dataset.linkIndex);
     row.querySelector('[data-link-field="label"]').addEventListener(
@@ -869,5 +916,150 @@ function updateEditorPanel() {
       }
     });
   });
+  document.getElementById("btnAddLink")?.addEventListener("click", () => {
+    pushUndo();
+    node.links = node.links || [];
+    node.links.push({ label: "New Link", url: "https://" });
+    renderAll();
+    updateEditorPanel();
+  });
+
+  // Input list options
+  document
+    .querySelectorAll(".option-row[data-list-opt-index]")
+    .forEach((row) => {
+      const idx = parseInt(row.dataset.listOptIndex);
+      row.querySelector('[data-list-field="text"]').addEventListener(
+        "input",
+        debounce(() => {
+          node.listOptions[idx].text = row.querySelector(
+            '[data-list-field="text"]',
+          ).value;
+          renderAll();
+          markUnsaved();
+        }, 300),
+      );
+      row.querySelector('[data-list-field="value"]').addEventListener(
+        "input",
+        debounce(() => {
+          node.listOptions[idx].value = row
+            .querySelector('[data-list-field="value"]')
+            .value.trim();
+          markUnsaved();
+        }, 300),
+      );
+      row
+        .querySelector("[data-remove-list-opt]")
+        .addEventListener("click", () => {
+          if (node.listOptions.length > 1) {
+            node.listOptions.splice(idx, 1);
+            renderAll();
+            updateEditorPanel();
+          }
+        });
+    });
+  document.getElementById("btnAddListOption")?.addEventListener("click", () => {
+    pushUndo();
+    node.listOptions = node.listOptions || [];
+    node.listOptions.push({ text: "New Option", value: "" });
+    renderAll();
+    updateEditorPanel();
+  });
+
+  // Type change (full logic — REMOVED dropdown and number cases)
+  document.getElementById("editNodeType").addEventListener("change", (e) => {
+    const newType = e.target.value;
+    if (newType !== node.type) {
+      pushUndo();
+      const existingNext = node.next || "";
+      // Clear all type-specific fields
+      delete node.options;
+      delete node.variable;
+      delete node.operator;
+      delete node.value;
+      delete node.trueNext;
+      delete node.falseNext;
+      delete node.variant;
+      delete node.copyContent;
+      delete node.links;
+      delete node.varType;
+      delete node.showInRuntime;
+      delete node.to;
+      delete node.cc;
+      delete node.bcc;
+      delete node.subject;
+      delete node.body;
+      delete node.buttonLabel;
+      delete node.filename;
+      delete node.content;
+      delete node.placeholder;
+      delete node.required;
+      delete node.inputType;
+      delete node.listOptions;
+      delete node.left;
+      delete node.right;
+      delete node.operation;
+      delete node.operand;
+
+      if (newType === "choice") {
+        node.options = [
+          { text: "Yes", next: "" },
+          { text: "No", next: "" },
+        ];
+      } else if (newType === "decision") {
+        node.left = "";
+        node.operator = "equals";
+        node.right = "";
+        node.trueNext = "";
+        node.falseNext = "";
+      } else if (newType === "message") {
+        node.variant = "info";
+        node.next = existingNext || "";
+      } else if (newType === "copybox") {
+        node.copyContent = "Text to copy...";
+        node.next = existingNext || "";
+      } else if (newType === "link") {
+        node.links = [
+          { label: "Example", url: "https://example.com" },
+          { label: "More Info", url: "https://en.wikipedia.org" },
+        ];
+        node.next = existingNext || "";
+      } else if (newType === "setvar") {
+        node.variable = "";
+        node.operation = "set";
+        node.value = "";
+        node.varType = "string";
+        node.showInRuntime = true;
+        node.next = existingNext || "";
+      } else if (newType === "email") {
+        node.to = "";
+        node.cc = "";
+        node.bcc = "";
+        node.subject = "";
+        node.body = "";
+        node.buttonLabel = "Send Email";
+        node.next = existingNext || "";
+      } else if (newType === "download") {
+        node.filename = "download.txt";
+        node.content = "";
+        node.next = existingNext || "";
+      } else if (newType === "input") {
+        node.variable = "";
+        node.inputType = "text";
+        node.placeholder = "";
+        node.required = false;
+        node.listOptions = [];
+        node.next = existingNext || "";
+      } else if (newType === "end") {
+        // nothing else needed
+      } else {
+        node.next = existingNext || "";
+      }
+      node.type = newType;
+      renderAll();
+      updateEditorPanel();
+    }
+  });
+
   restorePanelFocus(focusInfo);
 }
